@@ -1,5 +1,6 @@
 module Parser where
 
+import Control.Monad (guard)
 import Text.ParserCombinators.Parsec
 import Text.Parsec.Expr
 import Text.Parsec.Token
@@ -227,7 +228,17 @@ pSave :: Parser QueryTerminal
 pSave = do
   reservedOpP "."
   reservedP "save"
-  TerminalSave <$> parensP stringP
+  TerminalSave <$> parensP parseJsonPath
+
+parseJsonPath :: Parser JsonPath
+parseJsonPath = do
+  path <- stringP
+  guard (endsWithJson path) <?> "archivo.json"
+  return path
+
+endsWithJson :: String -> Bool
+endsWithJson s =
+  length s > 5 && drop (length s -5) s == ".json"
 
 --Query completa
 pFind :: Parser Find
