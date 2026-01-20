@@ -1,0 +1,6 @@
+find.usuarios()
+  .filter(edad > 18 && ciudad == "Rosario")
+  .select(nombre, edad)
+  .sort({edad: desc})
+  .limit(2)
+  .preview()
