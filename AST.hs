@@ -117,19 +117,21 @@ data QueryTerminal
 -- de agregación. Having es opcional.
 -- ======================================================
 
-data GroupSpec = GroupSpec
-  { groupField :: FieldName
-  , aggregates :: [Aggregate]
-  , havingCond :: Maybe BoolExp
-  }
-  deriving (Show, Eq)
+--data GroupSpec = GroupSpec
+--  { groupField :: FieldName
+--  , aggregates :: [Aggregate]
+--  , havingCond :: Maybe BoolExp
+--  }
+--  deriving (Show, Eq)
+data GroupSpec = GroupSpec FieldName [Aggregate] (Maybe BoolExp) deriving (Show, Eq)
 
-data Aggregate = Aggregate
-  { aggFunc  :: AggFunc
-  , aggField :: FieldName
-  , aggAlias :: FieldName
-  }
-  deriving (Show, Eq)
+--data Aggregate = Aggregate
+--  { aggFunc  :: AggFunc
+--  , aggField :: FieldName
+--  , aggAlias :: FieldName
+--  }
+--  deriving (Show, Eq)
+data Aggregate = Aggregate AggFunc FieldName FieldName deriving (Show, Eq)
 
 data AggFunc
   = AggCount

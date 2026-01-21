@@ -48,21 +48,64 @@ bracketsP = brackets dsl
 
 -- Expresiones group
 
-pExp :: Parser Exp
-pExp = buildExpressionParser table pTerm
+--pExp :: Parser Exp
+--pExp = buildExpressionParser table pTerm
 
-pTerm :: Parser Exp
-pTerm =
+--pTerm :: Parser Exp
+--pTerm =
+--      parensP pExp
+--  <|> try (FloatExp <$> floatP)
+--  <|> IntExp . fromInteger <$> integerP
+--  <|> StringExp <$> stringP
+--  <|> BoolExpVal True  <$ reservedP "true"
+--  <|> BoolExpVal False <$ reservedP "false"
+--  <|> NullExp <$ reservedP "null"
+--  <|> VarExp <$> identifierP
+--  <|> pObject
+--  <|> pArray
+
+pExp :: Parser Exp
+pExp = parseAddSub
+
+parseAddSub :: Parser Exp
+parseAddSub = chainl1 parseMulDiv addSubOp
+
+addSubOp :: Parser (Exp -> Exp -> Exp)
+addSubOp =
+      (reservedOpP "+" >> return AddExp)
+  <|> (reservedOpP "-" >> return SubExp)
+
+parseMulDiv :: Parser Exp
+parseMulDiv = chainl1 parseFactor mulDivOp
+
+mulDivOp :: Parser (Exp -> Exp -> Exp)
+mulDivOp =
+      (reservedOpP "*" >> return MulExp)
+  <|> (reservedOpP "/" >> return DivExp)
+
+parseFactor :: Parser Exp
+parseFactor =
       parensP pExp
+  <|> try parseFieldAccess
   <|> try (FloatExp <$> floatP)
   <|> IntExp . fromInteger <$> integerP
   <|> StringExp <$> stringP
   <|> BoolExpVal True  <$ reservedP "true"
   <|> BoolExpVal False <$ reservedP "false"
   <|> NullExp <$ reservedP "null"
-  <|> VarExp <$> identifierP
+--  <|> VarExp <$> identifierP  REEMPLAZADO POR parseFieldAccess
   <|> pObject
   <|> pArray
+
+parseFieldAccess :: Parser Exp
+parseFieldAccess = do
+  name <- identifierP
+  let base = VarExp name
+  fields <- many (do
+    reservedOpP "."
+    identifierP
+    )
+  return (foldl FieldAccess base fields)
 
 -- Objetos y Arrays JSON     
 
@@ -82,22 +125,42 @@ pArray = JArrayExp <$> bracketsP (pExp `sepBy` commaP)
 
 -- Operadores aritméticos (precedencia)
 
-table =
-  [ [ binary "*" MulExp AssocLeft
-    , binary "/" DivExp AssocLeft
-    ]
-  , [ binary "+" AddExp AssocLeft
-    , binary "-" SubExp AssocLeft
-    ]
-  ]
+--table =
+--  [ [ binary "*" MulExp AssocLeft
+--    , binary "/" DivExp AssocLeft
+--    ]
+--  , [ binary "+" AddExp AssocLeft
+--    , binary "-" SubExp AssocLeft
+--    ]
+--  ]
 
-binary name fun assoc =
-  Infix (reservedOpP name >> return fun) assoc
+--binary name fun assoc =
+--  Infix (reservedOpP name >> return fun) assoc
 
 -- Expresiones booleanas
 
+--pBoolExp :: Parser BoolExp
+--pBoolExp = buildExpressionParser boolTable pBoolTerm
+
 pBoolExp :: Parser BoolExp
-pBoolExp = buildExpressionParser boolTable pBoolTerm
+pBoolExp = parseOr
+
+parseOr :: Parser BoolExp
+parseOr = chainl1 parseAnd orOp
+
+orOp :: Parser (BoolExp -> BoolExp -> BoolExp)
+orOp = reservedOpP "||" >> return Or
+
+parseAnd :: Parser BoolExp
+parseAnd = chainl1 parseNot andOp
+
+andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
+andOp = reservedOpP "&&" >> return And
+
+parseNot :: Parser BoolExp
+parseNot =
+      (reservedOpP "!" >> Not <$> parseNot)
+  <|> pBoolTerm
 
 pBoolTerm :: Parser BoolExp
 pBoolTerm =
@@ -121,11 +184,11 @@ compOp =
   <|> Lt  <$ reservedOpP "<"
   <|> Le  <$ reservedOpP "<="
 
-boolTable =
-  [ [ Prefix (reservedOpP "!" >> return Not) ]
-  , [ Infix (reservedOpP "&&" >> return And) AssocLeft ]
-  , [ Infix (reservedOpP "||" >> return Or)  AssocLeft ]
-  ]
+--boolTable =
+--  [ [ Prefix (reservedOpP "!" >> return Not) ]
+--  , [ Infix (reservedOpP "&&" >> return And) AssocLeft ]
+--  , [ Infix (reservedOpP "||" >> return Or)  AssocLeft ]
+--  ]
 
 -- Operaciones del pipeline
 
