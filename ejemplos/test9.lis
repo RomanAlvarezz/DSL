@@ -1,0 +1,33 @@
+createView("mayoresActivos",
+  find.usuarios()
+    .filter(!(edad < 18) && (activo == true || categoria == "gold"))
+    .groupby(edad)
+      .count("total", edad)
+      .having(total > 1)
+    .preview()
+)
+
+timestamp.usuarios("antes_de_cambios")
+
+transaction.{
+  insertMany.usuarios([
+    {nombre: "Ana", edad: 30, activo: true},
+    {nombre: "Luis", edad: 45, activo: false},
+    {nombre: "Carla", edad: 22, activo: true}
+  ]);
+
+  updateOne.usuarios(
+    nombre == "Luis",
+    {activo: true, categoria: "gold"}
+  );
+
+  delete.usuarios(edad < 21)
+}
+
+useView("mayoresActivos")
+  .filter(edad > 25)
+  .sort({edad: desc})
+  .limit(5)
+  .preview()
+
+rollback.("antes_de_cambios")

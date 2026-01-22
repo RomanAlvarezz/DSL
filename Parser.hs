@@ -40,6 +40,7 @@ stringP     = stringLiteral dsl
 integerP    = integer dsl
 floatP      = float dsl
 commaP      = comma dsl
+semiP       = semi dsl
 whiteSpaceP = whiteSpace dsl
 
 bracketsP :: Parser a -> Parser a
@@ -244,8 +245,8 @@ pGroup = do
   reservedOpP "."
   reservedP "groupby"
   field <- parensP identifierP
-  aggs  <- many pAggregate
-  hav   <- optionMaybe pHaving
+  aggs  <- many (try pAggregate)  -- cambie la linea, la anterior esa aggs <- many pAggregate
+  hav   <- optionMaybe (try pHaving)   -- cambie la linea, la anterior era hav <- optionMaybe pHaving
   return $ QGroup (GroupSpec field aggs hav)
 
 pAggregate :: Parser Aggregate
@@ -323,10 +324,91 @@ pInsert = do
   doc <- parensP pExp
   return (CommInsert col doc)
 
+pInsertManyComm :: Parser Comm
+pInsertManyComm = do
+  reservedP "insertMany"
+  reservedOpP "."
+  col <- identifierP
+  listDoc <- parensP (bracketsP (pExp `sepBy1` commaP))
+  return (CommInsertMany col listDoc)
+
+pUpdateOneComm :: Parser Comm
+pUpdateOneComm = do  
+  reservedP "updateOne"
+  reservedOpP "."
+  col <- identifierP
+  (cond, doc) <- parensP $ do
+    c <- pBoolExp
+    commaP
+    d <- pExp
+    return (c, d)
+  return (CommUpdateOne col cond doc)
+
+pDeleteComm :: Parser Comm
+pDeleteComm = do  
+  reservedP "delete"
+  reservedOpP "."
+  col <- identifierP
+  cond <- parensP pBoolExp
+  return (CommDelete col cond)
+
+pTransactionComm :: Parser Comm
+pTransactionComm = do  
+  reservedP "transaction"
+  reservedOpP "."
+  commList <- bracesP (pStatement `sepBy1` semiP)
+  return (CommTransaction commList)
+
+pTimestampComm :: Parser Comm
+pTimestampComm = do  
+  reservedP "timestamp"
+  reservedOpP "."
+  colOrView <- TSView <$> identifierP
+  label <- parensP stringP
+  return (CommTimestamp colOrView label)
+
+pRollbackComm :: Parser Comm
+pRollbackComm = do  
+  reservedP "rollback"
+  reservedOpP "."
+  label <- parensP stringP
+  return (CommRollback label)
+
+pCreateViewComm :: Parser Comm
+pCreateViewComm = do
+  reservedP "createView"
+  (name, findQ) <- parensP $ do
+    n <- stringP
+    commaP
+    f <- pFind
+    return (n, f)
+  return (CommCreateView name findQ)
+
+pUseViewComm :: Parser Comm
+pUseViewComm = do
+  reservedP "useView"
+  viewName <- parensP stringP
+  ops <- many pQueryOp
+  term <- pTerminal
+  return (CommUseView viewName (Find viewName ops term))
+
+--pStatement :: Parser Comm
+--pStatement =
+--      try (CommQuery <$> pFind)
+--  <|> pInsert
+
 pStatement :: Parser Comm
 pStatement =
-      try (CommQuery <$> pFind)
-  <|> pInsert
+      try pTransactionComm
+  <|> try pCreateViewComm
+  <|> try pUseViewComm
+  <|> try pTimestampComm
+  <|> try pRollbackComm
+  <|> try pInsertManyComm
+  <|> try pUpdateOneComm
+  <|> try pDeleteComm
+  <|> try pInsert
+  <|> (CommQuery <$> pFind)
 
 -- Programa completo
 

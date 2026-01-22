@@ -1,0 +1,6 @@
+transaction.{
+  insert.usuarios({nombre: "Juan", edad: 25});
+  insert.usuarios({nombre: "Maria", edad: 17});
+  updateOne.usuarios(nombre == "Maria", {activo: false});
+  delete.usuarios(edad < 18)
+}
