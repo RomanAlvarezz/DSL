@@ -9,7 +9,7 @@ createView("mayoresActivos",
 
 timestamp.usuarios("antes_de_cambios")
 
-transaction.{
+transaction{
   insertMany.usuarios([
     {nombre: "Ana", edad: 30, activo: true},
     {nombre: "Luis", edad: 45, activo: false},
@@ -30,4 +30,4 @@ useView("mayoresActivos")
   .limit(5)
   .preview()
 
-rollback.("antes_de_cambios")
+rollback("antes_de_cambios")

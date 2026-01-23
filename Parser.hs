@@ -355,7 +355,7 @@ pDeleteComm = do
 pTransactionComm :: Parser Comm
 pTransactionComm = do  
   reservedP "transaction"
-  reservedOpP "."
+  --reservedOpP "."
   commList <- bracesP (pStatement `sepBy1` semiP)
   return (CommTransaction commList)
 
@@ -370,7 +370,7 @@ pTimestampComm = do
 pRollbackComm :: Parser Comm
 pRollbackComm = do  
   reservedP "rollback"
-  reservedOpP "."
+  --reservedOpP "."
   label <- parensP stringP
   return (CommRollback label)
 
