@@ -124,7 +124,7 @@ pArray :: Parser Exp
 pArray = JArrayExp <$> bracketsP (pExp `sepBy` commaP)
 
 
--- Operadores aritméticos (precedencia)
+-- Operadores aritméticos (precedencia) terminal
 
 --table =
 --  [ [ binary "*" MulExp AssocLeft
@@ -278,7 +278,7 @@ pHaving = do
 
 pTerminal :: Parser QueryTerminal
 pTerminal =
-      pPreview
+      try pPreview
   <|> pSave
 
 pPreview :: Parser QueryTerminal
@@ -294,15 +294,24 @@ pSave = do
   reservedP "save"
   TerminalSave <$> parensP parseJsonPath
 
+--parseJsonPath :: Parser JsonPath
+--parseJsonPath = do
+--  path <- stringP
+--  guard (endsWithJson path) <?> "archivo.json"
+--  return path
+
+--endsWithJson :: String -> Bool
+--endsWithJson s =
+--  length s > 5 && drop (length s -5) s == ".json"
+
 parseJsonPath :: Parser JsonPath
 parseJsonPath = do
-  path <- stringP
-  guard (endsWithJson path) <?> "archivo.json"
-  return path
+  char '"'
+  name <- many1 (alphaNum <|> char '_' <|> char '-')
+  string ".json"
+  char '"'
+  return (name ++ ".json")
 
-endsWithJson :: String -> Bool
-endsWithJson s =
-  length s > 5 && drop (length s -5) s == ".json"
 
 --Query completa
 pFind :: Parser Find

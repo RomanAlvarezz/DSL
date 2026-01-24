@@ -1,0 +1,6 @@
+find.usuarios()
+  .filter(edad > 18 && ciudad == "Rosario")
+  .select(nombre, edad, ciudad)
+  .sort({edad: desc})
+  .limit(10)
+  .save("usuarios_rosario.json")
