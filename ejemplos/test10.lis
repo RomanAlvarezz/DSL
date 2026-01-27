@@ -1,5 +1,4 @@
-timestamp.("backup")
-timestamp.usuarios("backupUsuarios")
-
-rollback.("backup")
-rollback.usuarios("backupUsuarios")
+timestamp.database("v1")
+timestamp.usuarios("backup_users")
+rollback.database("v1")
+rollback.logs("before_delete")

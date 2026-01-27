@@ -22,7 +22,8 @@ dsl = makeTokenParser emptyDef
       , "groupby", "having"
       , "preview", "save"
       , "transaction", "timestamp", "rollback"
-      , "createView", "useView"
+      , "createView", "useView",
+      "database"
       ]
   , reservedOpNames =
       [ ".", ",", ":", "==", "!=", ">", "<", ">=", "<="
@@ -313,7 +314,7 @@ parseJsonPath = do
   return (name ++ ".json")
 
 
---Query completa
+--Query completa target
 pFind :: Parser Find
 pFind = do
   reservedP "find"
@@ -384,13 +385,19 @@ pRollbackComm = do
   label <- parensP stringP
   return (CommRollback target label)
 
+--pTimestampTarget :: Parser TimestampTarget
+--pTimestampTarget =
+--      try (do
+--        name <- identifierP
+--        return (TSColl name)
+--      )
+--  <|> return TSDatabase
+
 pTimestampTarget :: Parser TimestampTarget
 pTimestampTarget =
-      try (do
-        name <- identifierP
-        return (TSColl name)
-      )
-  <|> return TSDatabase
+      (TSDatabase <$ reservedP "database")
+  <|> (TSColl <$> identifierP)
+
 
 pCreateViewComm :: Parser Comm
 pCreateViewComm = do
