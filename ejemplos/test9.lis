@@ -30,4 +30,4 @@ useView("mayoresActivos")
   .limit(5)
   .preview()
 
-rollback("antes_de_cambios")
+rollback.usuarios("antes_de_cambios")

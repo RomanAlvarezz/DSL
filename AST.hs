@@ -44,7 +44,7 @@ data Comm
   | CommTimestamp TimestampTarget TimestampLabel
     -- ^ Marca un estado de la base de datos o una vista
 
-  | CommRollback TimestampLabel
+  | CommRollback TimestampTarget TimestampLabel
     -- ^ Revierte la base al timestamp indicado
 
   | CommCreateView ViewName Find
@@ -205,6 +205,6 @@ data TimestampTarget
   = TSDatabase
     -- ^ Timestamp de toda la base de datos
 
-  | TSView ViewName
+  | TSColl Collection
     -- ^ Timestamp de una vista específica
   deriving (Show, Eq)

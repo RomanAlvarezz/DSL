@@ -362,26 +362,35 @@ pDeleteComm = do
   return (CommDelete col cond)
 
 pTransactionComm :: Parser Comm
-pTransactionComm = do  
+pTransactionComm = do
   reservedP "transaction"
   --reservedOpP "."
   commList <- bracesP (pStatement `sepBy1` semiP)
   return (CommTransaction commList)
 
 pTimestampComm :: Parser Comm
-pTimestampComm = do  
+pTimestampComm = do
   reservedP "timestamp"
   reservedOpP "."
-  colOrView <- TSView <$> identifierP
+  target <- pTimestampTarget
   label <- parensP stringP
-  return (CommTimestamp colOrView label)
+  return (CommTimestamp target label)
 
 pRollbackComm :: Parser Comm
-pRollbackComm = do  
+pRollbackComm = do
   reservedP "rollback"
-  --reservedOpP "."
+  reservedOpP "."
+  target <- pTimestampTarget
   label <- parensP stringP
-  return (CommRollback label)
+  return (CommRollback target label)
+
+pTimestampTarget :: Parser TimestampTarget
+pTimestampTarget =
+      try (do
+        name <- identifierP
+        return (TSColl name)
+      )
+  <|> return TSDatabase
 
 pCreateViewComm :: Parser Comm
 pCreateViewComm = do
