@@ -26,6 +26,12 @@ data Comm
   = CommQuery Find
     -- ^ Ejecución de una consulta (find + pipeline + terminal)
 
+  | CommCreateColl Collection
+   -- ^ Creacion de una collection
+
+  | CommDropColl Collection
+  -- ^ Elimina una collection con todos los registros que contiene
+
   | CommInsert Collection Exp
     -- ^ Inserta un documento en una colección
 

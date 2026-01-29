@@ -326,6 +326,22 @@ pFind = do
   return (Find col ops term)
 
 --Statements
+pCreateCollection :: Parser Comm
+pCreateCollection = do
+  reservedP "createCollection"
+  reservedOpP "."
+  col <- identifierP
+  parensP (return ())
+  return (CommCreateColl col)
+
+pDropCollection :: Parser Comm
+pDropCollection = do
+  reservedP "dropCollection"
+  reservedOpP "."
+  col <- identifierP
+  parensP (return ())
+  return (CommDropColl col)
+
 pInsert :: Parser Comm
 pInsert = do
   reservedP "insert"
@@ -425,6 +441,8 @@ pUseViewComm = do
 pStatement :: Parser Comm
 pStatement =
       try pTransactionComm
+  <|> try pCreateCollection
+  <|> try pDropCollection
   <|> try pCreateViewComm
   <|> try pUseViewComm
   <|> try pTimestampComm
