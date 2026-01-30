@@ -1,0 +1,10 @@
+createCollection.users();
+
+insert.users({
+  name: "Juan",
+  age: 25
+});
+
+find.users()
+  .filter(exists(email))
+  .preview();

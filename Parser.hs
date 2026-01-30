@@ -23,7 +23,8 @@ dsl = makeTokenParser emptyDef
       , "preview", "save"
       , "transaction", "timestamp", "rollback"
       , "createView", "useView",
-      "database"
+      "database",
+      "exists"
       ]
   , reservedOpNames =
       [ ".", ",", ":", "==", "!=", ">", "<", ">=", "<="
@@ -64,7 +65,14 @@ bracketsP = brackets dsl
 --  <|> NullExp <$ reservedP "null"
 --  <|> VarExp <$> identifierP
 --  <|> pObject
---  <|> pArray
+--  <|> pArray pBool
+
+pExists :: Parser BoolExp
+pExists = do
+  reservedP "exists"
+  e <- parensP pExp
+  return (Exists e)
+
 
 pExp :: Parser Exp
 pExp = parseAddSub
@@ -167,9 +175,11 @@ parseNot =
 pBoolTerm :: Parser BoolExp
 pBoolTerm =
       parensP pBoolExp
+  <|> try pExists          -- 👈 NUEVO
   <|> pComparison
   <|> BTrue  <$ reservedP "true"
   <|> BFalse <$ reservedP "false"
+
 
 pComparison :: Parser BoolExp
 pComparison = do
@@ -456,4 +466,5 @@ pStatement =
 -- Programa completo
 
 pProgram :: Parser Program
-pProgram = whiteSpaceP *> many pStatement <* eof
+pProgram = whiteSpaceP *> pStatement `sepEndBy` semiP <* eof
+

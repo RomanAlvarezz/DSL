@@ -1,4 +1,4 @@
-createCollection.usuarios()
+createCollection.usuarios();
 
 createView("mayoresActivos",
   find.usuarios()
@@ -7,9 +7,9 @@ createView("mayoresActivos",
       .count("total", edad)
       .having(total > 1)
     .preview()
-)
+);
 
-timestamp.usuarios("antes_de_cambios")
+timestamp.usuarios("antes_de_cambios");
 
 transaction{
   insertMany.usuarios([
@@ -24,15 +24,15 @@ transaction{
   );
 
   delete.usuarios(edad < 21)
-}
+};
 
 useView("mayoresActivos")
   .filter(edad > 25)
   .sort({edad: desc})
   .limit(5)
-  .preview()
+  .preview();
 
 
-rollback.usuarios("antes_de_cambios")
+rollback.usuarios("antes_de_cambios");
 
-dropCollection.usuarios()
+dropCollection.usuarios();

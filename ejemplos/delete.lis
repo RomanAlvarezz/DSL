@@ -1,0 +1,1 @@
+delete.usuarios(exists(direccion.altura) && edad < 21)

@@ -165,6 +165,7 @@ data BoolExp
   | Le  Exp Exp
   | Gt  Exp Exp
   | Ge  Exp Exp
+  | Exists Exp
   deriving (Show, Eq)
 
 -- ======================================================
