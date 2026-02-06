@@ -1,0 +1,905 @@
+SEMANTICA
+
+Notacion matematica para las definiciones de mi bbdd:
+
+Document (Un documento es un conjunto finito de pares (FieldName, Value)):
+Document ⊆ FieldName × Value
+d ∈ Document
+
+Collection (Una colección es una lista de documentos.):
+Collection = [Document]
+C ∈ Collection
+
+base de datos (Una base de datos es un conjunto finito de pares (CollectionName, Collection)):
+Database ⊆ CollectionName × Collection
+DB ∈ Database
+
+Con todo eso definido podemos hacer:  " DB(col) = docs "
+
+
+____________________Semantica de Exp____________________
+
+
+------------------------- (E-Int)
+(IntExp n, d) ⇓ VInt n
+
+
+----------------------------- (E-Float)
+(FloatExp f, d) ⇓ VFloat f
+
+
+----------------------------- (E-String)
+(StringExp s, d) ⇓ VString s
+
+
+------------------------------ (E-Bool)
+(BoolExpVal b, d) ⇓ VBool b
+
+
+------------------------ (E-Null)
+(NullExp, d) ⇓ VNull
+
+
+
+d(f) = v
+--------------------- (E-Var)  Campo existente
+(VarExp f, d) ⇓ v
+
+
+f ∉ dom(d)
+--------------------- (E-VarErr) Campo inexistente
+(VarExp f, d) ⇓ erri
+
+
+
+(e, d) ⇓ VObject obj      obj(f) = v
+--------------------------------------- (E-Field)  Acceso correcto
+(FieldAccess e f, d) ⇓ v
+
+
+(e, d) ⇓ v     v ≠ VObject(_)
+---------------------------------- (E-FieldTypeErr)  la expresión no es un objeto
+(FieldAccess e f, d) ⇓ erri
+
+
+(e, d) ⇓ VObject obj     f ∉ dom(obj)
+--------------------------------------- (E-FieldNotFound)  campo inexistente en ese objeto
+(FieldAccess e f, d) ⇓ erri
+
+
+(e, d) ⇓ erri
+----------------------------- (E-FieldErr)  Error propagado
+(FieldAccess e f, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+------------------------------------------- (E-AddInt)
+(AddExp e1 e2, d) ⇓ VInt (n1 + n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-AddFloat)
+(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-AddMix1)
+(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
+-------------------------------------------- (E-AddMix2)
+(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+
+
+(e1, d) ⇓ erri
+---------------------------- (E-AddErr1)
+(AddExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1   (e2, d) ⇓ erri
+-------------------------------- (E-AddErr2)
+(AddExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
+----------------------------------------------------------- (E-AddTypeErr)
+(AddExp e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+------------------------------------------- (E-SubInt)
+(SubExp e1 e2, d) ⇓ VInt (n1 - n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-SubFloat)
+(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-SubMix1)
+(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
+-------------------------------------------- (E-SubMix2)
+(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+
+
+(e1, d) ⇓ erri
+---------------------------- (E-SubErr1)
+(SubExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1   (e2, d) ⇓ erri
+-------------------------------- (E-SubErr2)
+(SubExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
+----------------------------------------------------------- (E-SubTypeErr)
+(SubExp e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+------------------------------------------- (E-MulInt)
+(MulExp e1 e2, d) ⇓ VInt (n1 * n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-MulFloat)
+(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (E-MulMix1)
+(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
+-------------------------------------------- (E-MulMix2)
+(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+
+
+(e1, d) ⇓ erri
+---------------------------- (E-MulErr1)
+(MulExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1   (e2, d) ⇓ erri
+-------------------------------- (E-MulErr2)
+(MulExp e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
+----------------------------------------------------------- (E-MulTypeErr)
+(MulExp e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2     n2 ≠ 0
+-------------------------------------------------- (E-DivInt)
+(DivExp e1 e2, d) ⇓ VInt (n1 / n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2     n2 ≠ 0
+------------------------------------------------------ (E-DivFloat)
+(DivExp e1 e2, d) ⇓ VFloat (n1 / n2)
+
+
+(e1, d) ⇓ v     v = 0
+---------------------------- (E-DivZero)
+(DivExp e1 e2, d) ⇓ erri
+
+
+
+∀i ∈ {1..n}. (ei, d) ⇓ vi
+------------------------------------------------------------------------- (E-Object) objeto correcto
+(JObjectExp [(f1,e1),...,(fn,en)], d) ⇓ VObject [(f1,v1),...,(fn,vn)]
+
+
+∃i. (ei, d) ⇓ erri
+------------------------------------- (E-ObjectErr) error en algun campo
+(JObjectExp [...], d) ⇓ erri
+
+
+
+∀i ∈ {1..n}. (ei, d) ⇓ vi
+------------------------------------------------ (E-Array) array correcto
+(JArrayExp [e1,...,en], d) ⇓ VArray [v1,...,vn]
+
+
+∃i. (ei, d) ⇓ erri
+------------------------------- (E-ArrayErr) error en algun elemento
+(JArrayExp [...], d) ⇓ erri
+
+
+
+____________________Semantica de BoolExp____________________
+
+
+-------------------- (B-True)
+(BTrue, d) ⇓ true
+
+
+-------------------- (B-False)
+(BFalse, d) ⇓ false
+
+
+(b, d) ⇓ true
+------------------- (B-NotTrue)
+(Not b, d) ⇓ false
+
+
+(b, d) ⇓ false
+------------------- (B-NotFalse)
+(Not b, d) ⇓ true
+
+
+(b, d) ⇓ erri
+------------------- (B-NotErr) error en la evaluacion del booleano
+(Not b, d) ⇓ erri
+
+
+
+(b1, d) ⇓ false
+---------------------------- (B-AndFalse) siendo el primero false, todo devuelve false
+(And b1 b2, d) ⇓ false
+
+
+(b1, d) ⇓ true     (b2, d) ⇓ v
+---------------------------------- (B-AndTrue)  la evaluacion va a dar lo que de 'v'
+(And b1 b2, d) ⇓ v
+
+
+(b1, d) ⇓ erri
+---------------------------- (B-AndErr1)
+(And b1 b2, d) ⇓ erri
+
+
+(b1, d) ⇓ v      (b2, d) ⇓ erri
+----------------------------------- (B-AndErr2) independientemnete de que v sea true o false si b2 falla, falla todo
+(And b1 b2, d) ⇓ erri
+
+
+
+(b1, d) ⇓ true
+---------------------------- (B-OrTrue) con que el primero sea true ya devuelve true
+(Or b1 b2, d) ⇓ true
+
+
+(b1, d) ⇓ false     (b2, d) ⇓ v
+---------------------------------- (B-OrFalse)  devuelve lo que devuelva la evaluacion de b2
+(Or b1 b2, d) ⇓ v
+
+
+(b1, d) ⇓ erri
+---------------------------- (B-OrErr1) ya error en el primero, falla todo
+(Or b1 b2, d) ⇓ erri
+
+
+(b1, d) ⇓ v      (b2, d) ⇓ erri
+---------------------------------- (B-OrErr2) aca falla el segundo
+(Or b1 b2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ v1     (e2, d) ⇓ v2  v1, v2 ∈ {VInt, VFloat}
+------------------------------------------------------ (B-EqNum)
+(Eq e1 e2, d) ⇓ (v1 == v2)
+
+
+(e1, d) ⇓ VString s1     (e2, d) ⇓ VString s2
+----------------------------------------------- (B-EqString)
+(Eq e1 e2, d) ⇓ (s1 == s2)
+
+
+(e1, d) ⇓ VBool b1     (e2, d) ⇓ VBool b2
+-------------------------------------------- (B-EqBool)
+(Eq e1 e2, d) ⇓ (b1 == b2)
+
+
+(e1, d) ⇓ VNull     (e2, d) ⇓ VNull
+------------------------------------- (B-EqNull)
+(Eq e1 e2, d) ⇓ true
+
+(e1, d) ⇓ VNull     (e2, d) ⇓ v     v ≠ VNull
+------------------------------------------------ (B-EqNullFalse) comparar null con cualquier otro valor siempre da false
+(Eq e1 e2, d) ⇓ false
+
+
+(e1, d) ⇓ v1     (e2, d) ⇓ v2  v1 ∈ {VObject, VArray} ∨ v2 ∈ {VObject, VArray}
+------------------------------------------------------------------------------- (B-EqTypeErr) comparaciones de tipos no permitidos
+(Eq e1 e2, d) ⇓ erri
+
+
+
+(Eq e1 e2, d) ⇓ b
+---------------------------- (B-Neq)
+(Neq e1 e2, d) ⇓ not(b)
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+--------------------------------------- (B-LtInt)
+(Lt e1 e2, d) ⇓ (n1 < n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (B-LtFloat)
+(Lt e1 e2, d) ⇓ (n1 < n2)
+
+
+(e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
+--------------------------------------------------- (B-LtTypeErr)
+(Lt e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
+--------------------------------------------------------------- (B-LtTypeErr)
+(Lt e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+--------------------------------------- (B-LeInt)
+(Le e1 e2, d) ⇓ (n1 <= n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (B-LeFloat)
+(Le e1 e2, d) ⇓ (n1 <= n2)
+
+
+(e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
+--------------------------------------------------- (B-LeTypeErr)
+(Le e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
+--------------------------------------------------------------- (B-LeTypeErr)
+(Le e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+--------------------------------------- (B-GtInt)
+(Gt e1 e2, d) ⇓ (n1 > n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (B-GtFloat)
+(Gt e1 e2, d) ⇓ (n1 > n2)
+
+
+(e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
+--------------------------------------------------- (B-GtTypeErr)
+(Gt e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
+--------------------------------------------------------------- (B-GtTypeErr)
+(Gt e1 e2, d) ⇓ erri
+
+
+
+(e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
+--------------------------------------- (B-GeInt)
+(Ge e1 e2, d) ⇓ (n1 >= n2)
+
+
+(e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
+-------------------------------------------- (B-GeFloat)
+(Ge e1 e2, d) ⇓ (n1 >= n2)
+
+
+(e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
+--------------------------------------------------- (B-GeTypeErr)
+(Ge e1 e2, d) ⇓ erri
+
+
+(e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
+--------------------------------------------------------------- (B-GeTypeErr)
+(Ge e1 e2, d) ⇓ erri
+
+
+
+(e, d) ⇓ VNull
+------------------------ (B-ExistsNull)
+(Exists e, d) ⇓ false
+
+
+(e, d) ⇓ v     v ≠ VNull
+------------------------------ (B-ExistsTrue)
+(Exists e, d) ⇓ true
+
+
+(e, d) ⇓ erri
+------------------------ (B-ExistsErr)
+(Exists e, d) ⇓ erri
+
+
+
+____________________Semantica de QueryOp____________________  d :: C -> una colección cuyo primer documento es d y el resto es C, ej: [d1, d2, d3] , d1 :: [d2, d3]
+
+
+----------------------------- (QF-Empty)
+(QFilter b, []) ⇓ []
+
+
+(b, d) ⇓ true      (QFilter b, C) ⇓ C'
+------------------------------------------------ (QF-True) documento que pasa el filtro
+(QFilter b, d :: C) ⇓ d :: C'
+
+
+(b, d) ⇓ false     (QFilter b, C) ⇓ C'
+------------------------------------------------- (QF-False) documento evaluado que no paso el filtro
+(QFilter b, d :: C) ⇓ C'
+
+
+(b, d) ⇓ erri
+------------------------------- (QF-Err)  error evaluando la condicion
+(QFilter b, d :: C) ⇓ erri
+
+
+
+----------------------------- (QS-Empty)
+(QSelect fields, []) ⇓ []  -> podria devolver NULL
+
+
+∀f ∈ fields. d(f) = v
+------------------------------------------------- (QS)
+(QSelect fields, d :: C) ⇓ d' :: C'
+
+
+∃f ∈ fields. f ∉ dom(d)
+-------------------------------- (QS-FieldInex) campo inexistente
+(QSelect fields, d :: C) ⇓ erri
+
+
+d' = { (f, v) | f ∈ fields ∧ d(f) = v } -> d' es el documento resultante de proyectar d sobre fields
+
+
+
+
+----------------------------- (QLimit-Empty)
+(QLimit n, []) ⇓ []   -> tambien podria devolver NULL
+
+
+n ≤ 0
+----------------------------- (QLimit-Zero)
+(QLimit n, C) ⇓ []        -> deberia dar Erri
+
+
+n > 0              (QLimit (n-1), C) ⇓ C'
+-------------------------------------------- (QLimit-Pos)
+(QLimit n, d :: C) ⇓ d :: C'     
+
+
+
+----------------------------- (QSrt-Empty)
+(QSort keys, []) ⇓ []     -> devolver null
+
+
+∀d ∈ C. ∀(f, _) ∈ keys. f ∈ dom(d)
+---------------------------------------------------- (QSrt)
+(QSort keys, C) ⇓ C'
+
+
+∃d ∈ C. ∃(f, _) ∈ keys. f ∉ dom(d)
+---------------------------------------------------- (QSrt-FieldErr)
+(QSort keys, C) ⇓ erri
+
+
+
+ANTES DE HACER QGROUP RESUELVO LAS UNIDADES MAS SIMPLES: AGGFUNC, AGGREGATE, GROUPSPEC Y ULTIMO QGROUP
+
+Lo que le llega a AggFunc como 'estado' es una lista de valores a la cual va a aplicar la funcion, entonces defino:
+ValSeq = [Value]
+
+vs ∈ ValSeq    n = length(vs)
+-------------------------------- (AG-Count) cuenta los elementos sin importar el tipo
+(AggCount, vs) ⇓ VInt n
+
+
+
+vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}
+-------------------------------------------------- (AG-Sum) solo enteros o flotantes, puede ser mixta
+(AggSum, vs) ⇓ VFloat (Σ toFloat(v))
+
+
+vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
+--------------------------------------------------- (AG-SumTypeErr) si no es entero o flotante error
+(AggSum, vs) ⇓ erri
+
+
+
+vs ∈ ValSeq    (AggSum, vs) ⇓ VFloat s    (AggCount, vs) ⇓ VInt n    n > 0
+--------------------------------------------------------------------------- (AG-Avg)
+(AggAvg, vs) ⇓ VFloat (s / n)
+
+
+vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
+--------------------------------------------------- (AG-AvgTypeErr)
+(AggAvg, vs) ⇓ erri
+
+
+
+vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}    v = min(vs)
+--------------------------------------------------------------- (AG-Min)
+(AggMin, vs) ⇓ v
+
+
+vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
+----------------------------------------------------- (AG-MinTypeErr)
+(AggMin, vs) ⇓ erri
+
+
+
+vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}    v = max(vs)
+---------------------------------------------------------------- (AG-Max)
+(AggMax, vs) ⇓ v
+
+
+vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
+-------------------------------------------------- (AG-MaxTypeErr)
+(AggMax, vs) ⇓ erri
+
+
+
+∀d ∈ C. d(f) = v_d    vs = [v_d | d ∈ C]    (agg, vs) ⇓ v
+------------------------------------------------------------ (AGG)
+(Aggregate agg f alias, C) ⇓ (alias, v)
+
+
+∃d ∈ C. f ∉ dom(d)
+----------------------------------------- (AGG-FieldNotFound) campo inexistente en algún documento
+(Aggregate agg f alias, C) ⇓ erri
+
+
+∀d ∈ C. d(f) = v_d    vs = [v_d | d ∈ C]    (agg, vs) ⇓ erri
+----------------------------------------------------------------- (AGG-AggErr) error en la funcion de agregacion
+(Aggregate agg f alias, C) ⇓ erri
+
+
+C = []
+----------------------------------------- (AGG-EmptyGroup) la collection esta vacia/ se suele permitir COUNT sobre grupo vacío → 0
+(Aggregate agg f alias, C) ⇓ erri
+
+
+ 
+---------------------------- (QG-Empty) si no hay documentos, no hay grupos.
+(QGroup gs, []) ⇓ []
+
+
+gs = GroupSpec g aggs h    ∃d ∈ C. g ∉ dom(d)
+------------------------------------------------ (QG-GroupFieldErr) tenemos que poder leer el campo g en todos los documentos, sino error
+(QGroup gs, C) ⇓ erri
+
+
+gs = GroupSpec g aggs h               -- simplemente “abrimos” el GroupSpec
+v ∈ { d(g) | d ∈ C }                   -- que v sea un valor del campo g en C
+C_v = { d ∈ C | d(g) = v }               -- C_v es la colección de todos los documentos d de C tales que el valor del campo g en d es v
+∀a ∈ aggs. (a, C_v) ⇓ (alias_a, v_a)               -- Para cada agregación de la lista aggs, aplicamos la agregación 'a' sobre la colección del grupo C_v
+d_g = { (g, v) } ∪ { (alias_a, v_a) | a ∈ aggs }  -- d_g es un Document nuevo que contiene: l campo por el que agrupamos: (g, v) y todos los resultados de las agregaciones: (alias_a, v_a) para cada a
+(h = Nothing ∨ (h = Just b ∧ (b, d_g) ⇓ true))  -- h = Nothing no hay HAVING pasan todos, h = Just b valuamos el booleano b sobre el documento agregado d_g si da true, el grupo pasa
+------------------------------------------------------ (QG-GroupOk)
+(QGroup gs, C) ⇓ d_g :: C'
+
+
+(b, d_g) ⇓ erri
+---------------------------------------------------- (QG-HavingErr)
+(QGroup (GroupSpec g aggs (Just b)), C) ⇓ erri
+
+
+
+____________________Semantica de Comm____________________
+
+σ = estado global
+σ = {DB, TS, VWS} 
+
+r ∈ resultados de QueryTerminal
+Results = [r]
+Firma semantica de retorno de todos los comandos: (Comm, σ) ⇓ (Results, σ') | (erri, σ)   
+
+
+
+----------------------------- (QOps-Empty) la lista de querys esta vacia
+([], C) ⇓ C
+
+
+(op, C) ⇓ C'      (ops, C') ⇓ C''
+---------------------------------- (QOps-Step)  Aplicamos el primer QueryOp y seguimos con el resto.
+(op :: ops, C) ⇓ C''
+
+
+
+db = σ(DB)    db(cn) = C    (qops, C) ⇓ C'
+-------------------------------------------- (Find-Ok) busc la colección cn, ejec los QueryOp, el result no se consume todavía, lo pasamos con el QueryTerminal
+(Find cn qops t, σ) ⇓ ((C', t), σ)
+
+
+db = σ(DB)   cn ∉ dom(db)
+-------------------------------- (F-NoCollection)  collection inexistente
+(Find cn qops t, σ ⇓ (erri, σ) 
+
+
+db = σ(DB)    db(cn) = C        (qops, C) ⇓ erri
+-------------------------------------------------- (F-QueryErr)  falla en algun queryOp
+(Find cn qops t, σ) ⇓ (erri, σ)
+
+
+
+------------------------------- (QT-Preview) este te devuelve la collecion tal cual
+(TerminalPreview, C) ⇓ C
+
+
+----------------------------------------- (QT-Save) saved(path, C) es un resultado abstracto, (no hace IO real en la semántica, solo lo representa)
+(TerminalSave path, C) ⇓ saved(path, C)
+
+
+db = σ(DB)                 -- esta linea creo que podria no ir
+(f, σ) ⇓ ((C, t), σ)        -- Find se evalúa, no cambia el estado
+(t, C) ⇓ r                 -- el terminal consume la colección
+------------------------------------------------------------ (CQ-Ok)
+(CommQuery f, σ) ⇓ ([r], σ)
+
+
+(f, σ) ⇓ erri
+-------------------------------- (CQ-FindErr) error en Find
+(CommQuery f, σ) ⇓ (erri, σ)
+
+
+
+db = σ(DB)
+db(cn) = C
+(e, ∅) ⇓ VObject d
+C' = C ++ [d]
+DB' = db[cn ↦ C']
+σ' = σ[DB ↦ DB']
+---------------------------------------------------- (CommInsert-Ok)
+(CommInsert cn e, σ) ⇓  ([], σ')
+
+
+db = σ(DB)    cn ∉ dom(db)
+----------------------------------- (CI-NoCollection) error collection inexist
+(CommInsert cn e, σ) ⇓ (erri, σ)
+
+
+db = σ(DB)    db(cn) = C    (e, ∅) ⇓ v    v ≠ VObject(_)
+------------------------------------------------------------ (CI-TypeErr) error la expresion evaluada no es un objeto
+(CommInsert cn e, σ) ⇓ (erri, σ)
+
+
+db = σ(DB)   db(cn) = C   (e, ∅) ⇓ erri
+------------------------------------------- (CI-ExpErr) error falla evaluando la expresion
+(CommInsert cn e, σ) ⇓ (erri, σ)
+
+
+
+θ.DB[c] = D
+D' = { d ∈ D | ⟨b, d⟩ ⇓ false }
+────────────────────────────
+⟨delete c b, θ⟩ ⇓ θ[DB[c] := D']
+
+
+
+db = σ(DB)
+db(cn) = C
+∀d ∈ C. (b, d) ⇓ true ∨ (b, d) ⇓ false
+C' = { d ∈ C | (b, d) ⇓ false }
+DB' = db[cn ↦ C']
+σ' = σ[DB ↦ DB']
+----------------------------------------- (CD-Ok) tengo la db y la coll, mi nueva coll son todos los documentos que la comparacion con el bool = false
+(CommDelete cn b, σ) ⇓  ([], σ')
+
+
+db = σ(DB)    cn ∉ dom(db)
+----------------------------------- (CD-NoCollection) error collection inexist
+(CommDelete cn b, σ) ⇓ (erri, σ)
+
+
+db = σ(DB)    db(cn) = C    ∃d ∈ C. (b, d) ⇓ erri
+----------------------------------------------------- (CD-BoolErr) falla en la evaluacion de algun documento
+(CommDelete cn b, σ) ⇓ (erri, σ)
+
+
+
+db = σ(DB)
+cn ∉ dom(db)
+DB' = db[cn ↦ []]
+σ' = σ[DB ↦ DB']
+----------------------------------- (CreateColl-Ok)
+(CommCreateColl cn, σ) ⇓ ([], σ')
+
+
+db = σ(DB)    cn ∈ dom(db)
+----------------------------------- (CreateColl-Exists) error la collection ya existe
+(CommCreateColl cn, σ) ⇓ (erri, σ)
+
+
+
+db = σ(DB)
+cn ∈ dom(db)
+DB' = { ∀coll ∈ db | col ≠ cd}
+σ' = σ[DB ↦ DB']
+----------------------------------- (CDrop-Ok)
+(CommDropColl cn, σ) ⇓  ([], σ')
+
+
+db = σ(DB)    cn ∉ dom(db)
+----------------------------------- (CDrop-NoCollection) collection inexist
+(CommDropColl cn, σ) ⇓ (erri, σ)
+
+
+
+------------------------------------- (CInsertMany-Empty) la lista de exp(que deberia tener objetos) esta vacia
+(CommInsertMany cn [], σ) ⇓  ([], σ)
+
+
+db = σ(DB)    cn ∉ dom(db)
+------------------------------------- (CInsertMany-NoColl) error collecion inexist
+(CommInsertMany cn es, σ) ⇓ (erri, σ)
+
+
+db = σ(DB)
+db(cn) = C
+(e, ∅) ⇓ VObject d
+C' = C ++ [d]
+σ' = σ[DB ↦ db[cn ↦ C']]
+(CommInsertMany cn es, σ') ⇓  σ''
+------------------------------------------------ (CInsertMany-Step)
+(CommInsertMany cn (e :: es), σ) ⇓ ([], σ'')
+
+
+db = σ(DB)   db(cn) = C   (e, ∅) ⇓ v   v ≠ VObject(_)
+----------------------------------------------------------- (CInsertMany-TypeErr) err la exp no da un documento
+(CommInsertMany cn (e :: es), σ) ⇓ (erri, σ)
+
+
+db = σ(DB)   db(cn) = C   (e, ∅) ⇓ erri
+---------------------------------------------- (CInsertMany-ExpErr) falla en la evaluacion de la expresion
+(CommInsertMany cn (e :: es), σ) ⇓ (erri, σ)
+
+
+-- tengo que hacer funcion auxiliar, que toma la coleccion, no el estado --
+
+------------------------------- (UO-Empty)
+(UpdateOne b e, []) ⇓ []
+
+(b, d) ⇓ false   (UpdateOne b e, C) ⇓ C'
+---------------------------------------- (UO-Skip) no actualiza y sigue de largo
+(UpdateOne b e, d :: C) ⇓ d :: C'
+
+(b, d) ⇓ true   (e, ∅) ⇓ VObject d'
+------------------------------------- (UO-Ok) actualiza y corta
+(UpdateOne b e, d :: C) ⇓ d' :: C
+
+(b, d) ⇓ erri
+---------------------------- (UO-BoolErr) error en evaluacion del bool
+(UpdateOne b e, d :: C) ⇓ erri
+
+(b, d) ⇓ true   (e, ∅) ⇓ v   v ≠ VObject(_)
+---------------------------------------------- (UO-TypeErr) no es un objeto
+(UpdateOne b e, d :: C) ⇓ erri
+
+(b, d) ⇓ true   (e, ∅) ⇓ erri
+--------------------------------- (UO-ExpErr) error al evaluar la expresion
+(UpdateOne b e, d :: C) ⇓ erri
+
+
+
+db = σ(DB)   cn ∉ dom(db)
+------------------------------------- (CUpdOne-NoColl) collection inexist
+(CommUpdateOne cn b e, σ) ⇓ (erri, σ)
+
+
+db = σ(DB)
+db(cn) = C
+(UpdateOne b e, C) ⇓ C'
+DB' = db[cn ↦ C']
+σ' = σ[DB ↦ DB']
+------------------------------------- (CUpdOne-Ok) caso de exito
+(CommUpdateOne cn b e, σ) ⇓  ([], σ')
+
+
+db = σ(DB)   db(cn) = C   (UpdateOne b e, C) ⇓ erri
+------------------------------------------------------ (CUpdOne-Err) error en el update 
+(CommUpdateOne cn b e, σ) ⇓ (erri, σ)
+
+
+
+------------------------------------------------------------ (CT-Empty)
+(CommTransaction [], σ) ⇓ ([], σ)
+
+
+σ₀ = σ   (c, σ) ⇓ (r1, σ')    (CommTransaction cs, σ') ⇓  (r2, σ'')
+------------------------------------------------------------------- (CT-Ok)
+(CommTransaction (c :: cs), σ) ⇓  (r1 ++ r2, σ'')
+
+
+σ₀ = σ   (c, σ) ⇓  (erri, σ)
+------------------------------------------------- (CT-Err1) falla el primer comando, rollback
+(CommTransaction (c :: cs), σ) ⇓ ( erri, σ₀)
+
+
+σ₀ = σ    (c, σ) ⇓  (r, σ')    (CommTransaction cs, σ') ⇓ (erri, σ')
+--------------------------------------------------------------------- (CT-Err2) falla la evaluacion de alguno del resto de los comandos
+(CommTransaction (c :: cs), σ) ⇓ ( erri, σ₀)
+
+
+
+db = σ(DB)
+ts = σ(TS)
+ts' = ts[(TSDatabase, l) ↦ db]
+σ' = σ[TS ↦ ts']
+------------------------------------------------ (CTime-DB) timestamp de todas la bbdd
+(CommTimestamp TSDatabase l, σ) ⇓ ([], σ')
+
+
+db = σ(DB)
+cn ∈ dom(db)
+C = db(cn)
+ts = σ(TS)
+ts' = ts[(TSColl cn, l) ↦ C]
+σ' = σ[TS ↦ ts']
+------------------------------------------------ (CTime-Coll) timestamp de una collection
+(CommTimestamp (TSColl cn) l, σ) ⇓ ([], σ')
+
+
+db = σ(DB)   cn ∉ dom(db)
+--------------------------------------------- (CTime-NoColl) no existe la coleccion
+(CommTimestamp (TSColl cn) l, σ) ⇓ (erri, σ)
+
+
+(ts = σ(TS))    (t, l) ∈ dom(ts)
+------------------------------------- (CTime-Exists) label duplicado  (nombre del timestamp duplicado)
+(CommTimestamp t l, σ) ⇓ (erri, σ)
+
+
+
+ts = σ(TS)
+(TSDatabase, l) ∈ dom(ts)
+db' = ts(TSDatabase, l)
+σ' = σ[DB ↦ db']
+-------------------------------------------- (CRoll-DB) rollback de toda la bbdd
+(CommRollback TSDatabase l, σ) ⇓ ([], σ')
+
+
+ts = σ(TS)
+(TSColl cn, l) ∈ dom(ts)
+C = ts(TSColl cn, l)
+db = σ(DB)
+db' = db[cn ↦ C]
+σ' = σ[DB ↦ db']
+--------------------------------------------- (CRoll-Coll) rollback de collection
+(CommRollback (TSColl cn) l, σ) ⇓ ([], σ')
+
+
+ts = σ(TS)   (t, l) ∉ dom(ts)
+--------------------------------------- (CRoll-NoTS) timestamp inexistente
+(CommRollback t l, σ) ⇓ (erri, σ)
+
+
+
+v ∉ dom(σ(VWS))
+c = CommQuery f
+VWS' = σ(VWS)[v ↦ c]
+σ' = σ[VWS ↦ VWS']
+----------------------------------------- (CView-Create)
+(CommCreateView v f, σ) ⇓ ([], σ')
+
+
+v ∈ dom(σ(VWS))
+------------------------------------ (CView-Exists) vista ya existente
+(CommCreateView v f, σ) ⇓ (erri, σ)
+
+
+
+
+
+

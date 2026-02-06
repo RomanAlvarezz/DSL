@@ -1,0 +1,11 @@
+find.usuarios()
+   .filter(hasField(edad))
+   .preview()
+
+find.usuarios()
+   .filter(hasField(direccion.ciudad))
+   .preview()
+
+find.usuarios()
+   .filter(hasField(edad) && edad > 18)
+   .save("hola.json")
