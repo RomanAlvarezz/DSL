@@ -56,7 +56,8 @@ data Comm
   | CommCreateView ViewName Find
     -- ^ Crea una vista a partir de una consulta
 
-  | CommUseView ViewName Find
+--  | CommUseView ViewName Find
+  | CommUseView ViewName ViewOption
     -- ^ Usa una vista como fuente de una consulta
   deriving (Show, Eq)
 
@@ -69,11 +70,11 @@ data Comm
 --   - un operador terminal obligatorio
 -- ======================================================
 
---data Find = Find
---  { findSource   :: Collection
---  , findOps      :: [QueryOp]
---  , findTerminal :: QueryTerminal
--- }
+data ViewOption
+  = ViewOnly              -- ejecutar solo la vista
+  | ViewWithPipeline Find -- ejecutar vista + pipeline + terminal
+
+
 data Find = Find Collection [QueryOp] QueryTerminal
   deriving (Show, Eq)
 
