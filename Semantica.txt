@@ -900,6 +900,31 @@ v ∈ dom(σ(VWS))
 
 
 
+σ(VWS)(v) = c
+(c, σ) ⇓ (r, σ')
+----------------------------------- (CView-Only)  caso ViewOnly
+(CommUseView v ViewOnly, σ) ⇓ (r, σ')
+
+
+σ(VWS)(v) = CommQuery (Find src ops₁ _)
+Find _ ops₂ t₂ = f₂
+f' = Find src (ops₁ ++ ops₂) t₂
+(CommQuery f', σ) ⇓ (r, σ)
+---------------------------------------------------- (CView-WithPipeline) caso con find afuera, el mas rico
+(CommUseView v (ViewWithPipeline f₂), σ) ⇓ (r, σ)
+
+
+v ∉ dom(σ(VWS))
+------------------------------------ (CView-NoView) vista inexistente
+(CommUseView v ViewOnly, σ) ⇓ (erri, σ)
+
+
+σ(VWS)(v) = c   c ≠ CommQuery(_)
+------------------------------------ (CView-NotQuery) el comando dentro de la vista no es un CommQuery
+(CommUseView v opt, σ) ⇓ (erri, σ)
+
+
+
 
 
 
