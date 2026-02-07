@@ -73,7 +73,7 @@ data Comm
 data ViewOption
   = ViewOnly              -- ejecutar solo la vista
   | ViewWithPipeline Find -- ejecutar vista + pipeline + terminal
-
+  deriving (Show, Eq)
 
 data Find = Find Collection [QueryOp] QueryTerminal
   deriving (Show, Eq)

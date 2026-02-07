@@ -439,9 +439,18 @@ pUseViewComm :: Parser Comm
 pUseViewComm = do
   reservedP "useView"
   viewName <- parensP stringP
-  ops <- many pQueryOp
-  term <- pTerminal
-  return (CommUseView viewName (Find viewName ops term))
+  option <- pViewOption viewName
+  return (CommUseView viewName option)
+
+-- parser de ViewOption
+pViewOption :: ViewName -> Parser ViewOption
+pViewOption viewName =
+      try (do
+        ops <- many1 pQueryOp
+        term <- pTerminal
+        return (ViewWithPipeline (Find viewName ops term))
+      )
+  <|> return ViewOnly
 
 --pStatement :: Parser Comm
 --pStatement =
