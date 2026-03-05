@@ -21,201 +21,201 @@ ____________________Semantica de Exp____________________
 
 
 ------------------------- (E-Int)
-(IntExp n, d) ⇓ VInt n
+(IntExp n, d, σ) ⇓ VInt n
 
 
 ----------------------------- (E-Float)
-(FloatExp f, d) ⇓ VFloat f
+(FloatExp f, d, σ) ⇓ VFloat f
 
 
 ----------------------------- (E-String)
-(StringExp s, d) ⇓ VString s
+(StringExp s, d, σ) ⇓ VString s
 
 
 ------------------------------ (E-Bool)
-(BoolExpVal b, d) ⇓ VBool b
+(BoolExpVal b, d, σ) ⇓ VBool b
 
 
 ------------------------ (E-Null)
-(NullExp, d) ⇓ VNull
+(NullExp, d, σ) ⇓ VNull
 
 
 
 d(f) = v
 --------------------- (E-Var)  Campo existente
-(VarExp f, d) ⇓ v
+(VarExp f, d, σ) ⇓ v
 
 
 f ∉ dom(d)
 --------------------- (E-VarErr) Campo inexistente
-(VarExp f, d) ⇓ erri
+(VarExp f, d, σ) ⇓ erri
 
 
 
 (e, d) ⇓ VObject obj      obj(f) = v
 --------------------------------------- (E-Field)  Acceso correcto
-(FieldAccess e f, d) ⇓ v
+(FieldAccess e f, d, σ) ⇓ v
 
 
 (e, d) ⇓ v     v ≠ VObject(_)
 ---------------------------------- (E-FieldTypeErr)  la expresión no es un objeto
-(FieldAccess e f, d) ⇓ erri
+(FieldAccess e f, d, σ) ⇓ erri
 
 
 (e, d) ⇓ VObject obj     f ∉ dom(obj)
 --------------------------------------- (E-FieldNotFound)  campo inexistente en ese objeto
-(FieldAccess e f, d) ⇓ erri
+(FieldAccess e f, d, σ) ⇓ erri
 
 
 (e, d) ⇓ erri
 ----------------------------- (E-FieldErr)  Error propagado
-(FieldAccess e f, d) ⇓ erri
+(FieldAccess e f, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 ------------------------------------------- (E-AddInt)
-(AddExp e1 e2, d) ⇓ VInt (n1 + n2)
+(AddExp e1 e2, d, σ) ⇓ VInt (n1 + n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-AddFloat)
-(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+(AddExp e1 e2, d, σ) ⇓ VFloat (n1 + n2)
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-AddMix1)
-(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+(AddExp e1 e2, d, σ) ⇓ VFloat (n1 + n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
 -------------------------------------------- (E-AddMix2)
-(AddExp e1 e2, d) ⇓ VFloat (n1 + n2)
+(AddExp e1 e2, d, σ) ⇓ VFloat (n1 + n2)
 
 
 (e1, d) ⇓ erri
 ---------------------------- (E-AddErr1)
-(AddExp e1 e2, d) ⇓ erri
+(AddExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1   (e2, d) ⇓ erri
 -------------------------------- (E-AddErr2)
-(AddExp e1 e2, d) ⇓ erri
+(AddExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
 ----------------------------------------------------------- (E-AddTypeErr)
-(AddExp e1 e2, d) ⇓ erri
+(AddExp e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 ------------------------------------------- (E-SubInt)
-(SubExp e1 e2, d) ⇓ VInt (n1 - n2)
+(SubExp e1 e2, d, σ) ⇓ VInt (n1 - n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-SubFloat)
-(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+(SubExp e1 e2, d, σ) ⇓ VFloat (n1 - n2)
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-SubMix1)
-(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+(SubExp e1 e2, d, σ) ⇓ VFloat (n1 - n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
 -------------------------------------------- (E-SubMix2)
-(SubExp e1 e2, d) ⇓ VFloat (n1 - n2)
+(SubExp e1 e2, d, σ) ⇓ VFloat (n1 - n2)
 
 
 (e1, d) ⇓ erri
 ---------------------------- (E-SubErr1)
-(SubExp e1 e2, d) ⇓ erri
+(SubExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1   (e2, d) ⇓ erri
 -------------------------------- (E-SubErr2)
-(SubExp e1 e2, d) ⇓ erri
+(SubExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
 ----------------------------------------------------------- (E-SubTypeErr)
-(SubExp e1 e2, d) ⇓ erri
+(SubExp e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 ------------------------------------------- (E-MulInt)
-(MulExp e1 e2, d) ⇓ VInt (n1 * n2)
+(MulExp e1 e2, d, σ) ⇓ VInt (n1 * n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-MulFloat)
-(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+(MulExp e1 e2, d, σ) ⇓ VFloat (n1 * n2)
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (E-MulMix1)
-(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+(MulExp e1 e2, d, σ) ⇓ VFloat (n1 * n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VInt n2
 -------------------------------------------- (E-MulMix2)
-(MulExp e1 e2, d) ⇓ VFloat (n1 * n2)
+(MulExp e1 e2, d, σ) ⇓ VFloat (n1 * n2)
 
 
 (e1, d) ⇓ erri
 ---------------------------- (E-MulErr1)
-(MulExp e1 e2, d) ⇓ erri
+(MulExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1   (e2, d) ⇓ erri
 -------------------------------- (E-MulErr2)
-(MulExp e1 e2, d) ⇓ erri
+(MulExp e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v1    (e2, d) ⇓ v2     v1, v2 ∉ {VInt, VFloat}
 ----------------------------------------------------------- (E-MulTypeErr)
-(MulExp e1 e2, d) ⇓ erri
+(MulExp e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2     n2 ≠ 0
 -------------------------------------------------- (E-DivInt)
-(DivExp e1 e2, d) ⇓ VInt (n1 / n2)
+(DivExp e1 e2, d, σ) ⇓ VInt (n1 / n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2     n2 ≠ 0
 ------------------------------------------------------ (E-DivFloat)
-(DivExp e1 e2, d) ⇓ VFloat (n1 / n2)
+(DivExp e1 e2, d, σ) ⇓ VFloat (n1 / n2)
 
 
 (e1, d) ⇓ v     v = 0
 ---------------------------- (E-DivZero)
-(DivExp e1 e2, d) ⇓ erri
+(DivExp e1 e2, d, σ) ⇓ erri
 
 
 
 ∀i ∈ {1..n}. (ei, d) ⇓ vi
 ------------------------------------------------------------------------- (E-Object) objeto correcto
-(JObjectExp [(f1,e1),...,(fn,en)], d) ⇓ VObject [(f1,v1),...,(fn,vn)]
+(JObjectExp [(f1,e1),...,(fn,en)], d, σ) ⇓ VObject [(f1,v1),...,(fn,vn)]
 
 
 ∃i. (ei, d) ⇓ erri
 ------------------------------------- (E-ObjectErr) error en algun campo
-(JObjectExp [...], d) ⇓ erri
+(JObjectExp [...], d, σ) ⇓ erri
 
 
 
 ∀i ∈ {1..n}. (ei, d) ⇓ vi
 ------------------------------------------------ (E-Array) array correcto
-(JArrayExp [e1,...,en], d) ⇓ VArray [v1,...,vn]
+(JArrayExp [e1,...,en], d, σ) ⇓ VArray [v1,...,vn]
 
 
 ∃i. (ei, d) ⇓ erri
 ------------------------------- (E-ArrayErr) error en algun elemento
-(JArrayExp [...], d) ⇓ erri
+(JArrayExp [...], d, σ) ⇓ erri
 
 
 
@@ -223,204 +223,204 @@ ____________________Semantica de BoolExp____________________
 
 
 -------------------- (B-True)
-(BTrue, d) ⇓ true
+(BTrue, d, σ) ⇓ true
 
 
 -------------------- (B-False)
-(BFalse, d) ⇓ false
+(BFalse, d, σ) ⇓ false
 
 
 (b, d) ⇓ true
 ------------------- (B-NotTrue)
-(Not b, d) ⇓ false
+(Not b, d, σ) ⇓ false
 
 
 (b, d) ⇓ false
 ------------------- (B-NotFalse)
-(Not b, d) ⇓ true
+(Not b, d, σ) ⇓ true
 
 
 (b, d) ⇓ erri
 ------------------- (B-NotErr) error en la evaluacion del booleano
-(Not b, d) ⇓ erri
+(Not b, d, σ) ⇓ erri
 
 
 
 (b1, d) ⇓ false
 ---------------------------- (B-AndFalse) siendo el primero false, todo devuelve false
-(And b1 b2, d) ⇓ false
+(And b1 b2, d, σ) ⇓ false
 
 
 (b1, d) ⇓ true     (b2, d) ⇓ v
 ---------------------------------- (B-AndTrue)  la evaluacion va a dar lo que de 'v'
-(And b1 b2, d) ⇓ v
+(And b1 b2, d, σ) ⇓ v
 
 
 (b1, d) ⇓ erri
 ---------------------------- (B-AndErr1)
-(And b1 b2, d) ⇓ erri
+(And b1 b2, d, σ) ⇓ erri
 
 
 (b1, d) ⇓ v      (b2, d) ⇓ erri
 ----------------------------------- (B-AndErr2) independientemnete de que v sea true o false si b2 falla, falla todo
-(And b1 b2, d) ⇓ erri
+(And b1 b2, d, σ) ⇓ erri
 
 
 
 (b1, d) ⇓ true
 ---------------------------- (B-OrTrue) con que el primero sea true ya devuelve true
-(Or b1 b2, d) ⇓ true
+(Or b1 b2, d, σ) ⇓ true
 
 
 (b1, d) ⇓ false     (b2, d) ⇓ v
 ---------------------------------- (B-OrFalse)  devuelve lo que devuelva la evaluacion de b2
-(Or b1 b2, d) ⇓ v
+(Or b1 b2, d, σ) ⇓ v
 
 
 (b1, d) ⇓ erri
 ---------------------------- (B-OrErr1) ya error en el primero, falla todo
-(Or b1 b2, d) ⇓ erri
+(Or b1 b2, d, σ) ⇓ erri
 
 
 (b1, d) ⇓ v      (b2, d) ⇓ erri
 ---------------------------------- (B-OrErr2) aca falla el segundo
-(Or b1 b2, d) ⇓ erri
+(Or b1 b2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ v1     (e2, d) ⇓ v2  v1, v2 ∈ {VInt, VFloat}
 ------------------------------------------------------ (B-EqNum)
-(Eq e1 e2, d) ⇓ (v1 == v2)
+(Eq e1 e2, d, σ) ⇓ (v1 == v2)
 
 
 (e1, d) ⇓ VString s1     (e2, d) ⇓ VString s2
 ----------------------------------------------- (B-EqString)
-(Eq e1 e2, d) ⇓ (s1 == s2)
+(Eq e1 e2, d, σ) ⇓ (s1 == s2)
 
 
 (e1, d) ⇓ VBool b1     (e2, d) ⇓ VBool b2
 -------------------------------------------- (B-EqBool)
-(Eq e1 e2, d) ⇓ (b1 == b2)
+(Eq e1 e2, d, σ) ⇓ (b1 == b2)
 
 
 (e1, d) ⇓ VNull     (e2, d) ⇓ VNull
 ------------------------------------- (B-EqNull)
-(Eq e1 e2, d) ⇓ true
+(Eq e1 e2, d, σ) ⇓ true
 
 (e1, d) ⇓ VNull     (e2, d) ⇓ v     v ≠ VNull
 ------------------------------------------------ (B-EqNullFalse) comparar null con cualquier otro valor siempre da false
-(Eq e1 e2, d) ⇓ false
+(Eq e1 e2, d, σ) ⇓ false
 
 
 (e1, d) ⇓ v1     (e2, d) ⇓ v2  v1 ∈ {VObject, VArray} ∨ v2 ∈ {VObject, VArray}
 ------------------------------------------------------------------------------- (B-EqTypeErr) comparaciones de tipos no permitidos
-(Eq e1 e2, d) ⇓ erri
+(Eq e1 e2, d, σ) ⇓ erri
 
 
 
 (Eq e1 e2, d) ⇓ b
 ---------------------------- (B-Neq)
-(Neq e1 e2, d) ⇓ not(b)
+(Neq e1 e2, d, σ) ⇓ not(b)
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 --------------------------------------- (B-LtInt)
-(Lt e1 e2, d) ⇓ (n1 < n2)
+(Lt e1 e2, d, σ) ⇓ (n1 < n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (B-LtFloat)
-(Lt e1 e2, d) ⇓ (n1 < n2)
+(Lt e1 e2, d, σ) ⇓ (n1 < n2)
 
 
 (e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
 --------------------------------------------------- (B-LtTypeErr)
-(Lt e1 e2, d) ⇓ erri
+(Lt e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
 --------------------------------------------------------------- (B-LtTypeErr)
-(Lt e1 e2, d) ⇓ erri
+(Lt e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 --------------------------------------- (B-LeInt)
-(Le e1 e2, d) ⇓ (n1 <= n2)
+(Le e1 e2, d, σ) ⇓ (n1 <= n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (B-LeFloat)
-(Le e1 e2, d) ⇓ (n1 <= n2)
+(Le e1 e2, d, σ) ⇓ (n1 <= n2)
 
 
 (e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
 --------------------------------------------------- (B-LeTypeErr)
-(Le e1 e2, d) ⇓ erri
+(Le e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
 --------------------------------------------------------------- (B-LeTypeErr)
-(Le e1 e2, d) ⇓ erri
+(Le e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 --------------------------------------- (B-GtInt)
-(Gt e1 e2, d) ⇓ (n1 > n2)
+(Gt e1 e2, d, σ) ⇓ (n1 > n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (B-GtFloat)
-(Gt e1 e2, d) ⇓ (n1 > n2)
+(Gt e1 e2, d, σ) ⇓ (n1 > n2)
 
 
 (e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
 --------------------------------------------------- (B-GtTypeErr)
-(Gt e1 e2, d) ⇓ erri
+(Gt e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
 --------------------------------------------------------------- (B-GtTypeErr)
-(Gt e1 e2, d) ⇓ erri
+(Gt e1 e2, d, σ) ⇓ erri
 
 
 
 (e1, d) ⇓ VInt n1     (e2, d) ⇓ VInt n2
 --------------------------------------- (B-GeInt)
-(Ge e1 e2, d) ⇓ (n1 >= n2)
+(Ge e1 e2, d, σ) ⇓ (n1 >= n2)
 
 
 (e1, d) ⇓ VFloat n1     (e2, d) ⇓ VFloat n2
 -------------------------------------------- (B-GeFloat)
-(Ge e1 e2, d) ⇓ (n1 >= n2)
+(Ge e1 e2, d, σ) ⇓ (n1 >= n2)
 
 
 (e1, d) ⇓ v1     v1 ∉ {VInt(_), VFloat(_)} 
 --------------------------------------------------- (B-GeTypeErr)
-(Ge e1 e2, d) ⇓ erri
+(Ge e1 e2, d, σ) ⇓ erri
 
 
 (e1, d) ⇓ v    (e2, d) ⇓ v2    v2 ∉ {VInt(_), VFloat(_)}
 --------------------------------------------------------------- (B-GeTypeErr)
-(Ge e1 e2, d) ⇓ erri
+(Ge e1 e2, d, σ) ⇓ erri
 
 
 
 (e, d) ⇓ VNull
 ------------------------ (B-ExistsNull)
-(Exists e, d) ⇓ false
+(Exists e, d, σ) ⇓ false
 
 
 (e, d) ⇓ v     v ≠ VNull
 ------------------------------ (B-ExistsTrue)
-(Exists e, d) ⇓ true
+(Exists e, d, σ) ⇓ true
 
 
 (e, d) ⇓ erri
 ------------------------ (B-ExistsErr)
-(Exists e, d) ⇓ erri
+(Exists e, d, σ) ⇓ erri
 
 
 
