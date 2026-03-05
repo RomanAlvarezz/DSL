@@ -428,37 +428,37 @@ ____________________Semantica de QueryOp____________________  d :: C -> una cole
 
 
 ----------------------------- (QF-Empty)
-(QFilter b, []) ⇓ []
+(QFilter b, [], σ) ⇓ []
 
 
 (b, d) ⇓ true      (QFilter b, C) ⇓ C'
 ------------------------------------------------ (QF-True) documento que pasa el filtro
-(QFilter b, d :: C) ⇓ d :: C'
+(QFilter b, d :: C, σ) ⇓ d :: C'
 
 
 (b, d) ⇓ false     (QFilter b, C) ⇓ C'
 ------------------------------------------------- (QF-False) documento evaluado que no paso el filtro
-(QFilter b, d :: C) ⇓ C'
+(QFilter b, d :: C, σ) ⇓ C'
 
 
 (b, d) ⇓ erri
 ------------------------------- (QF-Err)  error evaluando la condicion
-(QFilter b, d :: C) ⇓ erri
+(QFilter b, d :: C, σ) ⇓ erri
 
 
 
 ----------------------------- (QS-Empty)
-(QSelect fields, []) ⇓ []  -> podria devolver NULL
+(QSelect fields, [], σ) ⇓ []  -> podria devolver NULL
 
 
 ∀f ∈ fields. d(f) = v
 ------------------------------------------------- (QS)
-(QSelect fields, d :: C) ⇓ d' :: C'
+(QSelect fields, d :: C, σ) ⇓ d' :: C'
 
 
 ∃f ∈ fields. f ∉ dom(d)
 -------------------------------- (QS-FieldInex) campo inexistente
-(QSelect fields, d :: C) ⇓ erri
+(QSelect fields, d :: C, σ) ⇓ erri
 
 
 d' = { (f, v) | f ∈ fields ∧ d(f) = v } -> d' es el documento resultante de proyectar d sobre fields
@@ -467,32 +467,32 @@ d' = { (f, v) | f ∈ fields ∧ d(f) = v } -> d' es el documento resultante de 
 
 
 ----------------------------- (QLimit-Empty)
-(QLimit n, []) ⇓ []   -> tambien podria devolver NULL
+(QLimit n, [], σ) ⇓ []   -> tambien podria devolver NULL
 
 
 n ≤ 0
 ----------------------------- (QLimit-Zero)
-(QLimit n, C) ⇓ []        -> deberia dar Erri
+(QLimit n, C, σ) ⇓ []        -> deberia dar Erri
 
 
 n > 0              (QLimit (n-1), C) ⇓ C'
 -------------------------------------------- (QLimit-Pos)
-(QLimit n, d :: C) ⇓ d :: C'     
+(QLimit n, d :: C, σ) ⇓ d :: C'     
 
 
 
 ----------------------------- (QSrt-Empty)
-(QSort keys, []) ⇓ []     -> devolver null
+(QSort keys, [], σ) ⇓ []     -> devolver null
 
 
 ∀d ∈ C. ∀(f, _) ∈ keys. f ∈ dom(d)
 ---------------------------------------------------- (QSrt)
-(QSort keys, C) ⇓ C'
+(QSort keys, C, σ) ⇓ C'
 
 
 ∃d ∈ C. ∃(f, _) ∈ keys. f ∉ dom(d)
 ---------------------------------------------------- (QSrt-FieldErr)
-(QSort keys, C) ⇓ erri
+(QSort keys, C, σ) ⇓ erri
 
 
 
@@ -503,82 +503,82 @@ ValSeq = [Value]
 
 vs ∈ ValSeq    n = length(vs)
 -------------------------------- (AG-Count) cuenta los elementos sin importar el tipo
-(AggCount, vs) ⇓ VInt n
+(AggCount, vs, σ) ⇓ VInt n
 
 
 
 vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}
 -------------------------------------------------- (AG-Sum) solo enteros o flotantes, puede ser mixta
-(AggSum, vs) ⇓ VFloat (Σ toFloat(v))
+(AggSum, vs, σ) ⇓ VFloat (Σ toFloat(v))
 
 
 vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
 --------------------------------------------------- (AG-SumTypeErr) si no es entero o flotante error
-(AggSum, vs) ⇓ erri
+(AggSum, vs, σ) ⇓ erri
 
 
 
 vs ∈ ValSeq    (AggSum, vs) ⇓ VFloat s    (AggCount, vs) ⇓ VInt n    n > 0
 --------------------------------------------------------------------------- (AG-Avg)
-(AggAvg, vs) ⇓ VFloat (s / n)
+(AggAvg, vs, σ) ⇓ VFloat (s / n)
 
 
 vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
 --------------------------------------------------- (AG-AvgTypeErr)
-(AggAvg, vs) ⇓ erri
+(AggAvg, vs, σ) ⇓ erri
 
 
 
 vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}    v = min(vs)
 --------------------------------------------------------------- (AG-Min)
-(AggMin, vs) ⇓ v
+(AggMin, vs, σ) ⇓ v
 
 
 vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
 ----------------------------------------------------- (AG-MinTypeErr)
-(AggMin, vs) ⇓ erri
+(AggMin, vs, σ) ⇓ erri
 
 
 
 vs ∈ ValSeq    ∀v ∈ vs. v ∈ {VInt _, VFloat _}    v = max(vs)
 ---------------------------------------------------------------- (AG-Max)
-(AggMax, vs) ⇓ v
+(AggMax, vs, σ) ⇓ v
 
 
 vs ∈ ValSeq    ∃v ∈ vs. v ∉ {VInt _, VFloat _}
 -------------------------------------------------- (AG-MaxTypeErr)
-(AggMax, vs) ⇓ erri
+(AggMax, vs, σ) ⇓ erri
 
 
 
 ∀d ∈ C. d(f) = v_d    vs = [v_d | d ∈ C]    (agg, vs) ⇓ v
 ------------------------------------------------------------ (AGG)
-(Aggregate agg f alias, C) ⇓ (alias, v)
+(Aggregate agg f alias, C, σ) ⇓ (alias, v)
 
 
 ∃d ∈ C. f ∉ dom(d)
 ----------------------------------------- (AGG-FieldNotFound) campo inexistente en algún documento
-(Aggregate agg f alias, C) ⇓ erri
+(Aggregate agg f alias, C, σ) ⇓ erri
 
 
 ∀d ∈ C. d(f) = v_d    vs = [v_d | d ∈ C]    (agg, vs) ⇓ erri
 ----------------------------------------------------------------- (AGG-AggErr) error en la funcion de agregacion
-(Aggregate agg f alias, C) ⇓ erri
+(Aggregate agg f alias, C, σ) ⇓ erri
 
 
 C = []
 ----------------------------------------- (AGG-EmptyGroup) la collection esta vacia/ se suele permitir COUNT sobre grupo vacío → 0
-(Aggregate agg f alias, C) ⇓ erri
+(Aggregate agg f alias, C, σ) ⇓ erri
 
 
  
 ---------------------------- (QG-Empty) si no hay documentos, no hay grupos.
-(QGroup gs, []) ⇓ []
+(QGroup gs, [], σ) ⇓ []
 
 
 gs = GroupSpec g aggs h    ∃d ∈ C. g ∉ dom(d)
 ------------------------------------------------ (QG-GroupFieldErr) tenemos que poder leer el campo g en todos los documentos, sino error
-(QGroup gs, C) ⇓ erri
+(QGroup gs, C, σ) ⇓ erri
 
 
 gs = GroupSpec g aggs h               -- simplemente “abrimos” el GroupSpec
@@ -588,12 +588,12 @@ C_v = { d ∈ C | d(g) = v }               -- C_v es la colección de todos los 
 d_g = { (g, v) } ∪ { (alias_a, v_a) | a ∈ aggs }  -- d_g es un Document nuevo que contiene: l campo por el que agrupamos: (g, v) y todos los resultados de las agregaciones: (alias_a, v_a) para cada a
 (h = Nothing ∨ (h = Just b ∧ (b, d_g) ⇓ true))  -- h = Nothing no hay HAVING pasan todos, h = Just b valuamos el booleano b sobre el documento agregado d_g si da true, el grupo pasa
 ------------------------------------------------------ (QG-GroupOk)
-(QGroup gs, C) ⇓ d_g :: C'
+(QGroup gs, C, σ) ⇓ d_g :: C'
 
 
 (b, d_g) ⇓ erri
 ---------------------------------------------------- (QG-HavingErr)
-(QGroup (GroupSpec g aggs (Just b)), C) ⇓ erri
+(QGroup (GroupSpec g aggs (Just b)), C, σ) ⇓ erri
 
 
 
