@@ -1,0 +1,183 @@
+Dominio del estado
+Recurso ::= DB | VWS | TS
+
+
+DB sería la base de datos, VWS serían las vistas y TS serían las snapshots(timestamps).
+
+Estado como función
+Estado = Recurso → Contenido
+
+Con las siguientes funciones de σ:
+
+σ(DB)  nos sirve para obtener función base de datos, a la cual si le pasamos un nombre de colección, nos provee de esa colección(lista de documentos).
+
+σ(VWS) nos sirve para obtener función views, a la cual si le pasamos un nombre de view, nos provee de esa view(conjunto de consultas).
+
+σ(TS)  nos sirve para obtener función ts, a la cual si le pasamos un nombre de timestamp, nos provee de esa timestamp(lista de colecciones o documentos).
+
+Y además siendo Database una función donde pasandole el nombre de la collection nos devuelve la colección (conjunto de documentos):
+
+Database = CollectionName → Collection
+
+Siguiendo el PDF de semántica(de la materia de teoría de lenguajes), sería:
+
+⟨ c , σ ⟩ ⇓ σ'
+
+⟨ c , σ ⟩ ⇓ err , σ
+
+
+Nuestras reglas de evaluación para insert e insertmany serían:
+
+
+Insert Individual
+
+⟨e, σ⟩ ⇓exp  VObject d
+
+────────────────────────── (C-Insert)
+
+(insert cn e, σ) →  (skip, σ(DB)(cn) :: d)
+
+
+El comando insert toma el nombre de una colección(cn) y una expresión. Primero evaluamos la expresión para saber si es un documento(VObject). En caso afirmativo se produce un skip y se actualiza el estado agregando el documento ‘d’ a la colección  ‘cn’.
+
+
+InsertMany (Caso Base)
+
+──────────────────────────── (C-InsertMany-Empty)
+
+(insertMany cn [], σ) → (skip, σ)
+
+
+El comando InsertMany toma el nombre de una colección (cn) y una lista de documentos a insertar en esa colección, siendo el caso base, una lista de documentos vacía. Produciendo así un ‘skip’ sin alteración del estado.
+
+
+
+InsertMany (Caso recursivo)
+
+
+────────────────────────────────────────(C-InsertMany-Step)
+
+(insertMany cn (e :: es), σ) → (insert cn e ; insertMany cn es, σ)
+
+
+El comando InsertMany toma el nombre de una colección (cn) y una lista de documentos (e  :: es)  a insertar en esa colección. Siendo el caso recursivo, produciendo una secuenciación, ejecutandose un comando insert tomando la colección y el primer documento de la lista y ejecutandose luego de manera recursiva el comando insertMany con el nombre de la colección y la lista de documentos restantes con el estado modificado debido al comando insert previo.
+
+Ocurrido un error en el insert, se propagaría automáticamente debido a las reglas de evaluación de este comando
+
+
+
+Errores (insert individual)
+
+
+σ(DB)(cn) = ∄
+
+————————————— (Insert-NoCollection)
+
+⟨ Insert cn e , σ ⟩ ⇓ (err , σ)
+
+
+En el caso de que la colección a la que le queremos ingresar un documento  no exista, eso será representado mediante σ(DB)(cn) = ∄. 
+
+Con σ(DB) obtenemos la función de base de datos. A esa función le pasamos la colección cn y nos queda  σ(DB)(cn) , luego como esa colección no existe, lo representamos con ∄.
+
+
+⟨ e , σ⟩ ⇓exp  v                     v ≠ VObject d
+
+———————————————————(Insert-TypeError)
+
+⟨ Insert cn e , σ ⟩ ⇓ (err , σ)
+
+
+En caso de que la evaluación derive en un valor, pero este valor no sea de tipo objeto, se produce el error de tipo.
+
+
+⟨ e , σ ⟩ ⇓ err
+
+————————————— (Insert-ExpError)
+
+⟨ Insert cn e , σ ⟩ ⇓ (err , σ)
+
+======================= TRANSACTION =======================
+
+⟨ c1 ; ... ; cn , σ ⟩ ⇓ σ'
+──────────────────────────────────────── (C-Transaction-OK)
+⟨ CommTransaction [c1,...,cn] , σ ⟩ ⇓ σ'
+
+
+
+⟨ c1 ; ... ; cn , σ ⟩ ⇓ err , σ1
+──────────────────────────────────────── (C-Transaction-Rollback)
+⟨ CommTransaction [c1,...,cn] , σ ⟩ ⇓ σ
+
+
+-------------------------------------------------------------------------
+
+⟨ c , σ ⟩ ⇓ ⟨skip, σ⟩
+───────────────────────────────────────────────────────────── (C-Transaction-OK)
+⟨ CommTransaction (c:cs) , σ ⟩ ⇓ ⟨ CommTransaction cs σ⟩
+
+
+⟨ c , σ ⟩ ⇓ ⟨c', σ'⟩
+───────────────────────────────────────────────────────────── (C-Transaction-OK)
+⟨ CommTransaction (c:cs) , σ ⟩ ⇓ ⟨ CommTransaction (c':cs) σ'⟩
+
+
+⟨ c1 , σ ⟩ ⇓ err
+──────────────────────────────────────── (C-Transaction-Rollback)
+⟨ CommTransaction (c:cs) , σ ⟩ ⇓ (err, σ)
+
+=======================  En nuestro DSL ======================= 
+preview() → salida por consola
+save(path) → escritura en archivo
+Entonces definimos el conjunto de etiquetas:
+a ::= s 
+    | out v          (salida en consola)
+    | write(path,v)  (escritura a archivo)
+
+Como finaliza el CommQuery
+
+Caso 1 — preview
+σ(DB)(cn) = C
+⟨ ops , C , σ ⟩ ⇓q C'
+──────────────────────────────────────────────────────────────────────── (C-Find-Preview)
+(CommQuery (Find cn ops TerminalPreview), σ)   -- out(C') → (skip , σ)
+
+
+Caso 2 — save
+σ(DB)(cn) = C
+⟨ ops , C , σ ⟩ ⇓q C'
+────────────────────────────────────────────────────────────────────────────(C-Find-Save) 
+(CommQuery (Find cn ops (TerminalSave p)), σ)   -- write(p, C') → (skip , σ)
+
+Caso de error(coleccion inexistente)
+cn ∉ dom(σ(DB))
+──────────────────────── (Find-NoCollection)
+(CommQuery (Find cn ops t), σ) → (err, σ) 
+
+Si alguna QueryOp falla:
+
+⟨ ops , C , σ ⟩ ⇓q err
+──────────────────────── (Find-PipelineError)
+(CommQuery (Find cn ops t), σ) → (err, σ)
+
+======================= Comandos de vistas ======================= 
+
+ViewOnly
+σ(VWS)(v) = f
+────────────────────────
+(CommUseView v ViewOnly , σ)   --s→,(CommQuery f , σ)
+
+
+ViewWithPipeline
+σ(VWS)(v) = Find cn ops₁ t₁
+────────────────────────────────────────
+(CommUseView v (ViewWithPipeline (Find _ ops₂ t₂)) , σ)  --s-->(CommQuery (Find cn (ops₁ ++ ops₂) t₂) , σ)
+
+
+Error
+v ∉ dom(σ(VWS))
+────────────────
+(CommUseView v opt , σ) → (err , σ)
+
+
+
