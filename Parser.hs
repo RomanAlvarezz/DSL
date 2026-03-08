@@ -24,7 +24,7 @@ dsl = makeTokenParser emptyDef
       , "transaction", "timestamp", "rollback"
       , "createView", "useView",
       "database",
-      "exists"
+      "exists", "skip"
       ]
   , reservedOpNames =
       [ ".", ",", ":", "==", "!=", ">", "<", ">=", "<="
@@ -336,6 +336,12 @@ pFind = do
   return (Find col ops term)
 
 --Statements
+pSkip :: Parser Comm
+pSkip = do
+  reservedP "Skip"
+  return Skip
+
+
 pCreateCollection :: Parser Comm
 pCreateCollection = do
   reservedP "createCollection"
@@ -456,10 +462,15 @@ pViewOption viewName =
 --pStatement =
 --      try (CommQuery <$> pFind)
 --  <|> pInsert
+pComm :: Parser Comm
+pComm = do
+  cmds <- sepEndBy1 pStatement semiP
+  return (foldr1 Seq cmds)
 
 pStatement :: Parser Comm
 pStatement =
-      try pTransactionComm
+      try pSkip
+  <|> try pTransactionComm
   <|> try pCreateCollection
   <|> try pDropCollection
   <|> try pCreateViewComm
@@ -475,5 +486,5 @@ pStatement =
 -- Programa completo
 
 pProgram :: Parser Program
-pProgram = whiteSpaceP *> pStatement `sepEndBy` semiP <* eof
+pProgram = whiteSpaceP *> pComm <* eof
 

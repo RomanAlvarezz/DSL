@@ -20,4 +20,4 @@ useView("mayoresActivos")
 useView("mayoresActivos");
 
 
-dropCollection.usuarios();
+dropCollection.usuarios()

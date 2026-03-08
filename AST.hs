@@ -7,7 +7,7 @@ module AST where
 -- sobre la base de datos JSON.
 -- ====================================================== rollback
 
-type Program = [Comm]
+type Program = Comm
 
 type Collection      = String
 type ViewName        = String
@@ -23,7 +23,11 @@ type JsonPath        = String
 -- ======================================================
 
 data Comm
-  = CommQuery Find
+  = Skip
+
+  | Seq Comm Comm
+
+  | CommQuery Find
     -- ^ Ejecución de una consulta (find + pipeline + terminal)
 
   | CommCreateColl Collection
