@@ -1,0 +1,9 @@
+{
+  "users": [
+    { "name": "Juan", "age": 20 },
+    { "name": "Ana", "age": 25 }
+  ],
+  "movies": [
+    { "title": "Matrix", "year": 1999 }
+  ]
+}

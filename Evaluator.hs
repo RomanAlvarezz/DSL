@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Evaluator where
 
 import AST
@@ -11,6 +12,9 @@ import System.IO
 -- VALORES JSON INTERNOS
 -------------------------------------------------------
 
+import GHC.Generics
+import Data.Aeson
+
 data Value
   = VInt Int
   | VFloat Double
@@ -19,7 +23,10 @@ data Value
   | VNull
   | VObject [(FieldName, Value)]
   | VArray [Value]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Generic)
+
+instance FromJSON Value
+instance ToJSON Value
 
 type Document = [(FieldName, Value)]
 type CollectionData = [Document]

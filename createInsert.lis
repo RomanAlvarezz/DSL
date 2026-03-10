@@ -1,0 +1,2 @@
+createCollection.animales();
+insert.users({name: "Messi", age: 38});
