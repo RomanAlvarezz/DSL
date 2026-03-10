@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 module Evaluator where
 
 import AST
@@ -12,9 +11,6 @@ import System.IO
 -- VALORES JSON INTERNOS
 -------------------------------------------------------
 
-import GHC.Generics
-import Data.Aeson
-
 data Value
   = VInt Int
   | VFloat Double
@@ -23,10 +19,9 @@ data Value
   | VNull
   | VObject [(FieldName, Value)]
   | VArray [Value]
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq)
 
-instance FromJSON Value
-instance ToJSON Value
+
 
 type Document = [(FieldName, Value)]
 type CollectionData = [Document]
@@ -146,18 +141,31 @@ evalComm (CommDelete coll cond) = do
 -- UPDATE ONE
 -------------------------------------------------------
 
+--evalComm (CommUpdateOne coll cond exp) = do
+--  newDoc <- evalExpAsDoc exp
+--  st <- get
+--  case M.lookup coll (database st) of
+--    Nothing -> throwError (CollectionNotFound coll)
+--    Just docs ->
+--      res <- breakM (evalBool cond) docs
+--      case res of
+--        Nothing -> return ()
+--        Just (before, _:after) ->
+--          let docs' = before ++ (newDoc:after)
+--          in put st { database = M.insert coll docs' (database st) }
+
 evalComm (CommUpdateOne coll cond exp) = do
   newDoc <- evalExpAsDoc exp
   st <- get
   case M.lookup coll (database st) of
     Nothing -> throwError (CollectionNotFound coll)
-    Just docs ->
-      case breakM (evalBool cond) docs of
+    Just docs -> do
+      res <- breakM (evalBool cond) docs
+      case res of
         Nothing -> return ()
         Just (before, _:after) ->
           let docs' = before ++ (newDoc:after)
           in put st { database = M.insert coll docs' (database st) }
-
 -------------------------------------------------------
 -- CONSULTAS
 -------------------------------------------------------

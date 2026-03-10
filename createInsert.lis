@@ -1,2 +1,7 @@
-createCollection.animales();
+createCollection.users();
 insert.users({name: "Messi", age: 38});
+find.users()
+  .preview();
+
+createCollection.animales();
+insert.animales({name: "Leon", age: 38})

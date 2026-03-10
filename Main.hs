@@ -15,6 +15,7 @@ import qualified Data.Map as M
 
 main :: IO ()
 main = do
+  putStrLn "DEBUG: inicio main"
   args <- getArgs
   case args of
     [queryFile, jsonFile] -> runFiles queryFile jsonFile
@@ -22,7 +23,9 @@ main = do
 
 runFiles :: FilePath -> FilePath -> IO ()
 runFiles queryFile jsonFile = do
-  input <- readFile queryFile
+  putStrLn "DEBUG: antes de readFile"
+  --input <- readFile queryFile
+  input <- fmap (filter (/= '\r')) (readFile queryFile)
 
   case parse pProgram queryFile input of
     Left err -> do
