@@ -344,45 +344,12 @@ evalBool (And a b) doc =
 evalBool (Or a b) doc =
   (||) <$> evalBool a doc <*> evalBool b doc
 
-evalBool (Eq a b) doc = do
-  v1 <- evalDocExp a doc
-  v2 <- evalDocExp b doc
-  return (v1 == v2)
-
-evalBool (Neq a b) doc = do
-  v1 <- evalDocExp a doc
-  v2 <- evalDocExp b doc
-  return (v1 /= v2)
-
-evalBool (Gt a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x > y)
-
-evalBool (Ge a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x >= y)
-
-evalBool (Lt a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x < y)
-
-evalBool (Le a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x <= y)
-
 --evalBool (Exists (VarExp f)) doc =
 --  return (f `elem` map fst doc)
 
-evalBool (Exists e) doc =
-  catchError
-    (evalDocExp e doc >> return True)
-    (\_ -> return False)
 
---evalBool _ _ = return False
+
+evalBool _ _ = return False
 
 -------------------------------------------------------
 -- HELPERS
