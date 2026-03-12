@@ -4,7 +4,7 @@ import AST
 import Control.Monad.State
 import Control.Monad.Except
 import qualified Data.Map as M
-import Data.List (find)
+import Data.List (find, groupBy, sortOn, sortBy)
 import System.IO
 
 -------------------------------------------------------
@@ -19,7 +19,7 @@ data Value
   | VNull
   | VObject [(FieldName, Value)]
   | VArray [Value]
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 
 
@@ -264,6 +264,56 @@ evalFind (Find coll ops term) = do
     Just docs -> foldM applyOp docs ops
 
 -------------------------------------------------------
+-- GROUP
+-------------------------------------------------------
+
+lookupField :: FieldName -> Document -> Value
+lookupField f doc =
+  case lookup f doc of
+    Just v  -> v
+    Nothing -> VNull
+
+groupKey :: [FieldName] -> Document -> [Value]
+groupKey fields doc =
+  map (\f -> lookupField f doc) fields
+
+groupDocuments :: [FieldName] -> [Document] -> [[Document]]
+groupDocuments fields docs =
+  groupBy sameKey sorted
+  where
+    sorted = sortOn (groupKey fields) docs
+    sameKey d1 d2 = groupKey fields d1 == groupKey fields d2
+
+buildGroupDoc :: [FieldName] -> [Aggregate] -> [Document] -> Document
+buildGroupDoc fields aggs docs =
+  let keyVals = map (\f -> (f, lookupField f (head docs))) fields
+      aggVals = map (`applyAggregate` docs) aggs
+  in keyVals ++ aggVals
+
+applyAggregate :: Aggregate -> [Document] -> (FieldName, Value)
+
+applyAggregate (Aggregate AggCount _ alias) docs =
+  (alias, VInt (length docs))
+
+applyAggregate (Aggregate AggSum field alias) docs =
+  let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
+  in (alias, VInt (sum vals))
+
+applyAggregate (Aggregate AggAvg field alias) docs =
+  let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
+      s = sum vals
+      c = length vals
+  in (alias, VFloat (fromIntegral s / fromIntegral c))
+
+applyAggregate (Aggregate AggMin field alias) docs =
+  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
+  in (alias, minimum vals)
+
+applyAggregate (Aggregate AggMax field alias) docs =
+  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
+  in (alias, maximum vals)
+
+-------------------------------------------------------
 -- PIPELINE
 -------------------------------------------------------
 
@@ -278,11 +328,38 @@ applyOp docs (QSelect fields) =
 applyOp docs (QLimit n) =
   return (take n docs)
 
-applyOp docs (QSort _) =
-  return docs
+applyOp docs (QSort fields) =
+  return (sortBy cmp docs)
+  where
+    cmp d1 d2 = compareFields fields d1 d2
 
-applyOp docs (QGroup _) =
-  return docs
+    compareFields [] _ _ = EQ
+
+    compareFields ((field, order):rest) d1 d2 =
+      case (lookup field d1, lookup field d2) of
+        (Just v1, Just v2) ->
+          let res = case order of
+                      Asc  -> compare v1 v2
+                      Desc -> compare v2 v1
+          in if res == EQ
+                then compareFields rest d1 d2
+                else res
+        _ -> compareFields rest d1 d2
+
+
+applyOp docs (QGroup (GroupSpec fields aggs having)) = do
+
+  let groups = groupDocuments fields docs
+
+  let groupedDocs =
+        map (buildGroupDoc fields aggs) groups
+
+  case having of
+    Nothing ->
+      return groupedDocs
+
+    Just cond ->
+      filterM (evalBool cond) groupedDocs
 
 -------------------------------------------------------
 -- TERMINALES

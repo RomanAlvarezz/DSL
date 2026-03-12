@@ -1,0 +1,15 @@
+createCollection.animales();
+
+insert.animales({name:"Perro", age:7, tipo: "terrestre"});
+insert.animales({name:"Gato", age:4, tipo: "terrestre"});
+insert.animales({name:"Hiena", age:7, tipo: "terrestre"});
+insert.animales({name:"Loro", age:3, tipo: "volador"});
+insert.animales({name:"Tucan", age:3, tipo: "volador"});
+insert.animales({name:"Vinicius", age:3, tipo: "terrestre"});
+insert.animales({name:"Pez", age:1, tipo: "acuatico"});
+
+find.animales()
+  .groupby(tipo,age)
+  .count("cantidad", age)
+  .having(cantidad >= 1)
+  .preview();

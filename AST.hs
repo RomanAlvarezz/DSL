@@ -134,7 +134,7 @@ data QueryTerminal
 --  , havingCond :: Maybe BoolExp
 --  }
 --  deriving (Show, Eq)
-data GroupSpec = GroupSpec FieldName [Aggregate] (Maybe BoolExp) deriving (Show, Eq)
+data GroupSpec = GroupSpec [FieldName] [Aggregate] (Maybe BoolExp) deriving (Show, Eq)
 
 --data Aggregate = Aggregate
 --  { aggFunc  :: AggFunc

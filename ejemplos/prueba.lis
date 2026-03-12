@@ -1,0 +1,26 @@
+createCollection.users();
+
+insert.users({
+  name: "Juan",
+  age: 25
+});
+
+insert.users({
+  name: "Pedro",
+  age: 77,
+  direccion: {
+    ciudad: "Rosario",
+    calle: "Artigas",
+    nro: "459"
+  }
+});
+
+insert.users({
+  name: "Jose",
+  age: 14,
+  email: "joase@gmail.coms"
+});
+
+find.users()
+  .filter(age > 18 && exists(direccion))
+  .preview();

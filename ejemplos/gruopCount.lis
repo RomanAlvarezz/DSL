@@ -1,0 +1,13 @@
+createCollection.animales();
+
+insert.animales({name:"Perro", age:7});
+insert.animales({name:"Gato", age:4});
+insert.animales({name:"Hiena", age:7});
+insert.animales({name:"Loro", age:3});
+insert.animales({name:"Tucan", age:3});
+insert.animales({name:"Vinicius", age:3});
+
+find.animales()
+  .groupby(age)
+  .count("cantidad", age)
+  .preview();

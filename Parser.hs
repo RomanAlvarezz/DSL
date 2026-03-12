@@ -20,6 +20,7 @@ dsl = makeTokenParser emptyDef
       , "asc", "desc"
       , "insert", "insertMany", "updateOne", "delete"
       , "groupby", "having"
+      , "count", "sum", "avg", "min", "max" 
       , "preview", "save"
       , "transaction", "timestamp", "rollback"
       , "createView", "useView",
@@ -255,10 +256,10 @@ pGroup :: Parser QueryOp
 pGroup = do
   reservedOpP "."
   reservedP "groupby"
-  field <- parensP identifierP
-  aggs  <- many (try pAggregate)  -- cambie la linea, la anterior esa aggs <- many pAggregate
-  hav   <- optionMaybe (try pHaving)   -- cambie la linea, la anterior era hav <- optionMaybe pHaving
-  return $ QGroup (GroupSpec field aggs hav)
+  fields <- parensP (identifierP `sepBy1` commaP)
+  aggs  <- many (try pAggregate)
+  hav   <- optionMaybe (try pHaving)
+  return $ QGroup (GroupSpec fields aggs hav)
 
 pAggregate :: Parser Aggregate
 pAggregate =

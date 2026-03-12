@@ -1,0 +1,30 @@
+createCollection.users();
+
+insert.users({name: "Messi", age: 38, direccion : {calle: "Almafuerte", altura: "1500"}});
+
+createCollection.animales();
+
+insert.animales({name: "Leon", age: 15});
+
+
+find.users()
+  .filter(exists(direccion.calle))
+  .preview();
+
+insert.animales({name: "Perro", age: 7});
+insert.animales({name: "Gato", age: 4});
+insert.animales({name: "Loro", age: 3});
+
+
+insert.users({name: "Maradona", age: 60});
+insert.users({name: "Ronaldo", age: 42});
+insert.users({name: "Ronaldinho", age: 45});
+insert.users({name: "Roberto Carlos", age: 50});
+insert.users({name: "Felipe Luis", age: 50});
+
+
+find.users()
+  .sort({age: asc, name: asc})
+  .preview();
+
+insert.animales({name: "Hiena", age: 7})
