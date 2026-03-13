@@ -1,0 +1,139 @@
+createCollection.animales();
+
+insert.animales({name:"Perro", age:7, tipo:"terrestre"});
+insert.animales({name:"Gato", age:4, tipo:"terrestre"});
+insert.animales({name:"Hiena", age:7, tipo:"terrestre"});
+insert.animales({name:"Loro", age:3, tipo:"volador"});
+insert.animales({name:"Tucan", age:3, tipo:"volador"});
+insert.animales({name:"Vinicius", age:3, tipo:"terrestre"});
+insert.animales({name:"Pez", age:1, tipo:"acuatico"});
+
+//////////////////////////////
+// TEST 1
+// FIND simple
+//////////////////////////////
+
+find.animales()
+.preview();
+
+//////////////////////////////
+// TEST 2
+// FILTER
+//////////////////////////////
+
+find.animales()
+.filter(age > 3)
+.preview();
+
+//////////////////////////////
+// TEST 3
+// SELECT
+//////////////////////////////
+
+find.animales()
+.select(name,tipo)
+.preview();
+
+//////////////////////////////
+// TEST 4
+// SORT
+//////////////////////////////
+
+find.animales()
+.sort({age:asc})
+.preview();
+
+//////////////////////////////
+// TEST 5
+// SORT MULTICAMPO
+//////////////////////////////
+
+find.animales()
+.sort({tipo:asc, age:desc})
+.preview();
+
+//////////////////////////////
+// TEST 6
+// LIMIT
+//////////////////////////////
+
+find.animales()
+.sort({age:desc})
+.limit(3)
+.preview();
+
+//////////////////////////////
+// TEST 7
+// GROUP BY + COUNT
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.count("cantidad", age)
+.preview();
+
+//////////////////////////////
+// TEST 8
+// GROUP BY + SUM
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.sum("edad_total", age)
+.preview();
+
+//////////////////////////////
+// TEST 9
+// GROUP BY + AVG
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.avg("edad_promedio", age)
+.preview();
+
+//////////////////////////////
+// TEST 10
+// GROUP BY + MIN + MAX
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.min("edad_min", age)
+.max("edad_max", age)
+.preview();
+
+//////////////////////////////
+// TEST 11
+// GROUP BY MULTICAMPO
+//////////////////////////////
+
+find.animales()
+.groupby(tipo,age)
+.count("c", age)
+.preview();
+
+//////////////////////////////
+// TEST 12
+// GROUP BY + MUCHAS AGREGACIONES
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.count("c", age)
+.sum("s", age)
+.avg("a", age)
+.min("m", age)
+.max("x", age)
+.preview();
+
+//////////////////////////////
+// TEST 13
+// GROUP BY + HAVING
+//////////////////////////////
+
+find.animales()
+.groupby(tipo)
+.count("c", age)
+.having(c > 2)
+.preview();

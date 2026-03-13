@@ -15,17 +15,17 @@ dsl = makeTokenParser emptyDef
   { commentLine     = "//"
   , commentStart    = "/*"
   , commentEnd      = "*/"
-  , reservedNames   =
+  , reservedNames =
       [ "find", "true", "false", "null"
       , "asc", "desc"
       , "insert", "insertMany", "updateOne", "delete"
       , "groupby", "having"
-      , "count", "sum", "avg", "min", "max" 
+      , "count", "sum", "avg", "min", "max"
       , "preview", "save"
       , "transaction", "timestamp", "rollback"
-      , "createView", "useView",
-      "database",
-      "exists", "skip"
+      , "createView", "useView"
+      , "database"
+      , "exists", "skip"
       ]
   , reservedOpNames =
       [ ".", ",", ":", "==", "!=", ">", "<", ">=", "<="
@@ -261,24 +261,75 @@ pGroup = do
   hav   <- optionMaybe (try pHaving)
   return $ QGroup (GroupSpec fields aggs hav)
 
+
 pAggregate :: Parser Aggregate
 pAggregate =
-      pAgg "count" AggCount
-  <|> pAgg "sum"   AggSum
-  <|> pAgg "avg"   AggAvg
-  <|> pAgg "min"   AggMin
-  <|> pAgg "max"   AggMax
+      try pCount
+  <|> try pSum
+  <|> try pAvg
+  <|> try pMin
+  <|> try pMax
 
-pAgg :: String -> AggFunc -> Parser Aggregate
-pAgg name f = do
+
+pCount :: Parser Aggregate
+pCount = do
   reservedOpP "."
-  reservedP name
+  reservedP "count"
   (alias, field) <- parensP $ do
     a <- stringP
     commaP
     b <- identifierP
     return (a, b)
-  return (Aggregate f field alias)
+  return (Aggregate AggCount field alias)
+
+
+pSum :: Parser Aggregate
+pSum = do
+  reservedOpP "."
+  reservedP "sum"
+  (alias, field) <- parensP $ do
+    a <- stringP
+    commaP
+    b <- identifierP
+    return (a, b)
+  return (Aggregate AggSum field alias)
+
+
+pAvg :: Parser Aggregate
+pAvg = do
+  reservedOpP "."
+  reservedP "avg"
+  (alias, field) <- parensP $ do
+    a <- stringP
+    commaP
+    b <- identifierP
+    return (a, b)
+  return (Aggregate AggAvg field alias)
+
+
+pMin :: Parser Aggregate
+pMin = do
+  reservedOpP "."
+  reservedP "min"
+  (alias, field) <- parensP $ do
+    a <- stringP
+    commaP
+    b <- identifierP
+    return (a, b)
+  return (Aggregate AggMin field alias)
+
+
+pMax :: Parser Aggregate
+pMax = do
+  reservedOpP "."
+  reservedP "max"
+  (alias, field) <- parensP $ do
+    a <- stringP
+    commaP
+    b <- identifierP
+    return (a, b)
+  return (Aggregate AggMax field alias)
+
 
 pHaving :: Parser BoolExp
 pHaving = do
