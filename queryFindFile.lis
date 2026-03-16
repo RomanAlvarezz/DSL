@@ -1,0 +1,4 @@
+find.users()
+  .groupby(age)
+  .count("cantidad", age)
+  .save("hola.json");

@@ -1,0 +1,3 @@
+insert.users({name: "Maradona", age: 60});
+insert.users({name: "Ana", age: 25});
+insert.users({name: "Ronaldinho", age: 42});

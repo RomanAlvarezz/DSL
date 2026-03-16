@@ -7,6 +7,13 @@ import qualified Data.Map as M
 import Data.List (find, groupBy, sortOn, sortBy)
 import System.IO
 
+import qualified Data.Aeson as A
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Vector as V
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Text as T
+
+
 -------------------------------------------------------
 -- VALORES JSON INTERNOS
 -------------------------------------------------------
@@ -364,7 +371,17 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
 -------------------------------------------------------
 -- TERMINALES
 -------------------------------------------------------
+evalTerminal :: QueryTerminal -> [Document] -> Eval ()
 
+evalTerminal TerminalPreview docs = do
+  let jsonVal = documentsToJSON docs
+  liftIO $ BL.putStrLn (A.encode jsonVal)
+
+evalTerminal (TerminalSave path) docs = do
+  let jsonVal = documentsToJSON docs
+  liftIO $ BL.writeFile path (A.encode jsonVal)
+
+{--
 evalTerminal :: QueryTerminal -> [Document] -> Eval ()
 
 evalTerminal TerminalPreview docs =
@@ -372,7 +389,7 @@ evalTerminal TerminalPreview docs =
 
 evalTerminal (TerminalSave path) docs =
   liftIO (writeFile path (show docs))
-
+--}
 -------------------------------------------------------
 -- EXPRESIONES
 -------------------------------------------------------
@@ -464,6 +481,32 @@ evalBool (Exists e) doc =
 -------------------------------------------------------
 -- HELPERS
 -------------------------------------------------------
+
+valueToJSON :: Value -> A.Value
+valueToJSON (VString s) = A.String (T.pack s)
+valueToJSON (VBool b) = A.Bool b
+valueToJSON VNull = A.Null
+valueToJSON (VInt i) = A.Number (fromIntegral i)
+valueToJSON (VFloat f) = A.Number (realToFrac f)
+
+valueToJSON (VArray xs) =
+  A.Array (V.fromList (map valueToJSON xs))
+
+valueToJSON (VObject fields) =
+  A.Object $
+    HM.fromList
+      [ (T.pack k, valueToJSON v)
+      | (k,v) <- fields
+      ]
+
+
+documentsToJSON :: [Document] -> A.Value
+documentsToJSON docs =
+  A.Array $
+    V.fromList $
+      map (\doc -> valueToJSON (VObject doc)) docs
+
+
 evalDocExp :: Exp -> Document -> Eval Value
 
 evalDocExp (VarExp f) doc =

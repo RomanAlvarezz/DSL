@@ -1,9 +1,8 @@
-createCollection.usuarios();
 
 createView("mayoresActivos",
-  find.usuarios()
-    .filter(!(edad < 18) && (activo == true || categoria == "gold"))
-    .groupby(edad)
+  find.users()
+    .filter(!(age < 18))
+    .groupby(age)
       .count("total", edad)
       .having(total > 1)
     .preview()
@@ -12,12 +11,11 @@ createView("mayoresActivos",
 
 
 useView("mayoresActivos")
-  .filter(edad > 25)
-  .sort({edad: desc})
+  .filter(age > 30)
+  .sort({age: desc})
   .limit(5)
-  .preview();
+  .save("hola2.json");
 
 useView("mayoresActivos");
 
 
-dropCollection.usuarios()

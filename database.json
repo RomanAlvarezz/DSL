@@ -1,9 +1,1 @@
-{
-  "users": [
-    { "name": "Juan", "age": 20 },
-    { "name": "Ana", "age": 25 }
-  ],
-  "movies": [
-    { "title": "Matrix", "year": 1999 }
-  ]
-}
+{"users":[{"age":42,"name":"Ronaldinho"},{"age":25,"name":"Ana"},{"age":60,"name":"Maradona"},{"age":25,"name":"Ana"},{"age":60,"name":"Maradona"},{"age":20,"name":"Juan"},{"age":25,"name":"Ana"}],"movies":[{"year":1999,"title":"Matrix"}]}
