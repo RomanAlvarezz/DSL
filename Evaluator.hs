@@ -8,6 +8,7 @@ import Data.List (find, groupBy, sortOn, sortBy)
 import System.IO
 
 import qualified Data.Aeson as A
+import qualified Data.Aeson.Encode.Pretty as AP
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
@@ -375,11 +376,11 @@ evalTerminal :: QueryTerminal -> [Document] -> Eval ()
 
 evalTerminal TerminalPreview docs = do
   let jsonVal = documentsToJSON docs
-  liftIO $ BL.putStrLn (A.encode jsonVal)
+  liftIO $ BL.putStrLn (AP.encodePretty jsonVal)
 
 evalTerminal (TerminalSave path) docs = do
   let jsonVal = documentsToJSON docs
-  liftIO $ BL.writeFile path (A.encode jsonVal)
+  liftIO $ BL.writeFile path (AP.encodePretty jsonVal)
 
 {--
 evalTerminal :: QueryTerminal -> [Document] -> Eval ()

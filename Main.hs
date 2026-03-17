@@ -15,6 +15,7 @@ import Control.Monad.Except
 import qualified Data.Map as M
 
 import qualified Data.Aeson as A
+import qualified Data.Aeson.Encode.Pretty as AP
 import qualified Data.ByteString.Lazy as BL
 
 main :: IO ()
@@ -102,7 +103,7 @@ runEvaluator ast jsonFile = do
 
       let jsonOut = databaseToJson finalDB
 
-      BL.writeFile jsonFile (A.encode jsonOut)
+      BL.writeFile jsonFile (AP.encodePretty jsonOut)
 
       putStrLn "💾 Base de datos actualizada"
 

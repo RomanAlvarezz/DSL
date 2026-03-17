@@ -1,1 +1,18 @@
-[{"age":20,"cantidad":1},{"age":25,"cantidad":3},{"age":42,"cantidad":1},{"age":60,"cantidad":2}]
+[
+    {
+        "age": 20,
+        "cantidad": 1
+    },
+    {
+        "age": 25,
+        "cantidad": 3
+    },
+    {
+        "age": 42,
+        "cantidad": 1
+    },
+    {
+        "age": 60,
+        "cantidad": 2
+    }
+]

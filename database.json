@@ -1,1 +1,90 @@
-{"users":[{"age":42,"name":"Ronaldinho"},{"age":25,"name":"Ana"},{"age":60,"name":"Maradona"},{"age":25,"name":"Ana"},{"age":60,"name":"Maradona"},{"age":20,"name":"Juan"},{"age":25,"name":"Ana"}],"movies":[{"year":1999,"title":"Matrix"}]}
+{
+    "users": [
+        {
+            "age": 42,
+            "name": "Ronaldinho"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
+        },
+        {
+            "age": 60,
+            "name": "Maradona"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
+        },
+        {
+            "age": 60,
+            "name": "Maradona"
+        },
+        {
+            "age": 20,
+            "name": "Juan"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
+        }
+    ],
+    "animales": [
+        {
+            "age": 1,
+            "name": "Tiburon",
+            "tipo": "acuatico"
+        },
+        {
+            "age": 3,
+            "name": "Serpiente",
+            "tipo": "terrestre"
+        },
+        {
+            "age": 3,
+            "name": "Oso",
+            "tipo": "volador"
+        },
+        {
+            "age": 1,
+            "name": "Pez",
+            "tipo": "acuatico"
+        },
+        {
+            "age": 3,
+            "name": "Vinicius",
+            "tipo": "terrestre"
+        },
+        {
+            "age": 3,
+            "name": "Tucan",
+            "tipo": "volador"
+        },
+        {
+            "age": 3,
+            "name": "Loro",
+            "tipo": "volador"
+        },
+        {
+            "age": 7,
+            "name": "Hiena",
+            "tipo": "terrestre"
+        },
+        {
+            "age": 4,
+            "name": "Gato",
+            "tipo": "terrestre"
+        },
+        {
+            "age": 7,
+            "name": "Perro",
+            "tipo": "terrestre"
+        }
+    ],
+    "movies": [
+        {
+            "year": 1999,
+            "title": "Matrix"
+        }
+    ]
+}
