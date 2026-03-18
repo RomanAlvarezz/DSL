@@ -1,0 +1,37 @@
+# Cabal / Stack build
+dist-newstyle/
+dist/
+.cabal-sandbox/
+cabal.sandbox.config
+
+# Cabal local config (NO compartir)
+cabal.project.local
+
+# Archivos temporales de GHC
+*.hi
+*.o
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+
+# Ejecutables generados
+DSL
+*.exe
+
+# Archivos temporales del sistema
+*~
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# Archivos generados por herramientas
+*.prof
+*.aux
+
+# Opcional: bases de datos locales (si no querés subirlas)
+# database.json
+# *.json
