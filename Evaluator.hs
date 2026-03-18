@@ -9,9 +9,10 @@ import System.IO
 
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as AP
+import qualified Data.Aeson.Key as K
+import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Vector as V
-import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 
 
@@ -543,8 +544,8 @@ valueToJSON (VArray xs) =
 
 valueToJSON (VObject fields) =
   A.Object $
-    HM.fromList
-      [ (T.pack k, valueToJSON v)
+    KM.fromList
+      [ (K.fromText (T.pack k), valueToJSON v)
       | (k,v) <- fields
       ]
 

@@ -2,36 +2,6 @@
     "_meta": {
         "nextId": 10
     },
-    "users": [
-        {
-            "age": 42,
-            "name": "Ronaldinho"
-        },
-        {
-            "age": 25,
-            "name": "Ana"
-        },
-        {
-            "age": 60,
-            "name": "Maradona"
-        },
-        {
-            "age": 25,
-            "name": "Ana"
-        },
-        {
-            "age": 60,
-            "name": "Maradona"
-        },
-        {
-            "age": 20,
-            "name": "Juan"
-        },
-        {
-            "age": 25,
-            "name": "Ana"
-        }
-    ],
     "animales": [
         {
             "_id": 9,
@@ -104,8 +74,38 @@
     ],
     "movies": [
         {
-            "year": 1999,
-            "title": "Matrix"
+            "title": "Matrix",
+            "year": 1999
+        }
+    ],
+    "users": [
+        {
+            "age": 42,
+            "name": "Ronaldinho"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
+        },
+        {
+            "age": 60,
+            "name": "Maradona"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
+        },
+        {
+            "age": 60,
+            "name": "Maradona"
+        },
+        {
+            "age": 20,
+            "name": "Juan"
+        },
+        {
+            "age": 25,
+            "name": "Ana"
         }
     ]
 }
