@@ -59,11 +59,18 @@ runEvaluator ast jsonFile = do
       exitFailure
     Just v -> return v
 
+  (initialDB, nextIdVal) <-
+    case jsonToDatabase jsonValue of
+      Left err -> do
+        putStrLn ("❌ Error en JSON de base: " ++ err)
+        exitFailure
+      Right res -> return res
+{--
   initialDB <- case jsonToDatabase jsonValue of
     Left err -> do
       putStrLn ("❌ Error en JSON de base: " ++ err)
       exitFailure
-    Right db -> return db
+    Right db -> return db--}
 
 
   -------------------------------------------------------
@@ -78,6 +85,7 @@ runEvaluator ast jsonFile = do
   let initialState = EvalState
         { database = initialDB
         , runtime = runtimeCtx
+        , nextId = nextIdVal
         }
 
 
@@ -101,7 +109,9 @@ runEvaluator ast jsonFile = do
 
       let finalDB = database finalState
 
-      let jsonOut = databaseToJson finalDB
+      --let jsonOut = databaseToJson finalDB
+      let finalNextId = nextId finalState
+      let jsonOut = databaseToJson finalDB finalNextId
 
       BL.writeFile jsonFile (AP.encodePretty jsonOut)
 

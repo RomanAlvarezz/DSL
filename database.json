@@ -1,4 +1,7 @@
 {
+    "_meta": {
+        "nextId": 10
+    },
     "users": [
         {
             "age": 42,
@@ -30,6 +33,24 @@
         }
     ],
     "animales": [
+        {
+            "_id": 9,
+            "age": 1,
+            "name": "Ballena",
+            "tipo": "acuatico"
+        },
+        {
+            "_id": 8,
+            "age": 5,
+            "name": "Lagartija",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 7,
+            "age": 3,
+            "name": "Oso hormiguero",
+            "tipo": "terrestre"
+        },
         {
             "age": 1,
             "name": "Tiburon",

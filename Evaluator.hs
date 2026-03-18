@@ -60,6 +60,7 @@ data RuntimeContext = RuntimeContext
 data EvalState = EvalState
   { database :: Database
   , runtime  :: RuntimeContext
+  , nextId   :: Int
   }
 
 -------------------------------------------------------
@@ -120,7 +121,24 @@ evalComm (CommDropColl name) = do
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
+evalComm (CommInsert coll exp) = do
+  doc <- evalExpAsDoc exp
+  st <- get
+  let db = database st
+  let newId = nextId st
 
+  let docWithId =
+        ("_id", VInt newId) : doc
+
+  case M.lookup coll db of
+    Nothing -> throwError (CollectionNotFound coll)
+    Just docs ->
+      put st
+        { database = M.insert coll (docWithId : docs) db
+        , nextId = newId + 1
+        }
+
+{--
 evalComm (CommInsert coll exp) = do
   doc <- evalExpAsDoc exp
   st <- get
@@ -129,6 +147,7 @@ evalComm (CommInsert coll exp) = do
     Nothing -> throwError (CollectionNotFound coll)
     Just docs ->
       put st { database = M.insert coll (doc:docs) db }
+--}
 
 evalComm (CommInsertMany coll exps) =
   mapM_ (evalComm . CommInsert coll) exps
@@ -171,9 +190,38 @@ evalComm (CommUpdateOne coll cond exp) = do
       res <- breakM (evalBool cond) docs
       case res of
         Nothing -> return ()
+        Just (before, oldDoc:after) -> do
+
+          let oldId =
+                case lookup "_id" oldDoc of
+                  Just v  -> v
+                  Nothing -> VNull
+
+          let newDocWithoutId =
+                filter (\(k,_) -> k /= "_id") newDoc
+
+          let finalDoc =
+                ("_id", oldId) : newDocWithoutId
+
+          let docs' = before ++ (finalDoc : after)
+
+          put st { database = M.insert coll docs' (database st) }
+
+{--
+evalComm (CommUpdateOne coll cond exp) = do
+  newDoc <- evalExpAsDoc exp
+  st <- get
+  case M.lookup coll (database st) of
+    Nothing -> throwError (CollectionNotFound coll)
+    Just docs -> do
+      res <- breakM (evalBool cond) docs
+      case res of
+        Nothing -> return ()
         Just (before, _:after) ->
           let docs' = before ++ (newDoc:after)
           in put st { database = M.insert coll docs' (database st) }
+--}
+
 -------------------------------------------------------
 -- CONSULTAS
 -------------------------------------------------------

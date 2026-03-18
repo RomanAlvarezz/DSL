@@ -1,6 +1,6 @@
-insert.animales({name:"Oso", age:3, tipo: "volador"});
-insert.animales({name:"Serpiente", age:3, tipo: "terrestre"});
-insert.animales({name:"Tiburon", age:1, tipo: "acuatico"});
+insert.animales({name:"Oso hormiguero", age:3, tipo: "terrestre"});
+insert.animales({name:"Lagartija", age:5, tipo: "terrestre"});
+insert.animales({name:"Ballena", age:1, tipo: "acuatico"});
 
 find.animales()
   .groupby(tipo)

@@ -76,7 +76,40 @@ valueToJson (VObject fields) =
 -------------------------------------------------------
 -- JSON -> DATABASE
 -------------------------------------------------------
+jsonToDatabase :: A.Value -> Either String (Database, Int)
 
+jsonToDatabase (A.Object obj) =
+  let
+    -- separar meta
+    metaVal = HM.lookup (T.pack "_meta") obj
+
+    nextId =
+      case metaVal of
+        Just (A.Object m) ->
+          case HM.lookup (T.pack "nextId") m of
+            Just (A.Number n) ->
+              case floatingOrInteger n of
+                Right i -> i
+                _ -> 1
+            _ -> 1
+        _ -> 1
+
+    -- eliminar _meta del objeto principal
+    collections =
+      HM.toList (HM.delete (T.pack "_meta") obj)
+
+    db =
+      M.fromList
+        [ (T.unpack collName, parseCollection val)
+        | (collName, val) <- collections
+        ]
+
+  in Right (db, nextId)
+
+jsonToDatabase _ =
+  Left "El JSON de la base debe ser un objeto"
+
+{--
 jsonToDatabase :: A.Value -> Either String Database
 
 jsonToDatabase (A.Object obj) =
@@ -88,6 +121,7 @@ jsonToDatabase (A.Object obj) =
 
 jsonToDatabase _ =
   Left "El JSON de la base debe ser un objeto"
+--}
 
 parseCollection :: A.Value -> [Document]
 
@@ -110,7 +144,22 @@ parseDocument _ =
 -------------------------------------------------------
 -- DATABASE -> JSON
 -------------------------------------------------------
+databaseToJson :: Database -> Int -> A.Value
+databaseToJson db nextId =
+  A.Object $
+    HM.fromList $
+      [ (T.pack "_meta", metaObject nextId) ] ++
+      [ (T.pack coll, collectionToJson docs)
+      | (coll, docs) <- M.toList db
+      ]
 
+metaObject :: Int -> A.Value
+metaObject n =
+  A.Object $
+    HM.fromList
+      [ (T.pack "nextId", A.Number (fromIntegral n)) ]
+
+{--
 databaseToJson :: Database -> A.Value
 
 databaseToJson db =
@@ -119,6 +168,7 @@ databaseToJson db =
       [ (T.pack coll, collectionToJson docs)
       | (coll, docs) <- M.toList db
       ]
+--}
 
 collectionToJson :: [Document] -> A.Value
 
