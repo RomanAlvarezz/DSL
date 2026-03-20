@@ -203,6 +203,68 @@ evalComm (CommUpdateOne coll cond exp) = do
             Just (before, oldDoc:after) -> do
 
               ---------------------------------------------------
+              -- Se obtiene el _id original (no se toca)
+              ---------------------------------------------------
+              let oldId =
+                    case lookup "_id" oldDoc of
+                      Just v  -> v
+                      Nothing -> VNull
+
+              ---------------------------------------------------
+              -- Se eliminan posibles "_id" (por seguridad extra)
+              ---------------------------------------------------
+              let oldDocWithoutId =
+                    filter (\(k,_) -> k /= "_id") oldDoc
+
+              ---------------------------------------------------
+              -- Función de merge:
+              -- Si un campo está en cleanDoc -> lo reemplaza
+              -- Si no -> se mantiene el original
+              ---------------------------------------------------
+              let mergeFields old new =
+                    let newKeys = map fst new
+                        oldFiltered =
+                          filter (\(k,_) -> k `notElem` newKeys) old
+                    in oldFiltered ++ new
+
+              ---------------------------------------------------
+              -- Aplicamos merge parcial
+              ---------------------------------------------------
+              let mergedDoc =
+                    mergeFields oldDocWithoutId cleanDoc
+
+              ---------------------------------------------------
+              -- Reinsertamos el _id original
+              ---------------------------------------------------
+              let finalDoc =
+                    ("_id", oldId) : mergedDoc
+
+              let docs' = before ++ (finalDoc : after)
+
+              put st { database = M.insert coll docs' (database st) }
+
+{--
+evalComm (CommUpdateOne coll cond exp) = do
+  newDoc <- evalExpAsDoc exp
+
+  ---------------------------------------------------
+  -- Validación reutilizable: el documento de update
+  -- no debe traer "_id"
+  ---------------------------------------------------
+  case validateNoIdField newDoc of
+    Nothing -> throwError TypeError
+    Just cleanDoc -> do
+
+      st <- get
+      case M.lookup coll (database st) of
+        Nothing -> throwError (CollectionNotFound coll)
+        Just docs -> do
+          res <- breakM (evalBool cond) docs
+          case res of
+            Nothing -> return ()
+            Just (before, oldDoc:after) -> do
+
+              ---------------------------------------------------
               -- Se preserva el _id del documento original
               ---------------------------------------------------
               let oldId =
@@ -216,7 +278,7 @@ evalComm (CommUpdateOne coll cond exp) = do
               let docs' = before ++ (finalDoc : after)
 
               put st { database = M.insert coll docs' (database st) }
-
+--}
 
 -------------------------------------------------------
 -- CONSULTAS

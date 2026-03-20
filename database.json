@@ -1,17 +1,57 @@
 {
     "_meta": {
-        "nextId": 10
+        "nextId": 17
     },
     "animales": [
         {
-            "_id": 9,
+            "_id": 16,
+            "age": 15,
+            "name": "Mono ",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 15,
+            "age": 33,
+            "name": "Jirafa",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 14,
+            "age": 15,
+            "name": "Mono ",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 13,
+            "age": 33,
+            "name": "Jirafa",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 12,
             "age": 1,
-            "name": "Ballena",
+            "name": "Tiburonsin",
             "tipo": "acuatico"
         },
         {
-            "_id": 8,
+            "_id": 11,
             "age": 5,
+            "name": "Oso Panda",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 10,
+            "age": 3,
+            "name": "Oso Pururu",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 9,
+            "name": "Ballenato"
+        },
+        {
+            "_id": 8,
+            "age": 4,
             "name": "Lagartija",
             "tipo": "terrestre"
         },

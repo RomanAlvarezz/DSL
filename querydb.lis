@@ -1,1 +1,5 @@
-insert.animales({_id: 9,age:1,name:"Ballena",tipo:"acuatico"});
+updateOne.animales(
+  _id == 8,
+  {age: 4}
+)
+
