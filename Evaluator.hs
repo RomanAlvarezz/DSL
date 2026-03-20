@@ -122,22 +122,34 @@ evalComm (CommDropColl name) = do
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
+-------------------------------------------------------
+-- INSERT
+-------------------------------------------------------
 evalComm (CommInsert coll exp) = do
   doc <- evalExpAsDoc exp
-  st <- get
-  let db = database st
-  let newId = nextId st
 
-  let docWithId =
-        ("_id", VInt newId) : doc
+  ---------------------------------------------------
+  -- Validación reutilizable: el documento no debe
+  -- contener "_id" definido por el usuario
+  ---------------------------------------------------
+  case validateNoIdField doc of
+    Nothing -> throwError TypeError
+    Just cleanDoc -> do
 
-  case M.lookup coll db of
-    Nothing -> throwError (CollectionNotFound coll)
-    Just docs ->
-      put st
-        { database = M.insert coll (docWithId : docs) db
-        , nextId = newId + 1
-        }
+      st <- get
+      let db = database st
+      let newId = nextId st
+
+      let docWithId =
+            ("_id", VInt newId) : cleanDoc
+
+      case M.lookup coll db of
+        Nothing -> throwError (CollectionNotFound coll)
+        Just docs ->
+          put st
+            { database = M.insert coll (docWithId : docs) db
+            , nextId = newId + 1
+            }
 
 {--
 evalComm (CommInsert coll exp) = do
@@ -165,63 +177,46 @@ evalComm (CommDelete coll cond) = do
       docs' <- filterM (\d -> fmap not (evalBool cond d)) docs
       put st { database = M.insert coll docs' (database st) }
 
+
+
 -------------------------------------------------------
 -- UPDATE ONE
 -------------------------------------------------------
-
---evalComm (CommUpdateOne coll cond exp) = do
---  newDoc <- evalExpAsDoc exp
---  st <- get
---  case M.lookup coll (database st) of
---    Nothing -> throwError (CollectionNotFound coll)
---    Just docs ->
---      res <- breakM (evalBool cond) docs
---      case res of
---        Nothing -> return ()
---        Just (before, _:after) ->
---          let docs' = before ++ (newDoc:after)
---          in put st { database = M.insert coll docs' (database st) }
-
 evalComm (CommUpdateOne coll cond exp) = do
   newDoc <- evalExpAsDoc exp
-  st <- get
-  case M.lookup coll (database st) of
-    Nothing -> throwError (CollectionNotFound coll)
-    Just docs -> do
-      res <- breakM (evalBool cond) docs
-      case res of
-        Nothing -> return ()
-        Just (before, oldDoc:after) -> do
 
-          let oldId =
-                case lookup "_id" oldDoc of
-                  Just v  -> v
-                  Nothing -> VNull
+  ---------------------------------------------------
+  -- Validación reutilizable: el documento de update
+  -- no debe traer "_id"
+  ---------------------------------------------------
+  case validateNoIdField newDoc of
+    Nothing -> throwError TypeError
+    Just cleanDoc -> do
 
-          let newDocWithoutId =
-                filter (\(k,_) -> k /= "_id") newDoc
+      st <- get
+      case M.lookup coll (database st) of
+        Nothing -> throwError (CollectionNotFound coll)
+        Just docs -> do
+          res <- breakM (evalBool cond) docs
+          case res of
+            Nothing -> return ()
+            Just (before, oldDoc:after) -> do
 
-          let finalDoc =
-                ("_id", oldId) : newDocWithoutId
+              ---------------------------------------------------
+              -- Se preserva el _id del documento original
+              ---------------------------------------------------
+              let oldId =
+                    case lookup "_id" oldDoc of
+                      Just v  -> v
+                      Nothing -> VNull
 
-          let docs' = before ++ (finalDoc : after)
+              let finalDoc =
+                    ("_id", oldId) : cleanDoc
 
-          put st { database = M.insert coll docs' (database st) }
+              let docs' = before ++ (finalDoc : after)
 
-{--
-evalComm (CommUpdateOne coll cond exp) = do
-  newDoc <- evalExpAsDoc exp
-  st <- get
-  case M.lookup coll (database st) of
-    Nothing -> throwError (CollectionNotFound coll)
-    Just docs -> do
-      res <- breakM (evalBool cond) docs
-      case res of
-        Nothing -> return ()
-        Just (before, _:after) ->
-          let docs' = before ++ (newDoc:after)
-          in put st { database = M.insert coll docs' (database st) }
---}
+              put st { database = M.insert coll docs' (database st) }
+
 
 -------------------------------------------------------
 -- CONSULTAS
@@ -531,6 +526,20 @@ evalBool (Exists e) doc =
 -------------------------------------------------------
 -- HELPERS
 -------------------------------------------------------
+
+-------------------------------------------------------
+-- VALIDACION DE _id (REUTILIZABLE)
+-------------------------------------------------------
+
+-- | Verifica que el documento NO tenga el campo "_id".
+-- | Si lo tiene -> Nothing
+-- | Si no lo tiene -> Just doc
+validateNoIdField :: Document -> Maybe Document
+validateNoIdField doc =
+  case lookup "_id" doc of
+    Just _ -> Nothing
+    Nothing -> Just doc
+
 
 valueToJSON :: Value -> A.Value
 valueToJSON (VString s) = A.String (T.pack s)
