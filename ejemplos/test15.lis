@@ -1,8 +1,4 @@
-insert.animales({name:"Jirafa", age:33, tipo: "terrestre"});
-insert.animales({name:"Mono ", age:15, tipo: "terrestre"});
+insert.animales({name:"Jirafina", age:33, tipo: "terrestre"});
+insert.animales({name:"Mono Titi ", age:15, tipo: "terrestre", ubicacion: {latitud: 90, longitud: 120}});
 
-find.animales()
-  .groupby(tipo)
-  .count("c", age)
-  .sum("s", age)
-  .preview();
+

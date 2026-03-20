@@ -309,7 +309,7 @@ evalComm (CommUseView name (ViewWithPipeline f)) = do
   case M.lookup name (views (runtime st)) of
     Nothing -> throwError (ViewNotFound name)
     Just (Find coll ops _) ->
-      evalComm (CommQuery (Find coll ops (getTerminal f)))
+      evalComm (CommQuery (Find coll (ops ++ getOps f) (getTerminal f)))
 
 -------------------------------------------------------
 -- TIMESTAMPS
@@ -684,3 +684,7 @@ breakM p (x:xs) = do
 
 getTerminal :: Find -> QueryTerminal
 getTerminal (Find _ _ t) = t
+
+
+getOps :: Find -> [QueryOp]
+getOps (Find _ ops _) = ops

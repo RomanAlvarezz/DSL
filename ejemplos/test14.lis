@@ -1,0 +1,17 @@
+createView("mayoresActivos",
+  find.users()
+    .filter(!(age < 23))
+    .groupby(age)
+      .count("total", edad)
+    .preview()
+);
+
+
+
+useView("mayoresActivos")
+  .filter(age > 26)
+  .sort({age: desc})
+  .limit(5)
+  .save("hola6.json");
+
+useView("mayoresActivos");
