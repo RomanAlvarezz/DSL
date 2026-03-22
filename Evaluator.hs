@@ -107,78 +107,38 @@ evalComm (Seq c1 c2) = do
 -- CREAR / BORRAR COLECCIONES
 -------------------------------------------------------
 
-evalComm (CommCreateColl name) = do
-  st <- get
-  let db = database st
-  let newDB = M.insert name [] db
-  let newState = st { database = newDB}
-  put newState
+evalComm (CommCreateColl name) =
+  updateDatabase (M.insert name [])
 
 evalComm (CommDropColl name) = do
   st <- get
   let db = database st
   if M.member name db
-     then do
-       let newDB = M.delete name db
-       let newState = st { database = newDB }
-       put newState
-     else throwError (CollectionNotFound name)
+    then updateDatabase (M.delete name)
+    else throwError (CollectionNotFound name)
+
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
--------------------------------------------------------
--- INSERT
--------------------------------------------------------
-{--
 evalComm (CommInsert coll exp) = do
   doc <- evalExpAsDoc exp
 
+  ---------------------------------------------------
   -- Validación reutilizable: el documento no debe
   -- contener "_id" definido por el usuario
+  ---------------------------------------------------
   case validateNoIdField doc of
     Nothing -> throwError TypeError
     Just cleanDoc -> do
-
       st <- get
       let db = database st
       let newId = nextId st
-
-      let docWithId =
-            ("_id", VInt newId) : cleanDoc
-
+      let docWithId = ("_id", VInt newId) : cleanDoc
       case M.lookup coll db of
         Nothing -> throwError (CollectionNotFound coll)
-        Just docs ->
-          put st
-            { database = M.insert coll (docWithId : docs) db
-            , nextId = newId + 1
-            }
---}
-evalComm (CommInsert coll exp) = do
-  doc <- evalExpAsDoc exp
-
-  case validateNoIdField doc of
-    Nothing -> throwError TypeError
-    Just cleanDoc -> do
-
-      st <- get
-      let db = database st
-      let newIdVal = nextId st
-
-      let docWithId =
-            ("_id", VInt newIdVal) : cleanDoc
-
-      case M.lookup coll db of
-        Nothing -> throwError (CollectionNotFound coll)
-        Just docs -> do
-          let newDocs = docWithId : docs
-          let newDB = M.insert coll newDocs db
-          let newState =
-                st
-                  { database = newDB
-                  , nextId = newIdVal + 1
-                  }
-          put newState
+        Just docs -> do 
+          let newDb = M.insert coll (docWithId : docs) db
+          updateDatabaseAndNextId newDb (newId + 1)
 
 
 evalComm (CommInsertMany coll exps) =
@@ -190,14 +150,11 @@ evalComm (CommInsertMany coll exps) =
 
 evalComm (CommDelete coll cond) = do
   st <- get
-  let db = database st
   case M.lookup coll (database st) of
     Nothing -> throwError (CollectionNotFound coll)
     Just docs -> do
       docs' <- filterM (\d -> fmap not (evalBool cond d)) docs
-      let newDB = M.insert coll docs' db
-      let newState = st { database = newDB }
-      put newState
+      updateDatabase (M.insert coll docs')
 
 
 
@@ -216,8 +173,6 @@ evalComm (CommUpdateOne coll cond exp) = do
     Just cleanDoc -> do
 
       st <- get
-      let db = database st
-
       case M.lookup coll (database st) of
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> do
@@ -263,10 +218,9 @@ evalComm (CommUpdateOne coll cond exp) = do
               let finalDoc =
                     ("_id", oldId) : mergedDoc
 
-              let newDocs = before ++ (finalDoc : after)
-              let newDB = M.insert coll newDocs db
-              let newState = st {database = newDB}
-              put newState
+              let docs' = before ++ (finalDoc : after)
+
+              updateDatabase (M.insert coll docs')
 
 -------------------------------------------------------
 -- CONSULTAS
@@ -280,13 +234,8 @@ evalComm (CommQuery find) = do
 -- VISTAS
 -------------------------------------------------------
 
-evalComm (CommCreateView name find) = do
-  st <- get
-  let rt = runtime st
-  let newViews = M.insert name find (views rt)
-  let newRuntime = rt { views = newViews }
-  let newState = st { runtime = newRuntime }
-  put newState
+evalComm (CommCreateView name find) =
+  updateViews (M.insert name find)
 
 
 evalComm (CommUseView name ViewOnly) = do
@@ -320,38 +269,12 @@ evalComm (CommTimestamp target label) = do
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> return (CollSnapshot coll docs)
 
-  let newTimestamps = M.insert label snap (timestamps rt)
-  let newRuntime = rt { timestamps = newTimestamps }
-  let newState = st { runtime = newRuntime }
-  put newState
+  updateTimestamps (M.insert label snap)
 
 -------------------------------------------------------
 -- ROLLBACK
 -------------------------------------------------------
-evalComm (CommRollback target label) = do
-  st <- get
-  let rt = runtime st
 
-  snap <- case M.lookup label (timestamps rt) of
-    Nothing -> throwError (TimestampNotFound label)
-    Just s  -> return s
-
-  case (target, snap) of
-
-    (TSDatabase, DBSnapshot db') -> do
-      let newState = st { database = db' }
-      put newState
-
-    (TSColl coll, CollSnapshot c docs)
-      | coll == c -> do
-          let db = database st
-          let newDB = M.insert coll docs db
-          let newState = st { database = newDB }
-          put newState
-
-    _ -> throwError InvalidTimestampTarget
-
-{--
 evalComm (CommRollback target label) = do
   st <- get
   let rt = runtime st
@@ -371,7 +294,7 @@ evalComm (CommRollback target label) = do
           in put st { database = db' }
 
     _ -> throwError InvalidTimestampTarget
---}
+
 -------------------------------------------------------
 -- TRANSACCIONES
 -------------------------------------------------------
@@ -511,15 +434,6 @@ evalTerminal (TerminalSave path) docs = do
   let jsonVal = documentsToJSON docs
   liftIO $ BL.writeFile path (AP.encodePretty jsonVal)
 
-{--
-evalTerminal :: QueryTerminal -> [Document] -> Eval ()
-
-evalTerminal TerminalPreview docs =
-  liftIO (print docs)
-
-evalTerminal (TerminalSave path) docs =
-  liftIO (writeFile path (show docs))
---}
 -------------------------------------------------------
 -- EXPRESIONES
 -------------------------------------------------------
@@ -606,12 +520,69 @@ evalBool (Exists e) doc =
     (evalDocExp e doc >> return True)
     (\_ -> return False)
 
---evalBool _ _ = return False
-
 -------------------------------------------------------
 -- HELPERS
 -------------------------------------------------------
+-------------------------------------------------------
+-- HELPERS DE ACTUALIZACION DE ESTADO
+-------------------------------------------------------
 
+updateDatabase :: (Database -> Database) -> Eval ()
+updateDatabase f = do
+  st <- get
+  let db = database st
+  let newDb = f db
+  let newState = st { database = newDb }
+  put newState
+
+updateRuntime :: (RuntimeContext -> RuntimeContext) -> Eval ()
+updateRuntime f = do
+  st <- get
+  let rt = runtime st
+  let newRuntime = f rt
+  let newState = st { runtime = newRuntime }
+  put newState
+
+updateViews :: (M.Map ViewName Find -> M.Map ViewName Find) -> Eval ()
+updateViews f = do
+  st <- get
+  let rt = runtime st
+  let vs = views rt
+  let newViews = f vs
+  let newRuntime = rt { views = newViews }
+  let newState = st { runtime = newRuntime }
+  put newState
+
+updateTimestamps ::
+  (M.Map TimestampLabel TimestampSnapshot
+   -> M.Map TimestampLabel TimestampSnapshot)
+  -> Eval ()
+updateTimestamps f = do
+  st <- get
+  let rt = runtime st
+  let ts = timestamps rt
+  let newTs = f ts
+  let newRuntime = rt { timestamps = newTs }
+  let newState = st { runtime = newRuntime }
+  put newState
+
+updateNextId :: (Int -> Int) -> Eval ()
+updateNextId f = do
+  st <- get
+  let nid = nextId st
+  let newId = f nid
+  let newState = st { nextId = newId }
+  put newState
+
+updateDatabaseAndNextId :: Database -> Int -> Eval ()
+updateDatabaseAndNextId newDb newNextId = do
+  st <- get
+  let newState =
+        st
+          { database = newDb
+          , nextId = newNextId
+          }
+  put newState
 -------------------------------------------------------
 -- VALIDACION DE _id (REUTILIZABLE)
 -------------------------------------------------------
