@@ -110,28 +110,31 @@ evalComm (Seq c1 c2) = do
 evalComm (CommCreateColl name) = do
   st <- get
   let db = database st
-  put st { database = M.insert name [] db }
+  let newDB = M.insert name [] db
+  let newState = st { database = newDB}
+  put newState
 
 evalComm (CommDropColl name) = do
   st <- get
   let db = database st
   if M.member name db
-     then put st { database = M.delete name db }
+     then do
+       let newDB = M.delete name db
+       let newState = st { database = newDB }
+       put newState
      else throwError (CollectionNotFound name)
-
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
+{--
 evalComm (CommInsert coll exp) = do
   doc <- evalExpAsDoc exp
 
-  ---------------------------------------------------
   -- Validación reutilizable: el documento no debe
   -- contener "_id" definido por el usuario
-  ---------------------------------------------------
   case validateNoIdField doc of
     Nothing -> throwError TypeError
     Just cleanDoc -> do
@@ -150,6 +153,32 @@ evalComm (CommInsert coll exp) = do
             { database = M.insert coll (docWithId : docs) db
             , nextId = newId + 1
             }
+--}
+evalComm (CommInsert coll exp) = do
+  doc <- evalExpAsDoc exp
+
+  case validateNoIdField doc of
+    Nothing -> throwError TypeError
+    Just cleanDoc -> do
+
+      st <- get
+      let db = database st
+      let newIdVal = nextId st
+
+      let docWithId =
+            ("_id", VInt newIdVal) : cleanDoc
+
+      case M.lookup coll db of
+        Nothing -> throwError (CollectionNotFound coll)
+        Just docs -> do
+          let newDocs = docWithId : docs
+          let newDB = M.insert coll newDocs db
+          let newState =
+                st
+                  { database = newDB
+                  , nextId = newIdVal + 1
+                  }
+          put newState
 
 
 evalComm (CommInsertMany coll exps) =
@@ -165,7 +194,9 @@ evalComm (CommDelete coll cond) = do
     Nothing -> throwError (CollectionNotFound coll)
     Just docs -> do
       docs' <- filterM (\d -> fmap not (evalBool cond d)) docs
-      put st { database = M.insert coll docs' (database st) }
+      let newDB = M.insert coll docs' db
+      let newState = st { database = newDB }
+      put newState
 
 
 
@@ -229,9 +260,10 @@ evalComm (CommUpdateOne coll cond exp) = do
               let finalDoc =
                     ("_id", oldId) : mergedDoc
 
-              let docs' = before ++ (finalDoc : after)
-
-              put st { database = M.insert coll docs' (database st) }
+              let newDocs = before ++ (finalDoc : after)
+              let newDB = M.insert coll newDocs db
+              let newState = st {database = newDB}
+              put newState
 
 -------------------------------------------------------
 -- CONSULTAS
@@ -285,13 +317,38 @@ evalComm (CommTimestamp target label) = do
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> return (CollSnapshot coll docs)
 
-  let ts' = M.insert label snap (timestamps rt)
-  put st { runtime = rt { timestamps = ts' } }
+  let newTimestams = M.insert label snap (timestamps rt)
+  let newRuntime = rt { timestamps = newTimestamps }
+  let newState = st { runtime = newRuntime }
+  put newState
 
 -------------------------------------------------------
 -- ROLLBACK
 -------------------------------------------------------
+evalComm (CommRollback target label) = do
+  st <- get
+  let rt = runtime st
 
+  snap <- case M.lookup label (timestamps rt) of
+    Nothing -> throwError (TimestampNotFound label)
+    Just s  -> return s
+
+  case (target, snap) of
+
+    (TSDatabase, DBSnapshot db') -> do
+      let newState = st { database = db' }
+      put newState
+
+    (TSColl coll, CollSnapshot c docs)
+      | coll == c -> do
+          let db = database st
+          let newDB = M.insert coll docs db
+          let newState = st { database = newDB }
+          put newState
+
+    _ -> throwError InvalidTimestampTarget
+
+{--
 evalComm (CommRollback target label) = do
   st <- get
   let rt = runtime st
@@ -311,7 +368,7 @@ evalComm (CommRollback target label) = do
           in put st { database = db' }
 
     _ -> throwError InvalidTimestampTarget
-
+--}
 -------------------------------------------------------
 -- TRANSACCIONES
 -------------------------------------------------------
