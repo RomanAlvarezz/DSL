@@ -190,6 +190,7 @@ evalComm (CommInsertMany coll exps) =
 
 evalComm (CommDelete coll cond) = do
   st <- get
+  let db = database st
   case M.lookup coll (database st) of
     Nothing -> throwError (CollectionNotFound coll)
     Just docs -> do
@@ -215,6 +216,8 @@ evalComm (CommUpdateOne coll cond exp) = do
     Just cleanDoc -> do
 
       st <- get
+      let db = database st
+
       case M.lookup coll (database st) of
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> do
@@ -317,7 +320,7 @@ evalComm (CommTimestamp target label) = do
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> return (CollSnapshot coll docs)
 
-  let newTimestams = M.insert label snap (timestamps rt)
+  let newTimestamps = M.insert label snap (timestamps rt)
   let newRuntime = rt { timestamps = newTimestamps }
   let newState = st { runtime = newRuntime }
   put newState

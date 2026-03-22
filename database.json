@@ -1,8 +1,24 @@
 {
     "_meta": {
-        "nextId": 23
+        "nextId": 25
     },
     "animales": [
+        {
+            "_id": 24,
+            "age": 15,
+            "name": "Mono Titi ",
+            "tipo": "terrestre",
+            "ubicacion": {
+                "latitud": 90,
+                "longitud": 120
+            }
+        },
+        {
+            "_id": 23,
+            "age": 33,
+            "name": "Jirafina",
+            "tipo": "terrestre"
+        },
         {
             "_id": 22,
             "age": 15,
