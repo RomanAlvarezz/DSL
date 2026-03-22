@@ -151,16 +151,6 @@ evalComm (CommInsert coll exp) = do
             , nextId = newId + 1
             }
 
-{--
-evalComm (CommInsert coll exp) = do
-  doc <- evalExpAsDoc exp
-  st <- get
-  let db = database st
-  case M.lookup coll db of
-    Nothing -> throwError (CollectionNotFound coll)
-    Just docs ->
-      put st { database = M.insert coll (doc:docs) db }
---}
 
 evalComm (CommInsertMany coll exps) =
   mapM_ (evalComm . CommInsert coll) exps
@@ -243,43 +233,6 @@ evalComm (CommUpdateOne coll cond exp) = do
 
               put st { database = M.insert coll docs' (database st) }
 
-{--
-evalComm (CommUpdateOne coll cond exp) = do
-  newDoc <- evalExpAsDoc exp
-
-  ---------------------------------------------------
-  -- Validación reutilizable: el documento de update
-  -- no debe traer "_id"
-  ---------------------------------------------------
-  case validateNoIdField newDoc of
-    Nothing -> throwError TypeError
-    Just cleanDoc -> do
-
-      st <- get
-      case M.lookup coll (database st) of
-        Nothing -> throwError (CollectionNotFound coll)
-        Just docs -> do
-          res <- breakM (evalBool cond) docs
-          case res of
-            Nothing -> return ()
-            Just (before, oldDoc:after) -> do
-
-              ---------------------------------------------------
-              -- Se preserva el _id del documento original
-              ---------------------------------------------------
-              let oldId =
-                    case lookup "_id" oldDoc of
-                      Just v  -> v
-                      Nothing -> VNull
-
-              let finalDoc =
-                    ("_id", oldId) : cleanDoc
-
-              let docs' = before ++ (finalDoc : after)
-
-              put st { database = M.insert coll docs' (database st) }
---}
-
 -------------------------------------------------------
 -- CONSULTAS
 -------------------------------------------------------
@@ -296,7 +249,10 @@ evalComm (CommCreateView name find) = do
   st <- get
   let rt = runtime st
   let newViews = M.insert name find (views rt)
-  put st { runtime = rt { views = newViews } }
+  let newRuntime = rt { views = newViews }
+  let newState = st { runtime = newRuntime }
+  put newState
+
 
 evalComm (CommUseView name ViewOnly) = do
   st <- get
