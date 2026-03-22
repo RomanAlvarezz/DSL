@@ -1,8 +1,40 @@
 {
     "_meta": {
-        "nextId": 19
+        "nextId": 23
     },
     "animales": [
+        {
+            "_id": 22,
+            "age": 15,
+            "name": "Mono Titi ",
+            "tipo": "terrestre",
+            "ubicacion": {
+                "latitud": 90,
+                "longitud": 120
+            }
+        },
+        {
+            "_id": 21,
+            "age": 33,
+            "name": "Jirafina",
+            "tipo": "terrestre"
+        },
+        {
+            "_id": 20,
+            "age": 15,
+            "name": "Mono Titi ",
+            "tipo": "terrestre",
+            "ubicacion": {
+                "latitud": 90,
+                "longitud": 120
+            }
+        },
+        {
+            "_id": 19,
+            "age": 33,
+            "name": "Jirafina",
+            "tipo": "terrestre"
+        },
         {
             "_id": 18,
             "age": 15,

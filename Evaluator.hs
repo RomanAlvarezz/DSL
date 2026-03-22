@@ -375,7 +375,14 @@ evalFind (Find coll ops term) = do
   st <- get
   case M.lookup coll (database st) of
     Nothing -> throwError (CollectionNotFound coll)
-    Just docs -> foldM applyOp docs ops
+    Just docs -> applyPipeline docs ops
+
+
+applyPipeline :: [Document] -> [QueryOp] -> Eval [Document]
+applyPipeline docs [] = return docs
+applyPipeline docs (op:rest) = do
+  docs' <- applyOp docs op
+  applyPipeline docs' rest
 
 -------------------------------------------------------
 -- GROUP
