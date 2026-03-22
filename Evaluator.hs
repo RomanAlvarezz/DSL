@@ -137,8 +137,8 @@ evalComm (CommInsert coll exp) = do
       case M.lookup coll db of
         Nothing -> throwError (CollectionNotFound coll)
         Just docs -> do 
-          let newDb = M.insert coll (docWithId : docs) db
-          updateDatabaseAndNextId newDb (newId + 1)
+          updateDatabase (M.insert coll (docWithId : docs))
+          updateDatabaseNextId
 
 
 evalComm (CommInsertMany coll exps) =
@@ -565,7 +565,7 @@ updateTimestamps f = do
   let newRuntime = rt { timestamps = newTs }
   let newState = st { runtime = newRuntime }
   put newState
-
+{-
 updateNextId :: (Int -> Int) -> Eval ()
 updateNextId f = do
   st <- get
@@ -573,15 +573,21 @@ updateNextId f = do
   let newId = f nid
   let newState = st { nextId = newId }
   put newState
-
+-}
 updateDatabaseAndNextId :: Database -> Int -> Eval ()
 updateDatabaseAndNextId newDb newNextId = do
   st <- get
   let newState =
         st
           { database = newDb
-          , nextId = newNextId
+          , nextId = newNextId + 1
           }
+  put newState
+
+updateDatabaseNextId :: Eval ()
+updateDatabaseNextId = do
+  st <- get
+  let newState = st { nextId = (nextId st) + 1}
   put newState
 -------------------------------------------------------
 -- VALIDACION DE _id (REUTILIZABLE)

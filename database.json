@@ -1,8 +1,14 @@
 {
     "_meta": {
-        "nextId": 25
+        "nextId": 26
     },
     "animales": [
+        {
+            "_id": 25,
+            "age": 4,
+            "name": "Araña",
+            "tipo": "terrestre"
+        },
         {
             "_id": 24,
             "age": 15,
