@@ -71,11 +71,12 @@ valueToJson (VArray xs) =
   A.Array (V.fromList (map valueToJson xs))
 
 valueToJson (VObject fields) =
-  A.Object $
-    KM.fromList
-      [ (K.fromText (T.pack k), valueToJson v)
-      | (k,v) <- fields
-      ]
+  let pairs =
+        [ (K.fromText (T.pack k), valueToJSON v)
+        | (k,v) <- fields
+        ]
+  in A.Object (KM.fromList pairs)
+
 
 -------------------------------------------------------
 -- JSON -> DATABASE
@@ -136,6 +137,44 @@ parseDocument _ =
 databaseToJson :: Database -> Int -> A.Value
 
 databaseToJson db nextId =
+  A.Object (
+    KM.fromList (
+      [ (K.fromText "_meta", metaObject nextId) ] ++
+      [ (K.fromText (T.pack coll), collectionToJson docs)
+      | (coll, docs) <- M.toList db
+      ]
+    )
+  )
+
+metaObject :: Int -> A.Value
+
+metaObject n =
+  A.Object (
+    KM.fromList
+      [ (K.fromText "nextId", A.Number (fromIntegral n)) ]
+  )
+
+
+collectionToJson :: [Document] -> A.Value
+
+collectionToJson docs =
+  A.Array (
+    V.fromList (map documentToJson docs)
+  )
+
+documentToJson :: Document -> A.Value
+
+documentToJson doc =
+  A.Object (
+    KM.fromList
+      [ (K.fromText (T.pack k), valueToJson v)
+      | (k,v) <- doc
+      ]
+  )
+{--
+databaseToJson :: Database -> Int -> A.Value
+
+databaseToJson db nextId =
   A.Object $
     KM.fromList $
       [ (K.fromText "_meta", metaObject nextId) ] ++
@@ -165,3 +204,4 @@ documentToJson doc =
       [ (K.fromText (T.pack k), valueToJson v)
       | (k,v) <- doc
       ]
+--}

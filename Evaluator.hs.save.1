@@ -414,9 +414,8 @@ evalExp (JObjectExp fields) = do
   vals <- mapM (\(f,e) -> do v <- evalExp e; return (f,v)) fields
   return (VObject vals)
 
-evalExp (JArrayExp xs) = do
-  vals <- mapM evalExp xs
-  return (VArray vals)
+evalExp (JArrayExp xs) =
+  vals 
 
 evalExp _ = throwError TypeError
 
@@ -429,19 +428,14 @@ evalBool :: BoolExp -> Document -> Eval Bool
 evalBool BTrue _ = return True
 evalBool BFalse _ = return False
 
-evalBool (Not b) doc = do
-  res <- evalBool b doc
-  return (not res)
+evalBool (Not b) doc =
+  not <$> evalBool b doc
 
-evalBool (And a b) doc = do
-  r1 <- evalBool a doc
-  r2 <- evalBool b doc
-  return (r1 && r2)
+evalBool (And a b) doc =
+  (&&) <$> evalBool a doc <*> evalBool b doc
 
-evalBool (Or a b) doc = do
-  r1 <- evalBool a doc
-  r2 <- evalBool b doc
-  return (r1 || r2)
+evalBool (Or a b) doc =
+  (||) <$> evalBool a doc <*> evalBool b doc
 
 evalBool (Eq a b) doc = do
   v1 <- evalDocExp a doc
@@ -575,19 +569,19 @@ valueToJSON (VArray xs) =
   A.Array (V.fromList (map valueToJSON xs))
 
 valueToJSON (VObject fields) =
-  let pairs =
-        [ (K.fromText (T.pack k), valueToJSON v)
-        | (k,v) <- fields
-        ]
-  in A.Object (KM.fromList pairs)
-
+  A.Object $
+    KM.fromList
+      [ (K.fromText (T.pack k), valueToJSON v)
+      | (k,v) <- fields
+      ]
 
 
 documentsToJSON :: [Document] -> A.Value
 documentsToJSON docs =
-  let jsonDocs =
-        map (\doc -> valueToJSON (VObject doc)) docs
-  in A.Array (V.fromList jsonDocs)
+  A.Array $
+    V.fromList $
+      map (\doc -> valueToJSON (VObject doc)) docs
+
 
 evalDocExp :: Exp -> Document -> Eval Value
 

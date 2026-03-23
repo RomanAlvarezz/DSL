@@ -1,4 +1,4 @@
 updateOne.users(
-  name == "Ana",
-  {age:557}
+  name == "Ana" && _id == 200,
+  {age:130}
 );
