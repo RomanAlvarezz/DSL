@@ -1,8 +1,4 @@
-insert.usuarios({nombre: "Ana", edad: 20, activo: true})
-
-updateOne.usuarios(
-  nombre == "Ana",
-  {edad: 21, categoria: "gold"}
-)
-
-delete.usuarios(edad < 18 && activo == false)
+updateOne.users(
+  name == "Ana",
+  {age:557}
+);

@@ -164,63 +164,18 @@ evalComm (CommDelete coll cond) = do
 evalComm (CommUpdateOne coll cond exp) = do
   newDoc <- evalExpAsDoc exp
 
-  ---------------------------------------------------
-  -- Validación reutilizable: el documento de update
-  -- no debe traer "_id"
-  ---------------------------------------------------
   case validateNoIdField newDoc of
     Nothing -> throwError TypeError
     Just cleanDoc -> do
 
       st <- get
+
       case M.lookup coll (database st) of
         Nothing -> throwError (CollectionNotFound coll)
+
         Just docs -> do
-          res <- breakM (evalBool cond) docs
-          case res of
-            Nothing -> return ()
-            Just (before, oldDoc:after) -> do
-
-              ---------------------------------------------------
-              -- Se obtiene el _id original (no se toca)
-              ---------------------------------------------------
-              let oldId =
-                    case lookup "_id" oldDoc of
-                      Just v  -> v
-                      Nothing -> VNull
-
-              ---------------------------------------------------
-              -- Se eliminan posibles "_id" (por seguridad extra)
-              ---------------------------------------------------
-              let oldDocWithoutId =
-                    filter (\(k,_) -> k /= "_id") oldDoc
-
-              ---------------------------------------------------
-              -- Función de merge:
-              -- Si un campo está en cleanDoc -> lo reemplaza
-              -- Si no -> se mantiene el original
-              ---------------------------------------------------
-              let mergeFields old new =
-                    let newKeys = map fst new
-                        oldFiltered =
-                          filter (\(k,_) -> k `notElem` newKeys) old
-                    in oldFiltered ++ new
-
-              ---------------------------------------------------
-              -- Aplicamos merge parcial
-              ---------------------------------------------------
-              let mergedDoc =
-                    mergeFields oldDocWithoutId cleanDoc
-
-              ---------------------------------------------------
-              -- Reinsertamos el _id original
-              ---------------------------------------------------
-              let finalDoc =
-                    ("_id", oldId) : mergedDoc
-
-              let docs' = before ++ (finalDoc : after)
-
-              updateDatabase (M.insert coll docs')
+          docs' <- updateOneDoc cond cleanDoc docs
+          updateDatabase (M.insert coll docs')
 
 -------------------------------------------------------
 -- CONSULTAS
@@ -669,18 +624,37 @@ numOp f a b = do
   VInt y <- evalExp b
   return (VInt (f x y))
 
+updateOneDoc :: BoolExp -> Document -> [Document] -> Eval [Document]
+updateOneDoc _ _ [] = return []
 
-breakM :: Monad m => (a -> m Bool) -> [a] -> m (Maybe ([a],[a]))
-breakM _ [] = return Nothing
-breakM p (x:xs) = do
-  b <- p x
-  if b then return (Just ([], x:xs))
-       else do
-         r <- breakM p xs
-         case r of
-           Nothing -> return Nothing
-           Just (before,rest) -> return (Just (x:before,rest))
+updateOneDoc cond cleanDoc (d:ds) = do
+  match <- evalBool cond d
+  if match
+     then do
+       let oldId = getId d
+       let merged =
+             ("_id", oldId) :
+             mergeFields
+               (filter (\(k,_) -> k /= "_id") d)
+               cleanDoc
 
+       return (merged : ds)
+
+     else do
+       rest <- updateOneDoc cond cleanDoc ds
+       return (d : rest)
+
+getId :: Document -> Value
+getId doc =
+  case lookup "_id" doc of
+    Just v  -> v
+    Nothing -> VNull
+
+
+mergeFields :: Document -> Document -> Document
+mergeFields old new =
+  let newKeys = map fst new
+  in filter (\(k,_) -> k `notElem` newKeys) old ++ new
 
 getTerminal :: Find -> QueryTerminal
 getTerminal (Find _ _ t) = t
