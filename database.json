@@ -6,12 +6,20 @@
         {
             "_id": 29,
             "age": 3,
+<<<<<<< HEAD
             "name": "Bambini"
+=======
+            "name": "Bambi"
+>>>>>>> 16825d559f12799ac734ad5c4a3a8f50b963528d
         },
         {
             "_id": 28,
             "age": 3,
+<<<<<<< HEAD
             "name": "Bambini"
+=======
+            "name": "Bambi"
+>>>>>>> 16825d559f12799ac734ad5c4a3a8f50b963528d
         },
         {
             "_id": 27,
