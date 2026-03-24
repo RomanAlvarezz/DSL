@@ -224,7 +224,8 @@ pFilter :: Parser QueryOp
 pFilter = do
   reservedOpP "."
   reservedP "filter"
-  QFilter <$> parensP pBoolExp
+  b <- parensP pBoolExp
+  return (QFilter b)
 
 -- Select
 
@@ -232,7 +233,8 @@ pSelect :: Parser QueryOp
 pSelect = do
   reservedOpP "."
   reservedP "select"
-  QSelect <$> parensP (identifierP `sepBy1` commaP)
+  ids <- parensP (identifierP `sepBy1` commaP)
+  return (QSelect ids)
 
 -- Sort
 
@@ -240,13 +242,19 @@ pSort :: Parser QueryOp
 pSort = do
   reservedOpP "."
   reservedP "sort"
-  QSort <$> parensP (bracesP (pSortField `sepBy1` commaP))
+  fields <- parensP (bracesP (pSortField `sepBy1` commaP))
+  return (QSort fields)
 
 pSortField :: Parser (FieldName, SortOrder)
 pSortField = do
   f <- identifierP
   reservedOpP ":"
-  o <- (Asc <$ reservedP "asc") <|> (Desc <$ reservedP "desc")
+  o <- do
+        reservedP "asc"
+        return Asc
+      <|> do
+        reservedP "desc"
+        return Desc
   return (f, o)
 
 -- Limit
@@ -254,7 +262,8 @@ pLimit :: Parser QueryOp
 pLimit = do
   reservedOpP "."
   reservedP "limit"
-  QLimit . fromInteger <$> parensP integerP
+  n <- parensP integerP
+  return (QLimit (fromInteger n))
 
 -- GroupBy + Aggregaciones + Having
 pGroup :: Parser QueryOp
@@ -262,9 +271,9 @@ pGroup = do
   reservedOpP "."
   reservedP "groupby"
   fields <- parensP (identifierP `sepBy1` commaP)
-  aggs  <- many (try pAggregate)
-  hav   <- optionMaybe (try pHaving)
-  return $ QGroup (GroupSpec fields aggs hav)
+  aggs <- many (try pAggregate)
+  hav <- optionMaybe (try pHaving)
+  return (QGroup (GroupSpec fields aggs hav))
 
 
 pAggregate :: Parser Aggregate
@@ -280,11 +289,11 @@ pCount :: Parser Aggregate
 pCount = do
   reservedOpP "."
   reservedP "count"
-  (alias, field) <- parensP $ do
+  (alias, field) <- parensP ( do
     a <- stringP
     commaP
     b <- identifierP
-    return (a, b)
+    return (a, b))
   return (Aggregate AggCount field alias)
 
 
@@ -292,11 +301,11 @@ pSum :: Parser Aggregate
 pSum = do
   reservedOpP "."
   reservedP "sum"
-  (alias, field) <- parensP $ do
+  (alias, field) <- parensP ( do
     a <- stringP
     commaP
     b <- identifierP
-    return (a, b)
+    return (a, b))
   return (Aggregate AggSum field alias)
 
 
@@ -304,11 +313,11 @@ pAvg :: Parser Aggregate
 pAvg = do
   reservedOpP "."
   reservedP "avg"
-  (alias, field) <- parensP $ do
+  (alias, field) <- parensP ( do
     a <- stringP
     commaP
     b <- identifierP
-    return (a, b)
+    return (a, b))
   return (Aggregate AggAvg field alias)
 
 
@@ -316,11 +325,11 @@ pMin :: Parser Aggregate
 pMin = do
   reservedOpP "."
   reservedP "min"
-  (alias, field) <- parensP $ do
+  (alias, field) <- parensP ( do
     a <- stringP
     commaP
     b <- identifierP
-    return (a, b)
+    return (a, b))
   return (Aggregate AggMin field alias)
 
 
@@ -328,11 +337,11 @@ pMax :: Parser Aggregate
 pMax = do
   reservedOpP "."
   reservedP "max"
-  (alias, field) <- parensP $ do
+  (alias, field) <- parensP ( do
     a <- stringP
     commaP
     b <- identifierP
-    return (a, b)
+    return (a, b))
   return (Aggregate AggMax field alias)
 
 
@@ -340,7 +349,8 @@ pHaving :: Parser BoolExp
 pHaving = do
   reservedOpP "."
   reservedP "having"
-  parensP pBoolExp
+  b <- parensP pBoolExp
+  return b
 
 -- Terminales
 
