@@ -1,25 +1,12 @@
 {
     "_meta": {
-        "nextId": 30
+        "nextId": 31
     },
     "animales": [
         {
-            "_id": 29,
-            "age": 3,
-<<<<<<< HEAD
-            "name": "Bambini"
-=======
-            "name": "Bambi"
->>>>>>> 16825d559f12799ac734ad5c4a3a8f50b963528d
-        },
-        {
-            "_id": 28,
-            "age": 3,
-<<<<<<< HEAD
-            "name": "Bambini"
-=======
-            "name": "Bambi"
->>>>>>> 16825d559f12799ac734ad5c4a3a8f50b963528d
+            "_id": 30,
+            "age": 38,
+            "name": "Bambineitorrr"
         },
         {
             "_id": 27,
@@ -225,7 +212,7 @@
         },
         {
             "_id": 200,
-            "age": 10,
+            "age": 50,
             "name": "Ana Laura"
         },
         {

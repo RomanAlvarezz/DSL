@@ -438,7 +438,8 @@ pSave :: Parser QueryTerminal
 pSave = do
   reservedOpP "."
   reservedP "save"
-  TerminalSave <$> parensP parseJsonPath
+  path <- parensP parseJsonPath
+  return (TerminalSave path)
 
 --parseJsonPath :: Parser JsonPath
 --parseJsonPath = do
@@ -639,7 +640,9 @@ pSingleStatement =
   <|> try pUpdateOneComm
   <|> try pDeleteComm
   <|> try pInsert
-  <|> (CommQuery <$> pFind)
+  <|> do
+        q <- pFind
+        return (CommQuery q)
 
 -- Programa completo
 
