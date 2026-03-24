@@ -1,8 +1,18 @@
 {
     "_meta": {
-        "nextId": 26
+        "nextId": 28
     },
     "animales": [
+        {
+            "_id": 27,
+            "age": 3,
+            "name": "Bambi"
+        },
+        {
+            "_id": 26,
+            "age": 3,
+            "name": "Bambi"
+        },
         {
             "_id": 25,
             "age": 4,
@@ -197,7 +207,7 @@
         },
         {
             "_id": 200,
-            "age": 130,
+            "age": 2,
             "name": "Ana"
         },
         {

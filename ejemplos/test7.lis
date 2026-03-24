@@ -1,4 +1,6 @@
 updateOne.users(
   name == "Ana" && _id == 200,
-  {age:130}
+  {age:1+1}
 );
+
+insert.animales({name:"Bambi", age:3})

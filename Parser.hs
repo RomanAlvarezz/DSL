@@ -8,7 +8,12 @@ import Text.Parsec.Language (emptyDef)
 import AST
 
 
--- Lexer
+totParser :: Parser a -> Parser a
+totParser p = do
+  whiteSpaceP
+  t <- p
+  eof
+  return t
 
 dsl :: TokenParser ()
 dsl = makeTokenParser emptyDef
@@ -510,14 +515,12 @@ pViewOption viewName =
       )
   <|> return ViewOnly
 
---pStatement :: Parser Comm
---pStatement =
---      try (CommQuery <$> pFind)
---  <|> pInsert
+{-
 pComm :: Parser Comm
 pComm = do
   cmds <- sepEndBy1 pStatement semiP
   return (foldr1 Seq cmds)
+
 
 pStatement :: Parser Comm
 pStatement =
@@ -534,9 +537,34 @@ pStatement =
   <|> try pDeleteComm
   <|> try pInsert
   <|> (CommQuery <$> pFind)
+-}
+
+pStatement :: Parser Comm
+pStatement = chainl1 pSingleStatement seqOp
+
+seqOp :: Parser (Comm -> Comm -> Comm)
+seqOp = do
+  semiP
+  return Seq
+
+pSingleStatement :: Parser Comm
+pSingleStatement =
+      try pSkip
+  <|> try pTransactionComm
+  <|> try pCreateCollection
+  <|> try pDropCollection
+  <|> try pCreateViewComm
+  <|> try pUseViewComm
+  <|> try pTimestampComm
+  <|> try pRollbackComm
+  <|> try pInsertManyComm
+  <|> try pUpdateOneComm
+  <|> try pDeleteComm
+  <|> try pInsert
+  <|> (CommQuery <$> pFind)
 
 -- Programa completo
 
-pProgram :: Parser Program
-pProgram = whiteSpaceP *> pComm <* eof
+pProgram :: Parser Comm
+pProgram = totParser pStatement
 
