@@ -103,6 +103,32 @@ parseFactor :: Parser Exp
 parseFactor =
       parensP pExp
   <|> try parseFieldAccess
+  <|> try (do
+        f <- floatP
+        return (FloatExp f))
+  <|> do
+        i <- integerP
+        return (IntExp (fromInteger i))
+  <|> do
+        s <- stringP
+        return (StringExp s)
+  <|> do
+        reservedP "true"
+        return (BoolExpVal True)
+  <|> do
+        reservedP "false"
+        return (BoolExpVal False)
+  <|> do
+        reservedP "null"
+        return NullExp
+  <|> pObject
+  <|> pArray
+
+{--
+parseFactor :: Parser Exp
+parseFactor =
+      parensP pExp
+  <|> try parseFieldAccess
   <|> try (FloatExp <$> floatP)
   <|> IntExp . fromInteger <$> integerP
   <|> StringExp <$> stringP
@@ -112,6 +138,7 @@ parseFactor =
 --  <|> VarExp <$> identifierP  REEMPLAZADO POR parseFieldAccess
   <|> pObject
   <|> pArray
+--}
 
 parseFieldAccess :: Parser Exp
 parseFieldAccess = do
@@ -124,9 +151,13 @@ parseFieldAccess = do
   return (foldl FieldAccess base fields)
 
 -- Objetos y Arrays JSON     
-
 pObject :: Parser Exp
-pObject = JObjectExp <$> bracesP (pField `sepBy` commaP)
+pObject = do
+  fields <- bracesP (pField `sepBy` commaP)
+  return (JObjectExp fields)
+
+--pObject :: Parser Exp
+--pObject = JObjectExp <$> bracesP (pField `sepBy` commaP)
 
 pField :: Parser (FieldName, Exp)
 pField = do
@@ -136,7 +167,12 @@ pField = do
   return (f, v)
 
 pArray :: Parser Exp
-pArray = JArrayExp <$> bracketsP (pExp `sepBy` commaP)
+pArray = do
+  elems <- bracketsP (pExp `sepBy` commaP)
+  return (JArrayExp elems)
+
+--pArray :: Parser Exp
+--pArray = JArrayExp <$> bracketsP (pExp `sepBy` commaP)
 
 
 -- Operadores aritméticos (precedencia) terminal
@@ -172,10 +208,17 @@ parseAnd = chainl1 parseNot andOp
 
 andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
 andOp = reservedOpP "&&" >> return And
-
+{--
 parseNot :: Parser BoolExp
 parseNot =
       (reservedOpP "!" >> Not <$> parseNot)
+  <|> pBoolTerm
+--}
+parseNot :: Parser BoolExp
+parseNot =
+      (reservedOpP "!" >> do
+          b <- parseNot
+          return (Not b))
   <|> pBoolTerm
 
 pBoolTerm :: Parser BoolExp
@@ -183,9 +226,12 @@ pBoolTerm =
       parensP pBoolExp
   <|> try pExists          -- 👈 NUEVO
   <|> pComparison
-  <|> BTrue  <$ reservedP "true"
-  <|> BFalse <$ reservedP "false"
-
+  <|> do
+        reservedP "true"
+        return BTrue
+  <|> do
+        reservedP "false"
+        return BFalse
 
 pComparison :: Parser BoolExp
 pComparison = do
@@ -194,6 +240,28 @@ pComparison = do
   e2 <- pExp
   return (op e1 e2)
 
+compOp :: Parser (Exp -> Exp -> BoolExp)
+compOp =
+      do
+        reservedOpP "=="
+        return Eq
+  <|> do
+        reservedOpP "!="
+        return Neq
+  <|> do
+        reservedOpP ">"
+        return Gt
+  <|> do
+        reservedOpP ">="
+        return Ge
+  <|> do
+        reservedOpP "<"
+        return Lt
+  <|> do
+        reservedOpP "<="
+        return Le
+
+{--
 compOp =
       Eq  <$ reservedOpP "=="
   <|> Neq <$ reservedOpP "!="
@@ -201,7 +269,7 @@ compOp =
   <|> Ge  <$ reservedOpP ">="
   <|> Lt  <$ reservedOpP "<"
   <|> Le  <$ reservedOpP "<="
-
+--}
 --boolTable =
 --  [ [ Prefix (reservedOpP "!" >> return Not) ]
 --  , [ Infix (reservedOpP "&&" >> return And) AssocLeft ]
