@@ -54,25 +54,6 @@ whiteSpaceP = whiteSpace dsl
 bracketsP :: Parser a -> Parser a
 bracketsP = brackets dsl
 
-
--- Expresiones group
-
---pExp :: Parser Exp
---pExp = buildExpressionParser table pTerm
-
---pTerm :: Parser Exp
---pTerm =
---      parensP pExp
---  <|> try (FloatExp <$> floatP)
---  <|> IntExp . fromInteger <$> integerP
---  <|> StringExp <$> stringP
---  <|> BoolExpVal True  <$ reservedP "true"
---  <|> BoolExpVal False <$ reservedP "false"
---  <|> NullExp <$ reservedP "null"
---  <|> VarExp <$> identifierP
---  <|> pObject
---  <|> pArray pBool
-
 pExists :: Parser BoolExp
 pExists = do
   reservedP "exists"
@@ -124,22 +105,6 @@ parseFactor =
   <|> pObject
   <|> pArray
 
-{--
-parseFactor :: Parser Exp
-parseFactor =
-      parensP pExp
-  <|> try parseFieldAccess
-  <|> try (FloatExp <$> floatP)
-  <|> IntExp . fromInteger <$> integerP
-  <|> StringExp <$> stringP
-  <|> BoolExpVal True  <$ reservedP "true"
-  <|> BoolExpVal False <$ reservedP "false"
-  <|> NullExp <$ reservedP "null"
---  <|> VarExp <$> identifierP  REEMPLAZADO POR parseFieldAccess
-  <|> pObject
-  <|> pArray
---}
-
 parseFieldAccess :: Parser Exp
 parseFieldAccess = do
   name <- identifierP
@@ -156,9 +121,6 @@ pObject = do
   fields <- bracesP (pField `sepBy` commaP)
   return (JObjectExp fields)
 
---pObject :: Parser Exp
---pObject = JObjectExp <$> bracesP (pField `sepBy` commaP)
-
 pField :: Parser (FieldName, Exp)
 pField = do
   f <- identifierP
@@ -170,29 +132,6 @@ pArray :: Parser Exp
 pArray = do
   elems <- bracketsP (pExp `sepBy` commaP)
   return (JArrayExp elems)
-
---pArray :: Parser Exp
---pArray = JArrayExp <$> bracketsP (pExp `sepBy` commaP)
-
-
--- Operadores aritméticos (precedencia) terminal
-
---table =
---  [ [ binary "*" MulExp AssocLeft
---    , binary "/" DivExp AssocLeft
---    ]
---  , [ binary "+" AddExp AssocLeft
---    , binary "-" SubExp AssocLeft
---    ]
---  ]
-
---binary name fun assoc =
---  Infix (reservedOpP name >> return fun) assoc
-
--- Expresiones booleanas
-
---pBoolExp :: Parser BoolExp
---pBoolExp = buildExpressionParser boolTable pBoolTerm
 
 pBoolExp :: Parser BoolExp
 pBoolExp = parseOr
@@ -208,12 +147,7 @@ parseAnd = chainl1 parseNot andOp
 
 andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
 andOp = reservedOpP "&&" >> return And
-{--
-parseNot :: Parser BoolExp
-parseNot =
-      (reservedOpP "!" >> Not <$> parseNot)
-  <|> pBoolTerm
---}
+
 parseNot :: Parser BoolExp
 parseNot =
       (reservedOpP "!" >> do
@@ -224,7 +158,7 @@ parseNot =
 pBoolTerm :: Parser BoolExp
 pBoolTerm =
       parensP pBoolExp
-  <|> try pExists          -- 👈 NUEVO
+  <|> try pExists
   <|> pComparison
   <|> do
         reservedP "true"
@@ -260,21 +194,6 @@ compOp =
   <|> do
         reservedOpP "<="
         return Le
-
-{--
-compOp =
-      Eq  <$ reservedOpP "=="
-  <|> Neq <$ reservedOpP "!="
-  <|> Gt  <$ reservedOpP ">"
-  <|> Ge  <$ reservedOpP ">="
-  <|> Lt  <$ reservedOpP "<"
-  <|> Le  <$ reservedOpP "<="
---}
---boolTable =
---  [ [ Prefix (reservedOpP "!" >> return Not) ]
---  , [ Infix (reservedOpP "&&" >> return And) AssocLeft ]
---  , [ Infix (reservedOpP "||" >> return Or)  AssocLeft ]
---  ]
 
 -- Operaciones del pipeline
 
@@ -441,16 +360,6 @@ pSave = do
   path <- parensP parseJsonPath
   return (TerminalSave path)
 
---parseJsonPath :: Parser JsonPath
---parseJsonPath = do
---  path <- stringP
---  guard (endsWithJson path) <?> "archivo.json"
---  return path
-
---endsWithJson :: String -> Bool
---endsWithJson s =
---  length s > 5 && drop (length s -5) s == ".json"
-
 parseJsonPath :: Parser JsonPath
 parseJsonPath = do
   char '"'
@@ -515,11 +424,11 @@ pUpdateOneComm = do
   reservedP "updateOne"
   reservedOpP "."
   col <- identifierP
-  (cond, doc) <- parensP $ do
+  (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
     d <- pExp
-    return (c, d)
+    return (c, d))
   return (CommUpdateOne col cond doc)
 
 pDeleteComm :: Parser Comm
@@ -553,28 +462,24 @@ pRollbackComm = do
   label <- parensP stringP
   return (CommRollback target label)
 
---pTimestampTarget :: Parser TimestampTarget
---pTimestampTarget =
---      try (do
---        name <- identifierP
---        return (TSColl name)
---      )
---  <|> return TSDatabase
-
 pTimestampTarget :: Parser TimestampTarget
 pTimestampTarget =
-      (TSDatabase <$ reservedP "database")
-  <|> (TSColl <$> identifierP)
+      do
+        reservedP "database"
+        return TSDatabase
+  <|> do
+        name <- identifierP
+        return (TSColl name)
 
 
 pCreateViewComm :: Parser Comm
 pCreateViewComm = do
   reservedP "createView"
-  (name, findQ) <- parensP $ do
+  (name, findQ) <- parensP ( do
     n <- stringP
     commaP
     f <- pFind
-    return (n, f)
+    return (n, f))
   return (CommCreateView name findQ)
 
 pUseViewComm :: Parser Comm
@@ -593,30 +498,6 @@ pViewOption viewName =
         return (ViewWithPipeline (Find viewName ops term))
       )
   <|> return ViewOnly
-
-{-
-pComm :: Parser Comm
-pComm = do
-  cmds <- sepEndBy1 pStatement semiP
-  return (foldr1 Seq cmds)
-
-
-pStatement :: Parser Comm
-pStatement =
-      try pSkip
-  <|> try pTransactionComm
-  <|> try pCreateCollection
-  <|> try pDropCollection
-  <|> try pCreateViewComm
-  <|> try pUseViewComm
-  <|> try pTimestampComm
-  <|> try pRollbackComm
-  <|> try pInsertManyComm
-  <|> try pUpdateOneComm
-  <|> try pDeleteComm
-  <|> try pInsert
-  <|> (CommQuery <$> pFind)
--}
 
 pStatement :: Parser Comm
 pStatement = chainl1 pSingleStatement seqOp

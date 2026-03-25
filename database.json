@@ -1,8 +1,18 @@
 {
     "_meta": {
-        "nextId": 31
+        "nextId": 33
     },
     "animales": [
+        {
+            "_id": 32,
+            "age": 38,
+            "name": "Bambineitorrr"
+        },
+        {
+            "_id": 31,
+            "age": 38,
+            "name": "Bambineitorrr"
+        },
         {
             "_id": 30,
             "age": 38,
