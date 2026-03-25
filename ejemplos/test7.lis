@@ -1,6 +1,6 @@
 updateOne.users(
-  age.hour < 15,
-  {name: "Ana Maria", age: 550}
-);
+  direccion.calle.numero > 18,
+  {name: "Juan Roman Riquelme"}
+)
 
-insert.animales({name:"Gotzilleitor", age:48})
+
