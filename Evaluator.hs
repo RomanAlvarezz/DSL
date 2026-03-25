@@ -75,7 +75,34 @@ data EvalError
   | InvalidTimestampTarget
   | TypeError
   | DivisionByZero
-  deriving (Show)
+  | ReservedField
+  | FieldNotFoundInObject String
+  deriving (Show, Eq)
+
+showError :: EvalError -> String
+showError (CollectionNotFound c) =
+  "Colección '" ++ c ++ "' no encontrada"
+
+showError (ViewNotFound v) =
+  "Vista '" ++ v ++ "' no encontrada"
+
+showError (TimestampNotFound t) =
+  "Timestamp '" ++ t ++ "' no encontrado"
+
+showError InvalidTimestampTarget =
+  "El tipo de rollback no coincide con el timestamp"
+
+showError TypeError =
+  "Error de tipo en la operación"
+
+showError DivisionByZero =
+  "División por cero"
+
+showError ReservedField =
+  "No se puede usar el campo reservado '_id'"
+
+showError (FieldNotFoundInObject f) =
+  "Campo '" ++ f ++ "' no encontrado"
 
 -------------------------------------------------------
 -- MONADA DEL EVALUADOR
@@ -128,7 +155,7 @@ evalComm (CommInsert coll exp) = do
   -- contener "_id" definido por el usuario
   ---------------------------------------------------
   case validateNoIdField doc of
-    Nothing -> throwError TypeError
+    Nothing -> throwError ReservedField
     Just cleanDoc -> do
       st <- get
       let db = database st
@@ -165,7 +192,7 @@ evalComm (CommUpdateOne coll cond exp) = do
   newDoc <- evalExpAsDoc exp
 
   case validateNoIdField newDoc of
-    Nothing -> throwError TypeError
+    Nothing -> throwError ReservedField
     Just cleanDoc -> do
 
       st <- get
@@ -594,7 +621,7 @@ evalDocExp :: Exp -> Document -> Eval Value
 evalDocExp (VarExp f) doc =
   case lookup f doc of
     Just v  -> return v
-    Nothing -> throwError TypeError
+    Nothing -> throwError (FieldNotFoundInObject f)
 
 evalDocExp (FieldAccess e f) doc = do
   v <- evalDocExp e doc
@@ -602,7 +629,7 @@ evalDocExp (FieldAccess e f) doc = do
     VObject obj ->
       case lookup f obj of
         Just v2 -> return v2
-        Nothing -> throwError TypeError
+        Nothing -> throwError (FieldNotFoundInObject f)
     _ -> throwError TypeError
 
 evalDocExp (IntExp n) _ = return (VInt n)

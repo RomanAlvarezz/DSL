@@ -1,8 +1,13 @@
 {
     "_meta": {
-        "nextId": 33
+        "nextId": 35
     },
     "animales": [
+        {
+            "_id": 33,
+            "age": 48,
+            "name": "Gotzilla"
+        },
         {
             "_id": 32,
             "age": 38,
@@ -216,14 +221,26 @@
     ],
     "users": [
         {
+            "_id": 34,
+            "age": 38,
+            "direccion": {
+                "calle": {
+                    "altura": 38,
+                    "nDpto": null
+                },
+                "interseccion": "JJPaso"
+            },
+            "name": "Roman"
+        },
+        {
             "_id": null,
             "age": 22,
             "name": "Ronaldinho"
         },
         {
             "_id": 200,
-            "age": 50,
-            "name": "Ana Laura"
+            "age": 500,
+            "name": "Ana Maria"
         },
         {
             "age": 60,

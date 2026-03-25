@@ -98,7 +98,7 @@ runEvaluator ast jsonFile = do
   case result of
 
     Left err ->
-      putStrLn ("❌ Error de ejecución: " ++ show err)
+      putStrLn ("❌ Error de ejecución: " ++ showError err)
 
     Right finalState -> do
       putStrLn "✅ Ejecución finalizada"

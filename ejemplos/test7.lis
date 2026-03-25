@@ -1,6 +1,6 @@
 updateOne.users(
-  name == "Ana Laura" && _id == 200,
-  {name: "Ana Laura", age: 50}
+  age.hour < 15,
+  {name: "Ana Maria", age: 550}
 );
 
-insert.animales({name:"Bambineitorrr", age:38})
+insert.animales({name:"Gotzilleitor", age:48})
