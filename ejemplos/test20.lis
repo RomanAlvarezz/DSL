@@ -1,0 +1,4 @@
+find.animales()
+  .groupby(tipo)
+  .count("total", age)
+  .preview()

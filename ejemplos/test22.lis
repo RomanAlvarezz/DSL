@@ -1,0 +1,7 @@
+find.animales()
+  .filter(ubicacion.latitud > 50)
+  .groupby(tipo)
+  .count("total", age)
+  .having(total > 1)
+  .limit(2)
+  .preview()

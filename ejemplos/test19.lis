@@ -1,0 +1,4 @@
+find.animales()
+  .filter(ubicacion.latitud > 50)
+  .limit(3)
+  .preview()

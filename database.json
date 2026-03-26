@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 35
+        "nextId": 41
     },
     "animales": [
         {
@@ -220,6 +220,36 @@
         }
     ],
     "users": [
+        {
+            "_id": 40,
+            "age": 26,
+            "name": "Carlita"
+        },
+        {
+            "_id": 39,
+            "age": 44,
+            "name": "Luisao"
+        },
+        {
+            "_id": 38,
+            "age": 38,
+            "name": "Clara"
+        },
+        {
+            "_id": 37,
+            "age": 22,
+            "name": "Carla"
+        },
+        {
+            "_id": 36,
+            "age": 45,
+            "name": "Luis"
+        },
+        {
+            "_id": 35,
+            "age": 30,
+            "name": "Claudia"
+        },
         {
             "_id": 34,
             "age": 38,

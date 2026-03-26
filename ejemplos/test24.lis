@@ -1,0 +1,5 @@
+insertMany.users([
+  {name: "Clara", age: 38},
+  {name: "Luisao", age: 44},
+  {name: "Carlita", age: 26}
+])

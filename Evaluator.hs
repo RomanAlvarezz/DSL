@@ -168,8 +168,12 @@ evalComm (CommInsert coll exp) = do
           updateDatabaseNextId
 
 
-evalComm (CommInsertMany coll exps) =
-  mapM_ (evalComm . CommInsert coll) exps
+--evalComm (CommInsertMany coll exps) =
+--  mapM_ (evalComm . CommInsert coll) exps
+evalComm (CommInsertMany coll []) = return ()
+evalComm (CommInsertMany coll (e:es)) = do
+  evalComm (CommInsert coll e)
+  evalComm (CommInsertMany coll es)
 
 -------------------------------------------------------
 -- DELETE
@@ -340,13 +344,39 @@ applyAggregate (Aggregate AggCount _ alias) docs =
 applyAggregate (Aggregate AggSum field alias) docs =
   let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
   in (alias, VInt (sum vals))
-
+{--
 applyAggregate (Aggregate AggAvg field alias) docs =
   let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
       s = sum vals
       c = length vals
   in (alias, VFloat (fromIntegral s / fromIntegral c))
+--}
+applyAggregate (Aggregate AggAvg field alias) docs =
+  let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
+      s = sum vals
+      c = length vals
+      truncate3 x =
+        let factor = 1000
+        in fromIntegral (floor (x * factor)) / factor
+  in if c == 0
+        then (alias, VNull)
+        else
+          let avg = fromIntegral s / fromIntegral c
+          in (alias, VFloat (truncate3 avg))
 
+applyAggregate (Aggregate AggMin field alias) docs =
+  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
+  in if null vals
+        then (alias, VNull)
+        else (alias, minimum vals)
+
+applyAggregate (Aggregate AggMax field alias) docs =
+  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
+  in if null vals
+        then (alias, VNull)
+        else (alias, maximum vals)
+
+{--
 applyAggregate (Aggregate AggMin field alias) docs =
   let vals = [v | doc <- docs, Just v <- [lookup field doc]]
   in (alias, minimum vals)
@@ -354,15 +384,22 @@ applyAggregate (Aggregate AggMin field alias) docs =
 applyAggregate (Aggregate AggMax field alias) docs =
   let vals = [v | doc <- docs, Just v <- [lookup field doc]]
   in (alias, maximum vals)
-
+--}
 -------------------------------------------------------
 -- PIPELINE
 -------------------------------------------------------
 
 applyOp :: [Document] -> QueryOp -> Eval [Document]
 
+--applyOp docs (QFilter cond) =
+--  filterM (evalBool cond) docs
 applyOp docs (QFilter cond) =
-  filterM (evalBool cond) docs
+  filterM safeEval docs
+  where
+    safeEval doc =
+      catchError
+        (evalBool cond doc)
+        (\_ -> return False)
 
 applyOp docs (QSelect fields) =
   return (map (selectFields fields) docs)
@@ -400,8 +437,16 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
     Nothing ->
       return groupedDocs
 
+--    Just cond ->
+--      filterM (evalBool cond) groupedDocs
+
     Just cond ->
-      filterM (evalBool cond) groupedDocs
+      filterM safeEval groupedDocs
+      where
+        safeEval doc =
+          catchError
+            (evalBool cond doc)
+            (\_ -> return False)
 
 -------------------------------------------------------
 -- TERMINALES
