@@ -658,7 +658,7 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
     then do
       let oldId = getId d
       let merged =
-            ("id", oldId) :
+            ("_id", oldId) :
             mergeFields
               (filter (\(k,_) -> k /= "_id") d)
               cleanDoc

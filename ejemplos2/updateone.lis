@@ -1,0 +1,4 @@
+updateOne.users(
+  name == "Roman",
+  { age: 25, score: 99 }
+)

@@ -1,0 +1,9 @@
+createCollection.users();
+
+insertMany.users([
+  { name: "Roman", age: 24, country: "AR", score: 10 },
+  { name: "Ana", age: 30, country: "AR", score: 20 },
+  { name: "Luis", age: 18, country: "CL", score: 15 },
+  { name: "Maria", age: 40, country: "AR", score: 25 },
+  { name: "John", age: 35, country: "US", score: 50 }
+])

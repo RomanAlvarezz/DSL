@@ -1,0 +1,5 @@
+find.users()
+  .filter(age > 25)
+  .select(name, age)
+  .sort({ age: desc })
+  .preview()
