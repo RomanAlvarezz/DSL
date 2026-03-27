@@ -1,0 +1,8 @@
+find.animales()
+  .filter((exists(tipo)) && (age > 3))
+  .groupby(tipo)
+  .sum("totalEdad", age)
+  .avg("promEdad", age)
+  .having(promEdad > 10)
+  .sort({promEdad: desc})
+  .preview()
