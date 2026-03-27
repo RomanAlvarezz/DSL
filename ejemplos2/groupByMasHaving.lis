@@ -1,0 +1,6 @@
+find.users()
+  .groupby(country)
+  .count("total", age)
+  .sum("totalScore", score)
+  .avg("avgScore", score)
+  .preview()

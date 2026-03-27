@@ -1,0 +1,8 @@
+updateMany.users(
+  country == "AR",
+  { active: true }
+);
+
+find.users()
+  .filter(active == true)
+  .preview()

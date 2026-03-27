@@ -1,315 +1,45 @@
 {
     "_meta": {
-        "nextId": 44
+        "nextId": 64
     },
-    "animales": [
-        {
-            "_id": 33,
-            "age": 48,
-            "name": "Gotzilla"
-        },
-        {
-            "_id": 32,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 31,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 30,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 27,
-            "age": 3,
-            "name": "Bambi"
-        },
-        {
-            "_id": 26,
-            "age": 3,
-            "name": "Bambi"
-        },
-        {
-            "_id": 25,
-            "age": 4,
-            "name": "Araña",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 24,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 23,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 22,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 21,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 20,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 19,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 18,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 17,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 16,
-            "age": 15,
-            "name": "Mono ",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 15,
-            "age": 33,
-            "name": "Jirafa",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 14,
-            "age": 15,
-            "name": "Mono ",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 13,
-            "age": 33,
-            "name": "Jirafa",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 12,
-            "age": 1,
-            "name": "Tiburonsin",
-            "tipo": "acuatico"
-        },
-        {
-            "_id": 11,
-            "age": 5,
-            "name": "Oso Panda",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 10,
-            "age": 3,
-            "name": "Oso Pururu",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 9,
-            "name": "Ballenato"
-        },
-        {
-            "_id": 8,
-            "age": 4,
-            "name": "Lagartija",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 7,
-            "age": 3,
-            "name": "Oso hormiguero",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 1,
-            "name": "Tiburon",
-            "tipo": "acuatico"
-        },
-        {
-            "age": 3,
-            "name": "Serpiente",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 3,
-            "name": "Oso",
-            "tipo": "volador"
-        },
-        {
-            "age": 1,
-            "name": "Pez",
-            "tipo": "acuatico"
-        },
-        {
-            "age": 3,
-            "name": "Vinicius",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 3,
-            "name": "Tucan",
-            "tipo": "volador"
-        },
-        {
-            "age": 3,
-            "name": "Loro",
-            "tipo": "volador"
-        },
-        {
-            "age": 7,
-            "name": "Hiena",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 4,
-            "name": "Gato",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 7,
-            "name": "Perro",
-            "tipo": "terrestre"
-        }
-    ],
-    "movies": [
-        {
-            "_id": null,
-            "title": "Matrix",
-            "year": 2000
-        }
-    ],
     "users": [
         {
-            "_id": 43,
-            "age": 66,
-            "name": "Marta"
+            "_id": 63,
+            "age": 35,
+            "country": "US",
+            "name": "John",
+            "score": 50
         },
         {
-            "_id": 42,
-            "age": 34,
-            "name": "Roberto"
+            "_id": 62,
+            "active": true,
+            "age": 40,
+            "country": "AR",
+            "name": "Maria",
+            "score": 25
         },
         {
-            "_id": 41,
-            "age": 58,
-            "name": "Analia"
+            "_id": 61,
+            "age": 18,
+            "country": "CL",
+            "name": "Luis",
+            "score": 15
         },
         {
-            "_id": 40,
-            "age": 26,
-            "name": "Carlita"
-        },
-        {
-            "_id": 39,
-            "age": 44,
-            "name": "Luisao"
-        },
-        {
-            "_id": 38,
-            "age": 38,
-            "name": "Clara"
-        },
-        {
-            "_id": 37,
-            "age": 22,
-            "name": "Carla"
-        },
-        {
-            "_id": 36,
-            "age": 45,
-            "name": "Luis"
-        },
-        {
-            "_id": 35,
+            "_id": 60,
+            "active": true,
             "age": 30,
-            "name": "Claudia"
+            "country": "AR",
+            "name": "Ana",
+            "score": 20
         },
         {
-            "_id": 34,
-            "age": 38,
-            "direccion": {
-                "calle": {
-                    "altura": 38,
-                    "nDpto": null
-                },
-                "interseccion": "JJPaso"
-            },
-            "name": "Juan Roman"
-        },
-        {
-            "_id": null,
-            "age": 22,
-            "name": "Ronaldinho"
-        },
-        {
-            "_id": 200,
-            "age": 500,
-            "name": "Ana Maria"
-        },
-        {
-            "age": 61,
-            "id": null,
-            "name": "Maradona"
-        },
-        {
-            "age": 27,
-            "id": null,
-            "name": "Ana"
-        },
-        {
-            "age": 61,
-            "id": null,
-            "name": "Maradona"
-        },
-        {
-            "age": 20,
-            "name": "Juan"
-        },
-        {
-            "age": 27,
-            "id": null,
-            "name": "Ana"
+            "_id": 59,
+            "active": true,
+            "age": 25,
+            "country": "AR",
+            "name": "Roman",
+            "score": 99
         }
     ]
 }

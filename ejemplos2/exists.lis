@@ -1,0 +1,3 @@
+find.users()
+  .filter(exists(active))
+  .preview()
