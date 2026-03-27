@@ -23,7 +23,7 @@ dsl = makeTokenParser emptyDef
   , reservedNames =
       [ "find", "true", "false", "null"
       , "asc", "desc"
-      , "insert", "insertMany", "updateOne", "delete"
+      , "insert", "insertMany", "updateOne", "updateMany", "delete"
       , "groupby", "having"
       , "count", "sum", "avg", "min", "max"
       , "preview", "save"
@@ -431,6 +431,19 @@ pUpdateOneComm = do
     return (c, d))
   return (CommUpdateOne col cond doc)
 
+pUpdateManyComm :: Parser Comm
+pUpdateManyComm = do
+  reservedP "updateMany"
+  reservedOpP "."
+  col <- identifierP
+  (cond, doc) <- parensP ( do
+    c <- pBoolExp
+    commaP
+    d <- pExp
+    return (c, d))
+  return (CommUpdateMany col cond doc)
+
+
 pDeleteComm :: Parser Comm
 pDeleteComm = do  
   reservedP "delete"
@@ -519,6 +532,7 @@ pSingleStatement =
   <|> try pRollbackComm
   <|> try pInsertManyComm
   <|> try pUpdateOneComm
+  <|> try pUpdateManyComm
   <|> try pDeleteComm
   <|> try pInsert
   <|> do

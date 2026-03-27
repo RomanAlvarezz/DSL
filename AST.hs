@@ -45,6 +45,9 @@ data Comm
   | CommUpdateOne Collection BoolExp Exp
     -- ^ Actualiza el primer documento que cumple la condición
 
+  | CommUpdateMany Collection BoolExp Exp
+    -- ^ Actualiza el primer documento que cumple la condición
+
   | CommDelete Collection BoolExp
     -- ^ Elimina documentos que cumplen la condición
 

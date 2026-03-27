@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 41
+        "nextId": 44
     },
     "animales": [
         {
@@ -221,6 +221,21 @@
     ],
     "users": [
         {
+            "_id": 43,
+            "age": 66,
+            "name": "Marta"
+        },
+        {
+            "_id": 42,
+            "age": 34,
+            "name": "Roberto"
+        },
+        {
+            "_id": 41,
+            "age": 58,
+            "name": "Analia"
+        },
+        {
             "_id": 40,
             "age": 26,
             "name": "Carlita"
@@ -273,15 +288,18 @@
             "name": "Ana Maria"
         },
         {
-            "age": 60,
+            "age": 61,
+            "id": null,
             "name": "Maradona"
         },
         {
-            "age": 25,
+            "age": 27,
+            "id": null,
             "name": "Ana"
         },
         {
-            "age": 60,
+            "age": 61,
+            "id": null,
             "name": "Maradona"
         },
         {
@@ -289,7 +307,8 @@
             "name": "Juan"
         },
         {
-            "age": 25,
+            "age": 27,
+            "id": null,
             "name": "Ana"
         }
     ]

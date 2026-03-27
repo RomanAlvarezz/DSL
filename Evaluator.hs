@@ -205,8 +205,23 @@ evalComm (CommUpdateOne coll cond exp) = do
         Nothing -> throwError (CollectionNotFound coll)
 
         Just docs -> do
-          docs' <- updateOneDoc cond cleanDoc docs
+          docs' <- updateDocs True cond cleanDoc docs
           updateDatabase (M.insert coll docs')
+
+evalComm (CommUpdateMany coll cond exp) = do
+ newDoc <- evalExpAsDoc exp
+ case validateNoIdField newDoc of
+   Nothing -> throwError ReservedField
+   Just cleanDoc -> do
+     st <- get
+
+     case M.lookup coll (database st) of
+       Nothing -> throwError (CollectionNotFound coll)
+
+       Just docs -> do
+         docs' <- updateDocs False cond cleanDoc docs
+         updateDatabase (M.insert coll docs')
+
 
 -------------------------------------------------------
 -- CONSULTAS
@@ -634,6 +649,29 @@ validateNoIdField doc =
   case lookup "_id" doc of
     Just _ -> Nothing
     Nothing -> Just doc
+
+updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
+updateDocs _ _ _ [] = return []
+updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
+  match <- evalBool cond d
+  if match
+    then do
+      let oldId = getId d
+      let merged =
+            ("id", oldId) :
+            mergeFields
+              (filter (\(k,_) -> k /= "_id") d)
+              cleanDoc
+      if stopAfterFirst
+        then return (merged : ds)
+        else do
+          rest <- updateDocs stopAfterFirst cond cleanDoc ds
+          return (merged : rest)
+
+    else do
+      rest <- updateDocs stopAfterFirst cond cleanDoc ds
+      return (d : rest)
+
 
 
 valueToJSON :: Value -> A.Value
