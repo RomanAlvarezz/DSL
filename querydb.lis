@@ -1,5 +1,0 @@
-updateOne.animales(
-  _id == 8,
-  {age: 4}
-)
-

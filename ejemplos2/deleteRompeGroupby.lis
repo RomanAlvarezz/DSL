@@ -1,0 +1,20 @@
+createCollection.ventas();
+
+insertMany.ventas([
+  {producto:"A", precio:10},
+  {producto:"B", precio:20},
+  {producto:"C", precio:30}
+]);
+
+createView("ventasPorProducto",
+  find.ventas()
+    .groupby(producto)
+      .count("total", producto)
+      .preview()
+);
+
+useView("ventasPorProducto");
+
+delete.ventas(producto == "A");
+
+useView("ventasPorProducto")

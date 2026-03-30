@@ -1,0 +1,10 @@
+createView("usuariosActivosPorEdad",
+  find.usuarios()
+    .filter(activo == true)
+    .groupby(edad)
+    .count("total", edad)
+    .having(total > 1)
+    .preview()
+);
+
+useView("usuariosActivosPorEdad")

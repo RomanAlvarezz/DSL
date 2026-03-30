@@ -1,0 +1,12 @@
+createCollection.logs();
+
+insert.logs({evento:"a"});
+insert.logs({evento:"b"});
+
+timestamp.logs("backup");
+
+dropCollection.logs();
+
+rollback.logs("backup");
+
+find.logs().preview()

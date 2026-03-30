@@ -1,0 +1,15 @@
+createCollection.usuarios();
+createCollection.logs();
+
+insert.usuarios({nombre:"Ana"});
+insert.logs({evento:"login"});
+
+timestamp.database("estado1");
+
+insert.usuarios({nombre:"Luis"});
+insert.logs({evento:"logout"});
+
+rollback.database("estado1");
+
+find.usuarios().preview();
+find.logs().preview()

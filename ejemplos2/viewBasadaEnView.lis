@@ -1,0 +1,22 @@
+createCollection.usuarios();
+
+insertMany.usuarios([
+  {nombre:"A", edad:20},
+  {nombre:"B", edad:35},
+  {nombre:"C", edad:40}
+]);
+
+createView("mayores",
+  find.usuarios()
+    .filter(edad > 30)
+    .preview()
+);
+
+createView("mayoresOrdenados",
+  useView("mayores")
+    .sort({edad: desc})
+    .preview()
+);
+
+useView("mayoresOrdenados")
+  .preview()

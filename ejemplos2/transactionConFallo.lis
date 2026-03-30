@@ -1,0 +1,12 @@
+transaction{
+
+  insert.usuarios({nombre:"Juan", edad:30});
+
+  updateOne.usuarios(
+    nombre == "Inexistente",
+    {edad:50}
+  );
+
+  delete.usuarios(edad < 10)
+
+}

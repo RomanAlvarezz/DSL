@@ -1,0 +1,14 @@
+timestamp.database("v1");
+
+transaction{
+  insert.usuarios({nombre: "Test1", edad: 50});
+  insert.usuarios({nombre: "Test2", edad: 60})
+};
+
+find.usuarios()
+  .preview();
+
+rollback.database("v1");
+
+find.usuarios()
+  .preview()

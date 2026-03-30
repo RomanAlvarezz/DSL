@@ -1,0 +1,21 @@
+createCollection.usuarios();
+
+insertMany.usuarios([
+  {nombre: "Ana", edad: 30},
+  {nombre: "Luis", edad: 45}
+]);
+
+timestamp.usuarios("inicio");
+
+transaction{
+
+  insert.usuarios({nombre: "Carla", edad: 20});
+
+  rollback.usuarios("inicio");
+
+  insert.usuarios({nombre: "Pedro", edad: 40})
+
+};
+
+find.usuarios()
+  .preview()

@@ -1,0 +1,20 @@
+timestamp.usuarios("t1");
+
+insert.usuarios({nombre: "Jorgelina", edad: 33});
+
+timestamp.usuarios("t2");
+
+insert.usuarios({nombre: "Di Maria", edad: 44});
+
+find.usuarios()
+  .preview();
+
+rollback.usuarios("t2");
+
+find.usuarios()
+  .preview();
+
+rollback.usuarios("t1");
+
+find.usuarios()
+  .preview()

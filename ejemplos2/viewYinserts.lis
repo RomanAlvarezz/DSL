@@ -1,0 +1,14 @@
+createView("mayores",
+  find.usuarios()
+    .filter(!(edad < 18))
+    .preview()
+);
+
+useView("mayores");
+
+transaction{
+  insert.usuarios({nombre: "Sofia", edad: 15});
+  insert.usuarios({nombre: "Martin", edad: 27})
+};
+
+useView("mayores")

@@ -1,0 +1,22 @@
+createCollection.usuarios();
+
+insertMany.usuarios([
+  {nombre:"Ana", edad:20},
+  {nombre:"Luis", edad:50}
+]);
+
+createView("adultos",
+  find.usuarios()
+    .filter(edad > 18)
+    .preview()
+);
+
+timestamp.usuarios("antesCambios");
+
+delete.usuarios(edad > 40);
+
+useView("adultos");
+
+rollback.usuarios("antesCambios");
+
+useView("adultos")

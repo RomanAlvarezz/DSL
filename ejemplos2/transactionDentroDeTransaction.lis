@@ -1,0 +1,16 @@
+createCollection.usuarios();
+
+transaction{
+
+  insert.usuarios({nombre: "A", edad: 20});
+
+  transaction{
+    insert.usuarios({nombre: "B", edad: 25})
+  };
+
+  insert.usuarios({nombre: "C", edad: 30})
+
+};
+
+find.usuarios()
+  .preview()

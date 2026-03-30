@@ -1,0 +1,10 @@
+createView("usuariosPremium",
+  find.usuarios()
+    .filter(categoria == "gold" && activo == true)
+    .preview()
+);
+
+useView("usuariosPremium")
+  .sort({edad: desc})
+  .limit(3)
+  .preview()

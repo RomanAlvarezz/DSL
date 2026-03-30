@@ -1,0 +1,9 @@
+dropCollection.usuarios();
+
+createCollection.logs();
+
+insert.logs({evento: "login", user: "Ana"});
+insert.logs({evento: "logout", user: "Luis"});
+
+find.logs()
+  .preview()

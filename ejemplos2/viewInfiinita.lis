@@ -1,0 +1,10 @@
+createView("v1",
+  useView("v2")
+);
+
+createView("v2",
+  useView("v1")
+);
+
+useView("v1")
+  .preview()

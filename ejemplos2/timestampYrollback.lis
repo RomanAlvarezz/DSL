@@ -1,0 +1,15 @@
+timestamp.usuarios("estado_inicial");
+
+transaction{
+  insert.usuarios({nombre: "Mario", edad: 19, activo: true});
+  insert.usuarios({nombre: "Laura", edad: 17, activo: false});
+  insert.usuarios({nombre: "Diego", edad: 41, activo: true})
+};
+
+find.usuarios()
+  .preview();
+
+rollback.usuarios("estado_inicial");
+
+find.usuarios()
+  .preview()

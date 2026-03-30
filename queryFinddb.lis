@@ -1,4 +1,0 @@
-find.users()
-  .groupby(age)
-  .count("cantidad", age)
-  .preview();
