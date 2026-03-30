@@ -1,8 +1,68 @@
 {
     "_meta": {
-        "nextId": 95
+        "nextId": 111
     },
     "animales": [
+        {
+            "_id": 110,
+            "age": 20,
+            "name": "Perrote 2"
+        },
+        {
+            "_id": 109,
+            "age": 10,
+            "name": "Perrote"
+        },
+        {
+            "_id": 108,
+            "age": 10,
+            "name": "Perro"
+        },
+        {
+            "_id": 107,
+            "age": 2,
+            "name": "B"
+        },
+        {
+            "_id": 106,
+            "age": 1,
+            "name": "A"
+        },
+        {
+            "_id": 105,
+            "age": 2,
+            "name": "B"
+        },
+        {
+            "_id": 104,
+            "age": 1,
+            "name": "A"
+        },
+        {
+            "_id": 102,
+            "age": 2,
+            "name": "B"
+        },
+        {
+            "_id": 101,
+            "age": 1,
+            "name": "A"
+        },
+        {
+            "_id": 99,
+            "age": 10,
+            "name": "Chimpance"
+        },
+        {
+            "_id": 97,
+            "age": 10,
+            "name": "Perro Salchicha"
+        },
+        {
+            "_id": 95,
+            "age": 5,
+            "name": "Gato"
+        },
         {
             "_id": 87,
             "age": 76,

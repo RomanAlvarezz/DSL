@@ -1,5 +1,6 @@
-insert.animales({name:"Perro", age:10});
+insert.animales({name:"Perrote 2", age:20});
 timestamp.animales("t1");
 updateMany.animales(age > 0, {age: 20});
+find.animales().preview();
 rollback.animales("t1");
 find.animales().preview()

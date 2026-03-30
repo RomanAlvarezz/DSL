@@ -1,0 +1,28 @@
+createCollection.libros();
+
+insertMany.libros([
+  { name: "Pez globo", publicado: 2024 },
+  { name: "Moncholo", publicado: 2030},
+  { name: "Palometa", publicado: 2018},
+  { name: "Tukan", publicado: 2040},
+  { name: "Aguila", publicado: 2035}
+]);
+
+createView("mayoresActivos",
+  find.users()
+    .filter(!(age < 23))
+    .groupby(age)
+      .count("total", edad)
+    .preview()
+);
+
+
+createView("mayoresActivos",
+  find.users()
+    .filter(!(age < 25))
+    .groupby(age)
+      .count("totalEdad", edad)
+    .preview()
+);
+
+createCollection.libros()

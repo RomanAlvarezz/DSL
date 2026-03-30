@@ -77,6 +77,8 @@ data EvalError
   | DivisionByZero
   | ReservedField
   | FieldNotFoundInObject String
+  | CollectionAlreadyExists Collection
+  | ViewAlreadyExists ViewName
   deriving (Show, Eq)
 
 showError :: EvalError -> String
@@ -103,6 +105,12 @@ showError ReservedField =
 
 showError (FieldNotFoundInObject f) =
   "Campo '" ++ f ++ "' no encontrado"
+
+showError (CollectionAlreadyExists c) =
+  "La colección '" ++ c ++ "' ya existe"
+
+showError (ViewAlreadyExists v) =
+  "La vista '" ++ v ++ "' ya existe"
 
 -------------------------------------------------------
 -- MONADA DEL EVALUADOR
@@ -133,9 +141,16 @@ evalComm (Seq c1 c2) = do
 -------------------------------------------------------
 -- CREAR / BORRAR COLECCIONES
 -------------------------------------------------------
+-- esto me permitia pisar una coleccion anterior con el mismo nombre
+--evalComm (CommCreateColl name) =
+--  updateDatabase (M.insert name [])
 
-evalComm (CommCreateColl name) =
-  updateDatabase (M.insert name [])
+evalComm (CommCreateColl name) = do
+  st <- get
+  let db = database st
+  if M.member name db
+    then throwError (CollectionAlreadyExists name)
+    else updateDatabase (M.insert name [])
 
 evalComm (CommDropColl name) = do
   st <- get
@@ -184,7 +199,7 @@ evalComm (CommDelete coll cond) = do
   case M.lookup coll (database st) of
     Nothing -> throwError (CollectionNotFound coll)
     Just docs -> do
-      docs' <- filterM (\d -> fmap not (evalBool cond d)) docs
+      docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
       updateDatabase (M.insert coll docs')
 
 
@@ -234,9 +249,15 @@ evalComm (CommQuery find) = do
 -------------------------------------------------------
 -- VISTAS
 -------------------------------------------------------
-
-evalComm (CommCreateView name find) =
-  updateViews (M.insert name find)
+-- De esta manera me permite que una vista nueva con el mismo nombre que una existente, la pise
+--evalComm (CommCreateView name find) =
+--  updateViews (M.insert name find)
+evalComm (CommCreateView name find) = do
+  st <- get
+  let vs = views (runtime st)
+  if M.member name vs
+    then throwError (ViewAlreadyExists name)
+    else updateViews (M.insert name find)
 
 
 evalComm (CommUseView name ViewOnly) = do
@@ -412,12 +433,7 @@ applyOp :: [Document] -> QueryOp -> Eval [Document]
 --applyOp docs (QFilter cond) =
 --  filterM (evalBool cond) docs
 applyOp docs (QFilter cond) =
-  filterM safeEval docs
-  where
-    safeEval doc =
-      catchError
-        (evalBool cond doc)
-        (\_ -> return False)
+  filterM (safeEvalBool cond) docs
 
 applyOp docs (QSelect fields) =
   return (map (selectFields fields) docs)
@@ -448,23 +464,15 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
 
   let groups = groupDocuments fields docs
 
-  let groupedDocs =
-        map (buildGroupDoc fields aggs) groups
+  let groupedDocs = map (buildGroupDoc fields aggs) groups
 
   case having of
-    Nothing ->
-      return groupedDocs
+    Nothing -> return groupedDocs
 
 --    Just cond ->
 --      filterM (evalBool cond) groupedDocs
 
-    Just cond ->
-      filterM safeEval groupedDocs
-      where
-        safeEval doc =
-          catchError
-            (evalBool cond doc)
-            (\_ -> return False)
+    Just cond -> filterM (safeEvalBool cond) groupedDocs
 
 -------------------------------------------------------
 -- TERMINALES
@@ -550,8 +558,8 @@ evalBool (Gt a b) doc = do
    return (a > b)
 
 evalBool (Ge a b) doc = do
-  v2 <- evalDocExp a doc
-  v1 <- evalDocExp b doc
+  v1 <- evalDocExp a doc
+  v2 <- evalDocExp b doc
   (a, b) <- conversorFloat v1 v2
   return (a >= b)
 
@@ -660,7 +668,8 @@ validateNoIdField doc =
 updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
 updateDocs _ _ _ [] = return []
 updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
-  match <- evalBool cond d
+  --match <- evalBool cond d
+  match <- safeEvalBool cond d
   if match
     then do
       let oldId = getId d
@@ -695,6 +704,10 @@ truncateTo :: Int -> Double -> Double
 truncateTo n x =
   let factor = 10 ^ n
   in fromIntegral (truncate (x * fromIntegral factor)) / fromIntegral factor
+
+safeEvalBool :: BoolExp -> Document -> Eval Bool
+safeEvalBool cond doc =
+  catchError (evalBool cond doc) (\_ -> return False)
 
 valueToJSON :: Value -> A.Value
 valueToJSON (VString s) = A.String (T.pack s)

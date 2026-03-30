@@ -1,0 +1,8 @@
+insert.animales({name:"A", age:1});
+timestamp.database("t1");
+
+insert.animales({name:"B", age:2});
+timestamp.database("t1");
+
+rollback.database("t1");
+find.animales().preview()
