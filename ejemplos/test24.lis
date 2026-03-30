@@ -1,1 +1,10 @@
-updateMany.users(name == "Ana", {age: 27})
+insert.animales({name:"Hienarda", age:76, tipo:"terrestre"});
+
+find.animales()
+  .filter(exists(tipo) && age > 3) 
+  .groupby(tipo)
+  .sum("totalEdad", age)
+  .avg("promEdad", age)
+  .having(promEdad > 3)
+  .sort({promEdad: desc})
+  .preview()

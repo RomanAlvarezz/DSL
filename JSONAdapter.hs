@@ -1,19 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module JSONAdapter
-  ( jsonToDatabase
-  , databaseToJson
-  , jsonToValue
-  , valueToJson
-  ) where
-
+module JSONAdapter( jsonToDatabase, databaseToJson, jsonToValue, valueToJson) where
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import Data.Scientific (floatingOrInteger)
+import Data.Scientific (floatingOrInteger, Scientific, scientific)
 
 import Evaluator
 
@@ -64,8 +58,10 @@ valueToJson VNull =
 valueToJson (VInt i) =
   A.Number (fromIntegral i)
 
+--valueToJson (VFloat f) =
+--  A.Number (realToFrac f)
 valueToJson (VFloat f) =
-  A.Number (realToFrac f)
+  A.Number (truncateTOScientific 3 f)
 
 valueToJson (VArray xs) =
   A.Array (V.fromList (map valueToJson xs))
@@ -171,37 +167,9 @@ documentToJson doc =
       | (k,v) <- doc
       ]
   )
-{--
-databaseToJson :: Database -> Int -> A.Value
 
-databaseToJson db nextId =
-  A.Object $
-    KM.fromList $
-      [ (K.fromText "_meta", metaObject nextId) ] ++
-      [ (K.fromText (T.pack coll), collectionToJson docs)
-      | (coll, docs) <- M.toList db
-      ]
-
-metaObject :: Int -> A.Value
-
-metaObject n =
-  A.Object $
-    KM.fromList
-      [ (K.fromText "nextId", A.Number (fromIntegral n)) ]
-
-
-collectionToJson :: [Document] -> A.Value
-
-collectionToJson docs =
-  A.Array $
-    V.fromList (map documentToJson docs)
-
-documentToJson :: Document -> A.Value
-
-documentToJson doc =
-  A.Object $
-    KM.fromList
-      [ (K.fromText (T.pack k), valueToJson v)
-      | (k,v) <- doc
-      ]
---}
+truncateTOScientific :: Int -> Double -> Scientific
+truncateTOScientific n x =
+  let factor = 10 ^ n
+      scaled = truncate (x * fromIntegral factor)
+  in scientific scaled (negate n)

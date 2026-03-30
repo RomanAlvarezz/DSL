@@ -1,0 +1,22 @@
+[
+    {
+        "promEdad": "24.000",
+        "tipo": "acuatico",
+        "totalEdad": 72
+    },
+    {
+        "promEdad": "18.000",
+        "tipo": "terrestre",
+        "totalEdad": 324
+    },
+    {
+        "promEdad": "14.735",
+        "tipo": "volador",
+        "totalEdad": 100
+    },
+    {
+        "promEdad": "6.000",
+        "tipo": "subterraneo",
+        "totalEdad": 36
+    }
+]

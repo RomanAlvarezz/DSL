@@ -6,7 +6,7 @@ import Control.Monad.Except
 import qualified Data.Map as M
 import Data.List (find, groupBy, sortOn, sortBy)
 import System.IO
-
+import Data.Scientific (Scientific, scientific)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as AP
 import qualified Data.Aeson.Key as K
@@ -364,12 +364,6 @@ applyAggregate (Aggregate AggAvg field alias) docs =
   let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
       s = sum vals
       c = length vals
-  in (alias, VFloat (fromIntegral s / fromIntegral c))
---}
-applyAggregate (Aggregate AggAvg field alias) docs =
-  let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
-      s = sum vals
-      c = length vals
       truncate3 x =
         let factor = 1000
         in fromIntegral (floor (x * factor)) / factor
@@ -378,6 +372,15 @@ applyAggregate (Aggregate AggAvg field alias) docs =
         else
           let avg = fromIntegral s / fromIntegral c
           in (alias, VFloat (truncate3 avg))
+--}
+applyAggregate (Aggregate AggAvg field alias) docs =
+  let vals = [fromIntegral n | doc <- docs, Just (VInt n) <- [lookup field doc]] ++  [f | doc <- docs, Just (VFloat f) <- [lookup field doc]]
+      c = length vals
+  in if c == 0
+        then (alias, VNull)
+        else
+          let avg = sum vals / fromIntegral c
+          in (alias, VFloat (truncateTo 3 avg))
 
 applyAggregate (Aggregate AggMin field alias) docs =
   let vals = [v | doc <- docs, Just v <- [lookup field doc]]
@@ -521,14 +524,14 @@ evalBool (Not b) doc = do
   return (not res)
 
 evalBool (And a b) doc = do
-  r1 <- evalBool a doc
-  r2 <- evalBool b doc
-  return (r1 && r2)
+  v1 <- evalBool a doc
+  v2 <- evalBool b doc
+  return (v1 && v2)
 
 evalBool (Or a b) doc = do
-  r1 <- evalBool a doc
-  r2 <- evalBool b doc
-  return (r1 || r2)
+  v1 <- evalBool a doc
+  v2 <- evalBool b doc
+  return (v1 || v2)
 
 evalBool (Eq a b) doc = do
   v1 <- evalDocExp a doc
@@ -541,24 +544,28 @@ evalBool (Neq a b) doc = do
   return (v1 /= v2)
 
 evalBool (Gt a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x > y)
+   v1 <- evalDocExp a doc
+   v2 <- evalDocExp b doc
+   (a, b) <- conversorFloat v1 v2
+   return (a > b)
 
 evalBool (Ge a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x >= y)
+  v2 <- evalDocExp a doc
+  v1 <- evalDocExp b doc
+  (a, b) <- conversorFloat v1 v2
+  return (a >= b)
 
 evalBool (Lt a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x < y)
+  v1 <- evalDocExp a doc
+  v2 <- evalDocExp b doc
+  (a, b) <- conversorFloat v1 v2
+  return (a < b)
 
 evalBool (Le a b) doc = do
-  VInt x <- evalDocExp a doc
-  VInt y <- evalDocExp b doc
-  return (x <= y)
+  v1 <- evalDocExp a doc
+  v2 <- evalDocExp b doc
+  (a, b) <- conversorFloat v1 v2
+  return (a <= b)
 
 --evalBool (Exists (VarExp f)) doc =
 --  return (f `elem` map fst doc)
@@ -672,14 +679,31 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
       rest <- updateDocs stopAfterFirst cond cleanDoc ds
       return (d : rest)
 
+conversorFloat :: Value -> Value -> Eval (Double, Double)
+conversorFloat (VInt x) (VInt y) = return (fromIntegral x, fromIntegral y)
+conversorFloat (VFloat x) (VFloat y) = return (x,  y)
+conversorFloat (VInt x) (VFloat y) = return (fromIntegral x, y)
+conversorFloat (VFloat x) (VInt y) = return ( x, fromIntegral y)
+conversorFloat  _ _ = throwError TypeError
 
+roundTo :: Int -> Double -> Double
+roundTo n x =
+  let factor = 10 ^ n
+  in fromIntegral (round (x * fromIntegral factor)) / fromIntegral factor
+
+truncateTo :: Int -> Double -> Double
+truncateTo n x =
+  let factor = 10 ^ n
+  in fromIntegral (truncate (x * fromIntegral factor)) / fromIntegral factor
 
 valueToJSON :: Value -> A.Value
 valueToJSON (VString s) = A.String (T.pack s)
 valueToJSON (VBool b) = A.Bool b
 valueToJSON VNull = A.Null
 valueToJSON (VInt i) = A.Number (fromIntegral i)
-valueToJSON (VFloat f) = A.Number (realToFrac f)
+valueToJSON (VFloat f) =
+  A.Number (truncateToScientific 3 f)
+--valueToJSON (VFloat f) = A.Number (realToFrac f)
 
 valueToJSON (VArray xs) =
   A.Array (V.fromList (map valueToJSON xs))
@@ -778,3 +802,9 @@ getTerminal (Find _ _ t) = t
 
 getOps :: Find -> [QueryOp]
 getOps (Find _ ops _) = ops
+
+truncateToScientific :: Int -> Double -> Scientific
+truncateToScientific n x =
+  let factor = 10 ^ n
+      scaled = truncate (x * fromIntegral factor)
+  in scientific scaled (negate n)

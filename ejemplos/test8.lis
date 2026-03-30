@@ -1,6 +1,6 @@
 transaction{
-  insert.usuarios({nombre: "Juan", edad: 25});
-  insert.usuarios({nombre: "Maria", edad: 17});
-  updateOne.usuarios(nombre == "Maria", {activo: false});
-  delete.usuarios(edad < 18)
+  insert.users({name: "Juan Martin", age: 35});
+  insert.users({name: "Maria Elena", age: 77});
+  updateOne.users(name == "Maria", {country: "UR"});
+  delete.users(age <= 18)
 }
