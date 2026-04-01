@@ -1,8 +1,18 @@
 {
     "_meta": {
-        "nextId": 131
+        "nextId": 149
     },
     "animales": [
+        {
+            "_id": 144,
+            "age": 15,
+            "name": "Gato Montes"
+        },
+        {
+            "_id": 143,
+            "age": 7,
+            "name": "Guepardo"
+        },
         {
             "_id": 110,
             "age": 20,
@@ -11,469 +21,89 @@
         {
             "_id": 109,
             "age": 10,
-            "name": "Perrote"
+            "name": "Perrote",
+            "perrosMenores": true
         },
         {
             "_id": 108,
             "age": 10,
-            "name": "Perro"
-        },
-        {
-            "_id": 107,
-            "age": 2,
-            "name": "B"
-        },
-        {
-            "_id": 106,
-            "age": 1,
-            "name": "A"
-        },
-        {
-            "_id": 105,
-            "age": 2,
-            "name": "B"
-        },
-        {
-            "_id": 104,
-            "age": 1,
-            "name": "A"
-        },
-        {
-            "_id": 102,
-            "age": 2,
-            "name": "B"
-        },
-        {
-            "_id": 101,
-            "age": 1,
-            "name": "A"
-        },
-        {
-            "_id": 99,
-            "age": 10,
-            "name": "Chimpance"
-        },
-        {
-            "_id": 97,
-            "age": 10,
-            "name": "Perro Salchicha"
-        },
-        {
-            "_id": 95,
-            "age": 5,
-            "name": "Gato"
-        },
-        {
-            "_id": 87,
-            "age": 76,
-            "name": "Hienarda",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 86,
-            "age": 256,
-            "name": "Loro loco",
-            "tipo": "volador"
-        },
-        {
-            "_id": 85,
-            "age": 256,
-            "name": "Tucan4",
-            "tipo": "volador"
-        },
-        {
-            "_id": 83,
-            "age": 13,
-            "name": "Tucanopulus",
-            "tipo": "volador"
-        },
-        {
-            "_id": 82,
-            "age": 3,
-            "name": "Tucaneitor",
-            "tipo": "volador"
-        },
-        {
-            "_id": 81,
-            "age": 4,
-            "name": "Tucanazo",
-            "tipo": "volador"
-        },
-        {
-            "_id": 80,
-            "age": 3,
-            "name": "Tucaneitor",
-            "tipo": "volador"
-        },
-        {
-            "_id": 79,
-            "age": 4,
-            "name": "Tucanazo",
-            "tipo": "volador"
-        },
-        {
-            "_id": 78,
-            "age": 4,
-            "name": "Tucanazo",
-            "tipo": "volador"
-        },
-        {
-            "_id": 77,
-            "age": 3,
-            "name": "Lombric",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 76,
-            "age": 7,
-            "name": "Lombris",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 75,
-            "age": 4,
-            "name": "Lombrix",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 74,
-            "age": 7,
-            "name": "Lombriz",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 73,
-            "age": 3,
-            "name": "Lombric",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 72,
-            "age": 7,
-            "name": "Lombris",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 71,
-            "age": 4,
-            "name": "Lombrix",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 70,
-            "age": 7,
-            "name": "Lombriz",
-            "tipo": "subterraneo"
-        },
-        {
-            "_id": 69,
-            "age": 10,
             "name": "Perro",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 68,
-            "age": 35,
-            "name": "Aguila",
-            "tipo": "volador"
-        },
-        {
-            "_id": 67,
-            "age": 40,
-            "name": "Tukan",
-            "tipo": "volador"
-        },
-        {
-            "_id": 66,
-            "age": 18,
-            "name": "Palometa",
-            "tipo": "acuatico"
-        },
-        {
-            "_id": 65,
-            "age": 30,
-            "name": "Moncholo",
-            "tipo": "acuatico"
-        },
-        {
-            "_id": 64,
-            "age": 24,
-            "name": "Pez globo",
-            "tipo": "acuatico"
-        },
-        {
-            "_id": 33,
-            "age": 48,
-            "name": "Gotzilla"
-        },
-        {
-            "_id": 32,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 31,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 30,
-            "age": 38,
-            "name": "Bambineitorrr"
-        },
-        {
-            "_id": 27,
-            "age": 3,
-            "name": "Bambi"
-        },
-        {
-            "_id": 26,
-            "age": 3,
-            "name": "Bambi"
-        },
-        {
-            "_id": 25,
-            "age": 4,
-            "name": "Araña",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 24,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 23,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 22,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 21,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 20,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 19,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 18,
-            "age": 15,
-            "name": "Mono Titi ",
-            "tipo": "terrestre",
-            "ubicacion": {
-                "latitud": 90,
-                "longitud": 120
-            }
-        },
-        {
-            "_id": 17,
-            "age": 33,
-            "name": "Jirafina",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 16,
-            "age": 15,
-            "name": "Mono ",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 15,
-            "age": 33,
-            "name": "Jirafa",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 14,
-            "age": 15,
-            "name": "Mono ",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 13,
-            "age": 33,
-            "name": "Jirafa",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 12,
-            "age": 1,
-            "name": "Tiburonsin",
-            "tipo": "acuatico"
-        },
-        {
-            "_id": 10,
-            "age": 3,
-            "name": "Oso Pururu",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 9,
-            "name": "Ballenato"
-        },
-        {
-            "_id": 8,
-            "age": 4,
-            "name": "Lagartija",
-            "tipo": "terrestre"
-        },
-        {
-            "_id": 7,
-            "age": 3,
-            "name": "Oso hormiguero",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 1,
-            "name": "Tiburon",
-            "tipo": "acuatico"
-        },
-        {
-            "age": 3,
-            "name": "Serpiente",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 3,
-            "name": "Oso",
-            "tipo": "volador"
-        },
-        {
-            "age": 1,
-            "name": "Pez",
-            "tipo": "acuatico"
-        },
-        {
-            "age": 3,
-            "name": "Vinicius",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 3,
-            "name": "Tucan",
-            "tipo": "volador"
-        },
-        {
-            "age": 3,
-            "name": "Loro",
-            "tipo": "volador"
-        },
-        {
-            "age": 7,
-            "name": "Hiena",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 4,
-            "name": "Gato",
-            "tipo": "terrestre"
-        },
-        {
-            "age": 7,
-            "name": "Perro",
-            "tipo": "terrestre"
+            "perrosMenores": true
         }
     ],
     "users": [
         {
-            "_id": 130,
+            "_id": 146,
+            "age": 29,
+            "country": "AR",
+            "name": "Belen",
+            "score": 9,
+            "socore": 1
+        },
+        {
+            "_id": 145,
+            "age": 27,
+            "country": "AR",
+            "name": "Valentina",
+            "score": 7,
+            "socore": 1
+        },
+        {
+            "_id": 142,
+            "age": 29,
+            "country": "AR",
+            "name": "Belen",
+            "score": 9,
+            "socore": 1
+        },
+        {
+            "_id": 141,
+            "age": 27,
+            "country": "AR",
+            "name": "Valentina",
+            "score": 7,
+            "socore": 1
+        },
+        {
+            "_id": 140,
             "age": 35,
             "country": "US",
             "name": "John",
             "score": 50
         },
         {
-            "_id": 129,
+            "_id": 139,
+            "active": true,
             "age": 40,
             "country": "AR",
             "name": "Maria",
-            "score": 25
+            "score": 25,
+            "socore": 1
         },
         {
-            "_id": 128,
+            "_id": 138,
             "age": 18,
             "country": "CL",
             "name": "Luis",
             "score": 15
         },
         {
-            "_id": 127,
+            "_id": 137,
+            "active": true,
             "age": 30,
             "country": "AR",
             "name": "Ana",
-            "score": 20
+            "score": 20,
+            "socore": 1
         },
         {
-            "_id": 126,
-            "age": 24,
+            "_id": 136,
+            "active": true,
+            "age": 25,
             "country": "AR",
             "name": "Roman",
-            "score": 10
-        },
-        {
-            "_id": 125,
-            "age": 35,
-            "country": "US",
-            "name": "John",
-            "score": 50
-        },
-        {
-            "_id": 124,
-            "age": 40,
-            "country": "AR",
-            "name": "Maria",
-            "score": 25
-        },
-        {
-            "_id": 123,
-            "age": 18,
-            "country": "CL",
-            "name": "Luis",
-            "score": 15
-        },
-        {
-            "_id": 122,
-            "age": 30,
-            "country": "AR",
-            "name": "Ana",
-            "score": 20
-        },
-        {
-            "_id": 121,
-            "age": 24,
-            "country": "AR",
-            "name": "Roman",
-            "score": 10
+            "score": 120,
+            "socore": 1
         }
     ]
 }

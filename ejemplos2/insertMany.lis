@@ -1,3 +1,16 @@
+insertMany.users([
+  { name: "Valentina", age: 27, country: "AR", score: 7 },
+  { name: "Belen", age: 29, country: "AR", score: 9 }
+]);
+
+insertMany.animales([
+  { name: "Guepardo", age: 12 },
+  { name: "Gato Montes", age: 15 }
+])
+
+
+
+/*
 createCollection.users();
 
 insertMany.users([
@@ -7,3 +20,4 @@ insertMany.users([
   { name: "Maria", age: 40, country: "AR", score: 25 },
   { name: "John", age: 35, country: "US", score: 50 }
 ])
+*/

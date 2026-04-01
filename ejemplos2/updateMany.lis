@@ -1,8 +1,9 @@
-updateMany.users(
-  country == "AR",
-  { active: true }
+updateMany.animales(
+  age == 10,
+  { perrosMenores: true }
 );
 
-find.users()
-  .filter(active == true)
-  .preview()
+updateMany.users(
+  country == "AR",
+  { socore: 1 }
+) 

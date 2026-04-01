@@ -65,13 +65,6 @@ runEvaluator ast jsonFile = do
         putStrLn ("❌ Error en JSON de base: " ++ err)
         exitFailure
       Right res -> return res
-{--
-  initialDB <- case jsonToDatabase jsonValue of
-    Left err -> do
-      putStrLn ("❌ Error en JSON de base: " ++ err)
-      exitFailure
-    Right db -> return db--}
-
 
   -------------------------------------------------------
   -- 2 CREAR ESTADO INICIAL DEL EVALUADOR
@@ -86,7 +79,7 @@ runEvaluator ast jsonFile = do
         { database = initialDB
         , runtime = runtimeCtx
         , nextId = nextIdVal
-        , logs = (0,0)
+        , logs = (0,[])
         }
 
 
@@ -106,7 +99,8 @@ runEvaluator ast jsonFile = do
       let (docsChanged, collsChanged) = logs finalState
 
       putStrLn ("📄 Documentos modificados: " ++ show docsChanged)
-      putStrLn ("📦 Colecciones modificadas: " ++ show collsChanged)
+      putStrLn ("📦 Colecciones modificadas: " ++ show (length collsChanged))
+      putStrLn ("📂 Nombres de colecciones modificadas: " ++ show collsChanged)
 
       -------------------------------------------------------
       -- 4 GUARDAR BASE DE DATOS FINAL
@@ -119,8 +113,6 @@ runEvaluator ast jsonFile = do
       let jsonOut = databaseToJson finalDB finalNextId
 
       BL.writeFile jsonFile (AP.encodePretty jsonOut)
-
-      putStrLn "💾 Base de datos actualizada"
 
 
 printUsage :: IO ()

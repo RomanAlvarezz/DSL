@@ -1,8 +1,20 @@
 updateOne.users(
-  name == "Roman",
-  {score: 120 }
+  name == "Valentina",
+  {score: 7 }
 );
 
+updateOne.animales(
+  name == "Guepardo",
+  {age: 7 }
+);
+
+updateOne.animales(
+  name == "Gato Montes",
+  {age: 15 }
+)
+
+
+/*
 updateOne.users(
   name == "Roman",
   { age: 25 }
@@ -12,3 +24,4 @@ updateOne.users(
   name == "Roman",
   { active: true }
 )
+*/

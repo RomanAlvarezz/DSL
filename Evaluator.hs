@@ -62,7 +62,7 @@ data EvalState = EvalState
   { database :: Database
   , runtime  :: RuntimeContext
   , nextId   :: Int
-  , logs     :: (Int, Int)  -- (docsModificados, collsModificadas)
+  , logs     :: (Int, [Collection])  -- cantidadDocumentosModificados, listaDeColeccionesModificadas)
   }
 
 -------------------------------------------------------
@@ -150,7 +150,7 @@ evalComm (CommCreateColl name) = do
     then throwError (CollectionAlreadyExists name)
     else do
       updateDatabase (M.insert name [])
-      incColls 1
+      registerCollectionChange name
 
 evalComm (CommDropColl name) = do
   st <- get
@@ -158,7 +158,7 @@ evalComm (CommDropColl name) = do
   if M.member name db
     then do
       updateDatabase (M.delete name)
-      incColls 1
+      registerCollectionChange name
     else throwError (CollectionNotFound name)
 
 -------------------------------------------------------
@@ -184,6 +184,7 @@ evalComm (CommInsert coll exp) = do
           updateDatabase (M.insert coll (docWithId : docs))
           updateDatabaseNextId
           incDocs 1
+          registerCollectionChange coll
 
 
 --evalComm (CommInsertMany coll exps) =
@@ -206,6 +207,7 @@ evalComm (CommDelete coll cond) = do
       let deleted = length docs - length docs'
       updateDatabase (M.insert coll docs')
       incDocs deleted
+      if deleted > 0 then registerCollectionChange coll else return ()
 
 
 
@@ -229,7 +231,7 @@ evalComm (CommUpdateOne coll cond exp) = do
           let changed = if docs /= docs' then 1 else 0
           updateDatabase (M.insert coll docs')
           incDocs changed
-          if changed == 1 then incColls 1 else incColls 0
+          if changed == 1 then registerCollectionChange coll else return ()
 
 evalComm (CommUpdateMany coll cond exp) = do
  newDoc <- evalExpAsDoc exp
@@ -242,11 +244,15 @@ evalComm (CommUpdateMany coll cond exp) = do
        Nothing -> throwError (CollectionNotFound coll)
 
        Just docs -> do
-         matches <- filterM (safeEvalBool cond) docs
          docs' <- updateDocs False cond cleanDoc docs
+         let changed = length [ () | (old,new) <- zip docs docs', old /= new ]
          updateDatabase (M.insert coll docs')
-         incDocs (length matches)
-         if ((length matches) > 0 ) then incColls 1 else incColls 0
+
+         incDocs changed
+
+         if changed > 0
+            then registerCollectionChange coll
+            else return ()
 
 
 -------------------------------------------------------
@@ -869,14 +875,26 @@ truncateToScientific n x =
       scaled = truncate (x * fromIntegral factor)
   in scientific scaled (negate n)
 
+-- | Incrementa la cantidad de documentos modificados
 incDocs :: Int -> Eval ()
 incDocs n = do
   st <- get
-  let (d,c) = logs st
-  put st { logs = (d + n, c) }
+  let (docsChanged, colls) = logs st
+  put st { logs = (docsChanged + n, colls) }
 
-incColls :: Int -> Eval ()
-incColls n = do
+-------------------------------------------------------
+-- REGISTRAR COLECCION MODIFICADA
+-------------------------------------------------------
+
+-- | Registra el nombre de una colección modificada.
+-- | Si ya está en la lista de colecciones modificadas
+-- | no hace nada.
+-- | Si no está, la agrega.
+registerCollectionChange :: Collection -> Eval ()
+registerCollectionChange collName = do
   st <- get
-  let (d,c) = logs st
-  put st { logs = (d, c + n) }
+  let (docsChanged, colls) = logs st
+
+  if collName `elem` colls
+     then return ()
+     else put st { logs = (docsChanged, collName : colls) }
