@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 111
+        "nextId": 131
     },
     "animales": [
         {
@@ -406,60 +406,74 @@
     ],
     "users": [
         {
-            "_id": 94,
-            "age": 77,
-            "name": "Maria Elena"
-        },
-        {
-            "_id": 93,
-            "age": 35,
-            "name": "Juan Martin"
-        },
-        {
-            "_id": 91,
-            "age": 47,
-            "name": "Maria Elena"
-        },
-        {
-            "_id": 90,
-            "age": 25,
-            "name": "Juan Martin"
-        },
-        {
-            "_id": 88,
-            "age": 25,
-            "name": "Juan Martin"
-        },
-        {
-            "_id": 63,
+            "_id": 130,
             "age": 35,
             "country": "US",
             "name": "John",
             "score": 50
         },
         {
-            "_id": 62,
-            "active": true,
+            "_id": 129,
             "age": 40,
-            "country": "UR",
+            "country": "AR",
             "name": "Maria",
             "score": 25
         },
         {
-            "_id": 60,
-            "active": true,
-            "age": 43,
+            "_id": 128,
+            "age": 18,
+            "country": "CL",
+            "name": "Luis",
+            "score": 15
+        },
+        {
+            "_id": 127,
+            "age": 30,
             "country": "AR",
             "name": "Ana",
             "score": 20
         },
         {
-            "_id": 59,
-            "active": true,
-            "age": 28,
+            "_id": 126,
+            "age": 24,
             "country": "AR",
             "name": "Roman",
-            "score": 99
+            "score": 10
+        },
+        {
+            "_id": 125,
+            "age": 35,
+            "country": "US",
+            "name": "John",
+            "score": 50
+        },
+        {
+            "_id": 124,
+            "age": 40,
+            "country": "AR",
+            "name": "Maria",
+            "score": 25
+        },
+        {
+            "_id": 123,
+            "age": 18,
+            "country": "CL",
+            "name": "Luis",
+            "score": 15
+        },
+        {
+            "_id": 122,
+            "age": 30,
+            "country": "AR",
+            "name": "Ana",
+            "score": 20
+        },
+        {
+            "_id": 121,
+            "age": 24,
+            "country": "AR",
+            "name": "Roman",
+            "score": 10
         }
     ]
 }

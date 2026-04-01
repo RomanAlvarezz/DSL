@@ -62,6 +62,7 @@ data EvalState = EvalState
   { database :: Database
   , runtime  :: RuntimeContext
   , nextId   :: Int
+  , logs     :: (Int, Int)  -- (docsModificados, collsModificadas)
   }
 
 -------------------------------------------------------
@@ -141,22 +142,23 @@ evalComm (Seq c1 c2) = do
 -------------------------------------------------------
 -- CREAR / BORRAR COLECCIONES
 -------------------------------------------------------
--- esto me permitia pisar una coleccion anterior con el mismo nombre
---evalComm (CommCreateColl name) =
---  updateDatabase (M.insert name [])
 
 evalComm (CommCreateColl name) = do
   st <- get
   let db = database st
   if M.member name db
     then throwError (CollectionAlreadyExists name)
-    else updateDatabase (M.insert name [])
+    else do
+      updateDatabase (M.insert name [])
+      incColls 1
 
 evalComm (CommDropColl name) = do
   st <- get
   let db = database st
   if M.member name db
-    then updateDatabase (M.delete name)
+    then do
+      updateDatabase (M.delete name)
+      incColls 1
     else throwError (CollectionNotFound name)
 
 -------------------------------------------------------
@@ -181,6 +183,7 @@ evalComm (CommInsert coll exp) = do
         Just docs -> do 
           updateDatabase (M.insert coll (docWithId : docs))
           updateDatabaseNextId
+          incDocs 1
 
 
 --evalComm (CommInsertMany coll exps) =
@@ -200,7 +203,9 @@ evalComm (CommDelete coll cond) = do
     Nothing -> throwError (CollectionNotFound coll)
     Just docs -> do
       docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
+      let deleted = length docs - length docs'
       updateDatabase (M.insert coll docs')
+      incDocs deleted
 
 
 
@@ -221,7 +226,10 @@ evalComm (CommUpdateOne coll cond exp) = do
 
         Just docs -> do
           docs' <- updateDocs True cond cleanDoc docs
+          let changed = if docs /= docs' then 1 else 0
           updateDatabase (M.insert coll docs')
+          incDocs changed
+          if changed == 1 then incColls 1 else incColls 0
 
 evalComm (CommUpdateMany coll cond exp) = do
  newDoc <- evalExpAsDoc exp
@@ -234,8 +242,11 @@ evalComm (CommUpdateMany coll cond exp) = do
        Nothing -> throwError (CollectionNotFound coll)
 
        Just docs -> do
+         matches <- filterM (safeEvalBool cond) docs
          docs' <- updateDocs False cond cleanDoc docs
          updateDatabase (M.insert coll docs')
+         incDocs (length matches)
+         if ((length matches) > 0 ) then incColls 1 else incColls 0
 
 
 -------------------------------------------------------
@@ -667,6 +678,42 @@ validateNoIdField doc =
 
 updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
 updateDocs _ _ _ [] = return []
+
+updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
+  match <- safeEvalBool cond d
+  if match
+    then do
+      let alreadySame =
+            all (\(k,v) -> lookup k d == Just v) cleanDoc
+
+      if alreadySame
+        then
+          if stopAfterFirst
+            then return (d:ds)
+            else do
+              rest <- updateDocs stopAfterFirst cond cleanDoc ds
+              return (d:rest)
+
+        else do
+          let oldId = getId d
+          let merged =
+                ("_id", oldId) :
+                mergeFields
+                  (filter (\(k,_) -> k /= "_id") d)
+                  cleanDoc
+
+          if stopAfterFirst
+            then return (merged : ds)
+            else do
+              rest <- updateDocs stopAfterFirst cond cleanDoc ds
+              return (merged : rest)
+
+    else do
+      rest <- updateDocs stopAfterFirst cond cleanDoc ds
+      return (d : rest)
+{-
+updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
+updateDocs _ _ _ [] = return []
 updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
   --match <- evalBool cond d
   match <- safeEvalBool cond d
@@ -687,7 +734,7 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
     else do
       rest <- updateDocs stopAfterFirst cond cleanDoc ds
       return (d : rest)
-
+-}
 conversorFloat :: Value -> Value -> Eval (Double, Double)
 conversorFloat (VInt x) (VInt y) = return (fromIntegral x, fromIntegral y)
 conversorFloat (VFloat x) (VFloat y) = return (x,  y)
@@ -821,3 +868,15 @@ truncateToScientific n x =
   let factor = 10 ^ n
       scaled = truncate (x * fromIntegral factor)
   in scientific scaled (negate n)
+
+incDocs :: Int -> Eval ()
+incDocs n = do
+  st <- get
+  let (d,c) = logs st
+  put st { logs = (d + n, c) }
+
+incColls :: Int -> Eval ()
+incColls n = do
+  st <- get
+  let (d,c) = logs st
+  put st { logs = (d, c + n) }

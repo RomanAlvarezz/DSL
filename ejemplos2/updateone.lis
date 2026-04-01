@@ -1,4 +1,14 @@
 updateOne.users(
   name == "Roman",
-  { age: 25, score: 99 }
+  {score: 120 }
+);
+
+updateOne.users(
+  name == "Roman",
+  { age: 25 }
+);
+
+updateOne.users(
+  name == "Roman",
+  { active: true }
 )
