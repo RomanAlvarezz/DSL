@@ -9,7 +9,8 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Scientific (floatingOrInteger, Scientific, scientific)
 
-import Evaluator
+import Value
+--import Evaluator
 
 -------------------------------------------------------
 -- JSON -> VALUE
@@ -68,7 +69,7 @@ valueToJson (VArray xs) =
 
 valueToJson (VObject fields) =
   let pairs =
-        [ (K.fromText (T.pack k), valueToJSON v)
+        [ (K.fromText (T.pack k), valueToJson v)
         | (k,v) <- fields
         ]
   in A.Object (KM.fromList pairs)

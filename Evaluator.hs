@@ -9,32 +9,12 @@ import System.IO
 import Data.Scientific (Scientific, scientific)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as AP
-import qualified Data.Aeson.Key as K
-import qualified Data.Aeson.KeyMap as KM
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Vector as V
 import qualified Data.Text as T
 
-
--------------------------------------------------------
--- VALORES JSON INTERNOS
--------------------------------------------------------
-
-data Value
-  = VInt Int
-  | VFloat Double
-  | VString String
-  | VBool Bool
-  | VNull
-  | VObject [(FieldName, Value)]
-  | VArray [Value]
-  deriving (Show, Eq, Ord)
-
-
-
-type Document = [(FieldName, Value)]
-type CollectionData = [Document]
-type Database = M.Map Collection CollectionData
+import Value ( Value(..), Document, Database, CollectionData)
+import JSONAdapter (valueToJson)
 
 -------------------------------------------------------
 -- SNAPSHOTS PARA TIMESTAMPS
@@ -187,8 +167,6 @@ evalComm (CommInsert coll exp) = do
           registerCollectionChange coll
 
 
---evalComm (CommInsertMany coll exps) =
---  mapM_ (evalComm . CommInsert coll) exps
 evalComm (CommInsertMany coll []) = return ()
 evalComm (CommInsertMany coll (e:es)) = do
   evalComm (CommInsert coll e)
@@ -397,20 +375,7 @@ applyAggregate (Aggregate AggCount _ alias) docs =
 applyAggregate (Aggregate AggSum field alias) docs =
   let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
   in (alias, VInt (sum vals))
-{--
-applyAggregate (Aggregate AggAvg field alias) docs =
-  let vals = [n | doc <- docs, Just (VInt n) <- [lookup field doc]]
-      s = sum vals
-      c = length vals
-      truncate3 x =
-        let factor = 1000
-        in fromIntegral (floor (x * factor)) / factor
-  in if c == 0
-        then (alias, VNull)
-        else
-          let avg = fromIntegral s / fromIntegral c
-          in (alias, VFloat (truncate3 avg))
---}
+
 applyAggregate (Aggregate AggAvg field alias) docs =
   let vals = [fromIntegral n | doc <- docs, Just (VInt n) <- [lookup field doc]] ++  [f | doc <- docs, Just (VFloat f) <- [lookup field doc]]
       c = length vals
@@ -418,7 +383,7 @@ applyAggregate (Aggregate AggAvg field alias) docs =
         then (alias, VNull)
         else
           let avg = sum vals / fromIntegral c
-          in (alias, VFloat (truncateTo 3 avg))
+          in (alias, VFloat avg) -- (truncateTo 3 avg)
 
 applyAggregate (Aggregate AggMin field alias) docs =
   let vals = [v | doc <- docs, Just v <- [lookup field doc]]
@@ -432,23 +397,12 @@ applyAggregate (Aggregate AggMax field alias) docs =
         then (alias, VNull)
         else (alias, maximum vals)
 
-{--
-applyAggregate (Aggregate AggMin field alias) docs =
-  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
-  in (alias, minimum vals)
-
-applyAggregate (Aggregate AggMax field alias) docs =
-  let vals = [v | doc <- docs, Just v <- [lookup field doc]]
-  in (alias, maximum vals)
---}
 -------------------------------------------------------
 -- PIPELINE
 -------------------------------------------------------
 
 applyOp :: [Document] -> QueryOp -> Eval [Document]
 
---applyOp docs (QFilter cond) =
---  filterM (evalBool cond) docs
 applyOp docs (QFilter cond) =
   filterM (safeEvalBool cond) docs
 
@@ -495,13 +449,11 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
 -- TERMINALES
 -------------------------------------------------------
 evalTerminal :: QueryTerminal -> [Document] -> Eval ()
-
 evalTerminal TerminalPreview docs = do
-  let jsonVal = documentsToJSON docs
+  let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
   liftIO $ BL.putStrLn (AP.encodePretty jsonVal)
-
 evalTerminal (TerminalSave path) docs = do
-  let jsonVal = documentsToJSON docs
+  let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
   liftIO $ BL.writeFile path (AP.encodePretty jsonVal)
 
 -------------------------------------------------------
@@ -592,9 +544,6 @@ evalBool (Le a b) doc = do
   (a, b) <- conversorFloat v1 v2
   return (a <= b)
 
---evalBool (Exists (VarExp f)) doc =
---  return (f `elem` map fst doc)
-
 evalBool (Exists e) doc =
   catchError
     (evalDocExp e doc >> return True)
@@ -645,15 +594,7 @@ updateTimestamps f = do
   let newRuntime = rt { timestamps = newTs }
   let newState = st { runtime = newRuntime }
   put newState
-{-
-updateNextId :: (Int -> Int) -> Eval ()
-updateNextId f = do
-  st <- get
-  let nid = nextId st
-  let newId = f nid
-  let newState = st { nextId = newId }
-  put newState
--}
+
 updateDatabaseAndNextId :: Database -> Int -> Eval ()
 updateDatabaseAndNextId newDb newNextId = do
   st <- get
@@ -717,30 +658,7 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
     else do
       rest <- updateDocs stopAfterFirst cond cleanDoc ds
       return (d : rest)
-{-
-updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
-updateDocs _ _ _ [] = return []
-updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
-  --match <- evalBool cond d
-  match <- safeEvalBool cond d
-  if match
-    then do
-      let oldId = getId d
-      let merged =
-            ("_id", oldId) :
-            mergeFields
-              (filter (\(k,_) -> k /= "_id") d)
-              cleanDoc
-      if stopAfterFirst
-        then return (merged : ds)
-        else do
-          rest <- updateDocs stopAfterFirst cond cleanDoc ds
-          return (merged : rest)
 
-    else do
-      rest <- updateDocs stopAfterFirst cond cleanDoc ds
-      return (d : rest)
--}
 conversorFloat :: Value -> Value -> Eval (Double, Double)
 conversorFloat (VInt x) (VInt y) = return (fromIntegral x, fromIntegral y)
 conversorFloat (VFloat x) (VFloat y) = return (x,  y)
@@ -748,46 +666,9 @@ conversorFloat (VInt x) (VFloat y) = return (fromIntegral x, y)
 conversorFloat (VFloat x) (VInt y) = return ( x, fromIntegral y)
 conversorFloat  _ _ = throwError TypeError
 
-roundTo :: Int -> Double -> Double
-roundTo n x =
-  let factor = 10 ^ n
-  in fromIntegral (round (x * fromIntegral factor)) / fromIntegral factor
-
-truncateTo :: Int -> Double -> Double
-truncateTo n x =
-  let factor = 10 ^ n
-  in fromIntegral (truncate (x * fromIntegral factor)) / fromIntegral factor
-
 safeEvalBool :: BoolExp -> Document -> Eval Bool
 safeEvalBool cond doc =
   catchError (evalBool cond doc) (\_ -> return False)
-
-valueToJSON :: Value -> A.Value
-valueToJSON (VString s) = A.String (T.pack s)
-valueToJSON (VBool b) = A.Bool b
-valueToJSON VNull = A.Null
-valueToJSON (VInt i) = A.Number (fromIntegral i)
-valueToJSON (VFloat f) =
-  A.Number (truncateToScientific 3 f)
---valueToJSON (VFloat f) = A.Number (realToFrac f)
-
-valueToJSON (VArray xs) =
-  A.Array (V.fromList (map valueToJSON xs))
-
-valueToJSON (VObject fields) =
-  let pairs =
-        [ (K.fromText (T.pack k), valueToJSON v)
-        | (k,v) <- fields
-        ]
-  in A.Object (KM.fromList pairs)
-
-
-
-documentsToJSON :: [Document] -> A.Value
-documentsToJSON docs =
-  let jsonDocs =
-        map (\doc -> valueToJSON (VObject doc)) docs
-  in A.Array (V.fromList jsonDocs)
 
 evalDocExp :: Exp -> Document -> Eval Value
 

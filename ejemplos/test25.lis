@@ -1,3 +1,4 @@
+/*
 insertMany.animales([
   { name: "Pez globo", age: 24, tipo: "acuatico" },
   { name: "Moncholo", age: 30, tipo: "acuatico" },
@@ -5,13 +6,14 @@ insertMany.animales([
   { name: "Tukan", age: 40, tipo: "volador" },
   { name: "Aguila", age: 35, tipo: "volador" }
 ]);
+*/
 
 
 find.animales()
-  .filter(exists(tipo) && age > 3)
+  .filter(age > 3)
   .groupby(tipo)
   .sum("totalEdad", age)
   .avg("promEdad", age)
-  .having(promEdad > 10)
+  .having(promEdad > 3)
   .sort({promEdad: desc})
   .preview()
