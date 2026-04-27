@@ -1,6 +1,6 @@
 -- Value.hs
-module Value ( Value(..), Document, CollectionData, Database, FieldName, Collection) where
-
+module Value ( Value(..), TimestampSnapshot(..), Document, CollectionData, Database, FieldName, Collection) where
+import AST (TimestampLabel)
 import qualified Data.Map as M
 
 -------------------------------------------------------
@@ -30,4 +30,19 @@ data Value
 
 type Document = [(FieldName, Value)]
 type CollectionData = [Document]
-type Database = M.Map Collection CollectionData
+
+-- cambio el tipo de database para dejar de trabajar con 'M.insert, loolup, ...'
+type Database = [(Collection, CollectionData)]
+--type Database = M.Map Collection CollectionData
+
+
+-------------------------------------------------------
+-- MODELO DE TIMESTAMP
+-------------------------------------------------------
+
+--type TimestampLabel = String
+
+data TimestampSnapshot
+  = DBSnapshot Database
+  | CollSnapshot Collection CollectionData
+  deriving (Show)

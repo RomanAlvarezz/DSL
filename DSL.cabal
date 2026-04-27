@@ -20,7 +20,7 @@ executable DSL
   main-is:             Main.hs
   other-modules:       AST
                    , Parser
-                   , Evaluator
+                   , EvaluatorMM2
                    , JSONAdapter
                    , Value
   -- other-extensions:

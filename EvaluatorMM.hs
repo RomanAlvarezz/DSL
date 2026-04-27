@@ -1,20 +1,78 @@
-module Evaluator where
+module EvaluatorMM where
 
 import AST
-import Control.Monad.State
-import Control.Monad.Except
 import qualified Data.Map as M
-import Data.List (find, groupBy, sortOn, sortBy)
-import System.IO
+import Data.List (groupBy, sortOn, sortBy)
 import Data.Scientific (Scientific, scientific)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as AP
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Vector as V
-import qualified Data.Text as T
+
+import Control.Monad (ap, liftM, filterM)
 
 import Value ( Value(..), Document, Database, CollectionData)
 import JSONAdapter (valueToJson)
+
+
+-------------------------------------------------------
+-- MONADA PROPIA
+-------------------------------------------------------
+
+newtype Eval a = Eval {
+  runEval :: EvalState -> IO (Either EvalError (a, EvalState))
+}
+
+instance Functor Eval where 
+  fmap = liftM
+instance Applicative Eval where 
+  pure = return
+  (<*>) = ap
+
+instance Monad Eval where
+  return x = Eval (\s -> return (Right (x, s)))
+  m >>= f = Eval $ \s -> do
+    res <- runEval m s
+    case res of
+      Left e -> return (Left e)
+      Right (a, s') -> runEval (f a) s'
+
+-------------------------------------------------------
+-- TYPECLASSES
+-------------------------------------------------------
+
+class Monad m => MonadStateEval m where
+  getEval :: m EvalState
+  putEval :: EvalState -> m ()
+
+class Monad m => MonadErrorEval m where
+  throwEval :: EvalError -> m a
+  catchEval :: m a -> (EvalError -> m a) -> m a
+
+class Monad m => MonadIOEval m where
+  liftIOEval :: IO a -> m a
+
+-------------------------------------------------------
+-- INSTANCIAS PARA Eval
+-------------------------------------------------------
+
+instance MonadStateEval Eval where
+  getEval = Eval $ \s -> return (Right (s, s))
+  putEval s = Eval $ \_ -> return (Right ((), s))
+
+instance MonadErrorEval Eval where
+  throwEval e = Eval $ \_ -> return (Left e)
+
+  catchEval m handler = Eval $ \s -> do
+    res <- runEval m s
+    case res of
+      Left e -> runEval (handler e) s
+      Right ok -> return (Right ok)
+
+instance MonadIOEval Eval where
+  liftIOEval io = Eval $ \s -> do
+    a <- io
+    return (Right (a, s))
 
 -------------------------------------------------------
 -- SNAPSHOTS PARA TIMESTAMPS
@@ -93,25 +151,19 @@ showError (CollectionAlreadyExists c) =
 showError (ViewAlreadyExists v) =
   "La vista '" ++ v ++ "' ya existe"
 
--------------------------------------------------------
--- MONADA DEL EVALUADOR
--------------------------------------------------------
-
-type Eval a =
-  StateT EvalState (ExceptT EvalError IO) a
 
 -------------------------------------------------------
 -- PROGRAMA
 -------------------------------------------------------
 
-evalProgram :: Program -> Eval ()
+evalProgram :: (MonadStateEval m, MonadErrorEval m, MonadIOEval m) => Program -> m ()
 evalProgram = evalComm
 
 -------------------------------------------------------
 -- COMANDOS
 -------------------------------------------------------
 
-evalComm :: Comm -> Eval ()
+evalComm :: (MonadStateEval m, MonadErrorEval m, MonadIOEval m) => Comm -> m ()
 
 evalComm Skip = return ()
 
@@ -120,54 +172,49 @@ evalComm (Seq c1 c2) = do
   evalComm c2
 
 -------------------------------------------------------
--- CREAR / BORRAR COLECCIONES
+-- CREATE / DROP
 -------------------------------------------------------
 
 evalComm (CommCreateColl name) = do
-  st <- get
+  st <- getEval
   let db = database st
   if M.member name db
-    then throwError (CollectionAlreadyExists name)
+    then throwEval (CollectionAlreadyExists name)
     else do
       updateDatabase (M.insert name [])
       registerCollectionChange name
 
 evalComm (CommDropColl name) = do
-  st <- get
+  st <- getEval
   let db = database st
   if M.member name db
     then do
       updateDatabase (M.delete name)
       registerCollectionChange name
-    else throwError (CollectionNotFound name)
+    else throwEval (CollectionNotFound name)
 
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
+
 evalComm (CommInsert coll exp) = do
   doc <- evalExpAsDoc exp
-
-  ---------------------------------------------------
-  -- Validación reutilizable: el documento no debe
-  -- contener "_id" definido por el usuario
-  ---------------------------------------------------
   case validateNoIdField doc of
-    Nothing -> throwError ReservedField
+    Nothing -> throwEval ReservedField
     Just cleanDoc -> do
-      st <- get
+      st <- getEval
       let db = database st
       let newId = nextId st
       let docWithId = ("_id", VInt newId) : cleanDoc
       case M.lookup coll db of
-        Nothing -> throwError (CollectionNotFound coll)
+        Nothing -> throwEval (CollectionNotFound coll)
         Just docs -> do 
           updateDatabase (M.insert coll (docWithId : docs))
           updateDatabaseNextId
           incDocs 1
           registerCollectionChange coll
 
-
-evalComm (CommInsertMany coll []) = return ()
+evalComm (CommInsertMany _ []) = return ()
 evalComm (CommInsertMany coll (e:es)) = do
   evalComm (CommInsert coll e)
   evalComm (CommInsertMany coll es)
@@ -177,9 +224,9 @@ evalComm (CommInsertMany coll (e:es)) = do
 -------------------------------------------------------
 
 evalComm (CommDelete coll cond) = do
-  st <- get
+  st <- getEval
   case M.lookup coll (database st) of
-    Nothing -> throwError (CollectionNotFound coll)
+    Nothing -> throwEval (CollectionNotFound coll)
     Just docs -> do
       docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
       let deleted = length docs - length docs'
@@ -196,13 +243,13 @@ evalComm (CommUpdateOne coll cond exp) = do
   newDoc <- evalExpAsDoc exp
 
   case validateNoIdField newDoc of
-    Nothing -> throwError ReservedField
+    Nothing -> throwEval ReservedField
     Just cleanDoc -> do
 
-      st <- get
+      st <- getEval
 
       case M.lookup coll (database st) of
-        Nothing -> throwError (CollectionNotFound coll)
+        Nothing -> throwEval (CollectionNotFound coll)
 
         Just docs -> do
           docs' <- updateDocs True cond cleanDoc docs
@@ -214,12 +261,12 @@ evalComm (CommUpdateOne coll cond exp) = do
 evalComm (CommUpdateMany coll cond exp) = do
  newDoc <- evalExpAsDoc exp
  case validateNoIdField newDoc of
-   Nothing -> throwError ReservedField
+   Nothing -> throwEval ReservedField
    Just cleanDoc -> do
-     st <- get
+     st <- getEval
 
      case M.lookup coll (database st) of
-       Nothing -> throwError (CollectionNotFound coll)
+       Nothing -> throwEval (CollectionNotFound coll)
 
        Just docs -> do
          docs' <- updateDocs False cond cleanDoc docs
@@ -248,23 +295,23 @@ evalComm (CommQuery find) = do
 --evalComm (CommCreateView name find) =
 --  updateViews (M.insert name find)
 evalComm (CommCreateView name find) = do
-  st <- get
+  st <- getEval
   let vs = views (runtime st)
   if M.member name vs
-    then throwError (ViewAlreadyExists name)
+    then throwEval (ViewAlreadyExists name)
     else updateViews (M.insert name find)
 
 
 evalComm (CommUseView name ViewOnly) = do
-  st <- get
+  st <- getEval
   case M.lookup name (views (runtime st)) of
-    Nothing -> throwError (ViewNotFound name)
+    Nothing -> throwEval (ViewNotFound name)
     Just f  -> evalComm (CommQuery f)
 
 evalComm (CommUseView name (ViewWithPipeline f)) = do
-  st <- get
+  st <- getEval
   case M.lookup name (views (runtime st)) of
-    Nothing -> throwError (ViewNotFound name)
+    Nothing -> throwEval (ViewNotFound name)
     Just (Find coll ops _) ->
       evalComm (CommQuery (Find coll (ops ++ getOps f) (getTerminal f)))
 
@@ -273,7 +320,7 @@ evalComm (CommUseView name (ViewWithPipeline f)) = do
 -------------------------------------------------------
 
 evalComm (CommTimestamp target label) = do
-  st <- get
+  st <- getEval
   let db = database st
   let rt = runtime st
 
@@ -283,7 +330,7 @@ evalComm (CommTimestamp target label) = do
 
     TSColl coll ->
       case M.lookup coll db of
-        Nothing -> throwError (CollectionNotFound coll)
+        Nothing -> throwEval (CollectionNotFound coll)
         Just docs -> return (CollSnapshot coll docs)
 
   updateTimestamps (M.insert label snap)
@@ -293,48 +340,48 @@ evalComm (CommTimestamp target label) = do
 -------------------------------------------------------
 
 evalComm (CommRollback target label) = do
-  st <- get
+  st <- getEval
   let rt = runtime st
 
   snap <- case M.lookup label (timestamps rt) of
-    Nothing -> throwError (TimestampNotFound label)
+    Nothing -> throwEval (TimestampNotFound label)
     Just s  -> return s
 
   case (target, snap) of
 
     (TSDatabase, DBSnapshot db') ->
-      put st { database = db' }
+      putEval st { database = db' }
 
     (TSColl coll, CollSnapshot c docs)
       | coll == c ->
           let db' = M.insert coll docs (database st)
-          in put st { database = db' }
+          in putEval st { database = db' }
 
-    _ -> throwError InvalidTimestampTarget
+    _ -> throwEval InvalidTimestampTarget
 
 -------------------------------------------------------
 -- TRANSACCIONES
 -------------------------------------------------------
 
 evalComm (CommTransaction comms) = do
-  snapshot <- get
-  catchError
+  snapshot <- getEval
+  catchEval
     (mapM_ evalComm comms)
-    (\_ -> put snapshot)
+    (\_ -> putEval snapshot)
 
 -------------------------------------------------------
 -- EVALUACION DE CONSULTAS
 -------------------------------------------------------
 
-evalFind :: Find -> Eval [Document]
+evalFind :: (MonadStateEval m, MonadErrorEval m) => Find -> m [Document]
 evalFind (Find coll ops term) = do
-  st <- get
+  st <- getEval
   case M.lookup coll (database st) of
-    Nothing -> throwError (CollectionNotFound coll)
+    Nothing -> throwEval (CollectionNotFound coll)
     Just docs -> applyPipeline docs ops
 
 
-applyPipeline :: [Document] -> [QueryOp] -> Eval [Document]
+applyPipeline :: (MonadErrorEval m) => [Document] -> [QueryOp] -> m [Document]
 applyPipeline docs [] = return docs
 applyPipeline docs (op:rest) = do
   docs' <- applyOp docs op
@@ -401,7 +448,7 @@ applyAggregate (Aggregate AggMax field alias) docs =
 -- PIPELINE
 -------------------------------------------------------
 
-applyOp :: [Document] -> QueryOp -> Eval [Document]
+applyOp :: (MonadErrorEval m) => [Document] -> QueryOp -> m [Document]
 
 applyOp docs (QFilter cond) =
   filterM (safeEvalBool cond) docs
@@ -448,19 +495,20 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
 -------------------------------------------------------
 -- TERMINALES
 -------------------------------------------------------
-evalTerminal :: QueryTerminal -> [Document] -> Eval ()
+evalTerminal :: (MonadIOEval m) => QueryTerminal -> [Document] -> m ()
 evalTerminal TerminalPreview docs = do
   let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
-  liftIO $ BL.putStrLn (AP.encodePretty jsonVal)
+  liftIOEval $ BL.putStrLn (AP.encodePretty jsonVal)
+
 evalTerminal (TerminalSave path) docs = do
   let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
-  liftIO $ BL.writeFile path (AP.encodePretty jsonVal)
+  liftIOEval $ BL.writeFile path (AP.encodePretty jsonVal)
 
 -------------------------------------------------------
 -- EXPRESIONES
 -------------------------------------------------------
 
-evalExp :: Exp -> Eval Value
+evalExp :: (MonadErrorEval m) => Exp -> m Value
 
 evalExp (IntExp n) = return (VInt n)
 evalExp (FloatExp f) = return (VFloat f)
@@ -483,10 +531,10 @@ evalExp (MulExp a b) =
 evalExp (DivExp a b) =
   numOp a b
     (\x y -> if y == 0
-                then throwError DivisionByZero
+                then throwEval DivisionByZero
                 else return $ VInt (div x y))
     (\x y -> if y == 0
-                then throwError DivisionByZero
+                then throwEval DivisionByZero
                 else return $ VFloat (x / y))
 
 {--
@@ -496,7 +544,7 @@ evalExp (MulExp a b) = numOp (*) a b
 evalExp (DivExp a b) = do
   v2 <- evalExp b
   case v2 of
-    VInt 0 -> throwError DivisionByZero
+    VInt 0 -> throwEval DivisionByZero
     _ -> numOp div a b
 --}
 
@@ -508,13 +556,13 @@ evalExp (JArrayExp xs) = do
   vals <- mapM evalExp xs
   return (VArray vals)
 
-evalExp _ = throwError TypeError
+evalExp _ = throwEval TypeError
 
 -------------------------------------------------------
 -- BOOL
 -------------------------------------------------------
 
-evalBool :: BoolExp -> Document -> Eval Bool
+evalBool :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 
 evalBool BTrue _ = return True
 evalBool BFalse _ = return False
@@ -568,7 +616,7 @@ evalBool (Le a b) doc = do
   return (a <= b)
 
 evalBool (Exists e) doc =
-  catchError
+  catchEval
     (evalDocExp e doc >> return True)
     (\_ -> return False)
 
@@ -579,60 +627,48 @@ evalBool (Exists e) doc =
 -- HELPERS DE ACTUALIZACION DE ESTADO
 -------------------------------------------------------
 
-updateDatabase :: (Database -> Database) -> Eval ()
+updateDatabase :: (MonadStateEval m) => (Database -> Database) -> m ()
 updateDatabase f = do
-  st <- get
-  let db = database st
-  let newDb = f db
-  let newState = st { database = newDb }
-  put newState
+  st <- getEval
+  putEval st { database = f (database st) }
 
-updateRuntime :: (RuntimeContext -> RuntimeContext) -> Eval ()
+updateRuntime :: (MonadStateEval m) => (RuntimeContext -> RuntimeContext) -> m ()
 updateRuntime f = do
-  st <- get
+  st <- getEval
   let rt = runtime st
   let newRuntime = f rt
-  let newState = st { runtime = newRuntime }
-  put newState
+  putEval st { runtime = newRuntime }
 
-updateViews :: (M.Map ViewName Find -> M.Map ViewName Find) -> Eval ()
+updateViews :: (MonadStateEval m) => (M.Map ViewName Find -> M.Map ViewName Find) -> m ()
 updateViews f = do
-  st <- get
+  st <- getEval
   let rt = runtime st
   let vs = views rt
   let newViews = f vs
   let newRuntime = rt { views = newViews }
-  let newState = st { runtime = newRuntime }
-  put newState
+  putEval st { runtime = newRuntime }
 
-updateTimestamps ::
-  (M.Map TimestampLabel TimestampSnapshot
-   -> M.Map TimestampLabel TimestampSnapshot)
-  -> Eval ()
+updateTimestamps :: (MonadStateEval m) => (M.Map TimestampLabel TimestampSnapshot   -> M.Map TimestampLabel TimestampSnapshot) -> m ()
 updateTimestamps f = do
-  st <- get
+  st <- getEval
   let rt = runtime st
   let ts = timestamps rt
   let newTs = f ts
   let newRuntime = rt { timestamps = newTs }
-  let newState = st { runtime = newRuntime }
-  put newState
+  putEval st { runtime = newRuntime }
 
-updateDatabaseAndNextId :: Database -> Int -> Eval ()
+updateDatabaseAndNextId :: (MonadStateEval m) => Database -> Int -> m ()
 updateDatabaseAndNextId newDb newNextId = do
-  st <- get
-  let newState =
-        st
-          { database = newDb
-          , nextId = newNextId + 1
-          }
-  put newState
+  st <- getEval
+  putEval st
+    { database = newDb
+    , nextId = newNextId + 1
+    }
 
-updateDatabaseNextId :: Eval ()
+updateDatabaseNextId :: (MonadStateEval m) => m ()
 updateDatabaseNextId = do
-  st <- get
-  let newState = st { nextId = (nextId st) + 1}
-  put newState
+  st <- getEval
+  putEval st { nextId = nextId st + 1 }
 -------------------------------------------------------
 -- VALIDACION DE _id (REUTILIZABLE)
 -------------------------------------------------------
@@ -646,7 +682,7 @@ validateNoIdField doc =
     Just _ -> Nothing
     Nothing -> Just doc
 
-updateDocs :: Bool -> BoolExp -> Document -> [Document] -> Eval [Document]
+updateDocs :: (MonadErrorEval m) => Bool -> BoolExp -> Document -> [Document] -> m [Document]
 updateDocs _ _ _ [] = return []
 
 updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
@@ -682,23 +718,23 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
       rest <- updateDocs stopAfterFirst cond cleanDoc ds
       return (d : rest)
 
-conversorFloat :: Value -> Value -> Eval (Double, Double)
+conversorFloat :: (MonadErrorEval m) => Value -> Value -> m (Double, Double)
 conversorFloat (VInt x) (VInt y) = return (fromIntegral x, fromIntegral y)
 conversorFloat (VFloat x) (VFloat y) = return (x,  y)
 conversorFloat (VInt x) (VFloat y) = return (fromIntegral x, y)
 conversorFloat (VFloat x) (VInt y) = return ( x, fromIntegral y)
-conversorFloat  _ _ = throwError TypeError
+conversorFloat  _ _ = throwEval TypeError
 
-safeEvalBool :: BoolExp -> Document -> Eval Bool
+safeEvalBool :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 safeEvalBool cond doc =
-  catchError (evalBool cond doc) (\_ -> return False)
+  catchEval (evalBool cond doc) (\_ -> return False)
 
-evalDocExp :: Exp -> Document -> Eval Value
+evalDocExp :: (MonadErrorEval m) => Exp -> Document -> m Value
 
 evalDocExp (VarExp f) doc =
   case lookup f doc of
     Just v  -> return v
-    Nothing -> throwError (FieldNotFoundInObject f)
+    Nothing -> throwEval (FieldNotFoundInObject f)
 
 evalDocExp (FieldAccess e f) doc = do
   v <- evalDocExp e doc
@@ -706,8 +742,8 @@ evalDocExp (FieldAccess e f) doc = do
     VObject obj ->
       case lookup f obj of
         Just v2 -> return v2
-        Nothing -> throwError (FieldNotFoundInObject f)
-    _ -> throwError TypeError
+        Nothing -> throwEval (FieldNotFoundInObject f)
+    _ -> throwEval TypeError
 
 evalDocExp (IntExp n) _ = return (VInt n)
 evalDocExp (FloatExp n) _ = return (VFloat n)
@@ -715,27 +751,57 @@ evalDocExp (StringExp s) _ = return (VString s)
 evalDocExp (BoolExpVal b) _ = return (VBool b)
 evalDocExp NullExp _ = return VNull
 
+evalDocExp (AddExp a b) _ =
+  numOp a b
+    (\x y -> return $ VInt (x + y))
+    (\x y -> return $ VFloat (x + y))
+evalDocExp (SubExp a b) _ =
+  numOp a b
+    (\x y -> return $ VInt (x - y))
+    (\x y -> return $ VFloat (x - y))
+evalDocExp (MulExp a b) _ =
+  numOp a b
+    (\x y -> return $ VInt (x * y))
+    (\x y -> return $ VFloat (x * y))
+evalDocExp (DivExp a b) _ =
+  numOp a b
+    (\x y -> if y == 0
+                then throwEval DivisionByZero
+                else return $ VInt (div x y))
+    (\x y -> if y == 0
+                then throwEval DivisionByZero
+                else return $ VFloat (x / y))
+{--
+evalDocExp (JObjectExp fields) _ = do
+  vals <- mapM (\(f,e) -> do v <- evalExp e; return (f,v)) fields
+  return (VObject vals)
 
-evalExpAsDoc :: Exp -> Eval Document
+
+evalDocExp (JArrayExp xs) _ = do
+  vals <- mapM evalExp xs
+  return (VArray vals)
+--}
+
+evalExpAsDoc :: (MonadErrorEval m) => Exp -> m Document
 evalExpAsDoc e = do
   v <- evalExp e
   case v of
     VObject obj -> return obj
-    _ -> throwError TypeError
+    _ -> throwEval TypeError
 
 
 selectFields :: [FieldName] -> Document -> Document
 selectFields fs doc =
   filter (\(f,_) -> f `elem` fs) doc
 
-numOp :: Exp -> Exp -> (Int -> Int -> Eval Value) -> (Double -> Double -> Eval Value) -> Eval Value
+numOp :: (MonadErrorEval m) => Exp -> Exp -> (Int -> Int -> m Value) -> (Double -> Double -> m Value) -> m Value
 numOp a b intCase floatCase = do
   v1 <- evalExp a
   v2 <- evalExp b
   case (v1, v2) of
     (VInt x, VInt y)     -> intCase x y
     (VFloat x, VFloat y) -> floatCase x y
-    _                    -> throwError TypeError
+    _                    -> throwEval TypeError
 
 {--
 numOp :: (Int -> Int -> Int) -> Exp -> Exp -> Eval Value
@@ -745,7 +811,7 @@ numOp f a b = do
   return (VInt (f x y))
 --}
 
-updateOneDoc :: BoolExp -> Document -> [Document] -> Eval [Document]
+updateOneDoc :: (MonadErrorEval m) => BoolExp -> Document -> [Document] -> m [Document]
 updateOneDoc _ _ [] = return []
 
 updateOneDoc cond cleanDoc (d:ds) = do
@@ -791,11 +857,11 @@ truncateToScientific n x =
   in scientific scaled (negate n)
 
 -- | Incrementa la cantidad de documentos modificados
-incDocs :: Int -> Eval ()
+incDocs :: (MonadStateEval m) => Int -> m ()
 incDocs n = do
-  st <- get
-  let (docsChanged, colls) = logs st
-  put st { logs = (docsChanged + n, colls) }
+  st <- getEval
+  let (d, cs) = logs st
+  putEval st { logs = (d + n, cs) }
 
 -------------------------------------------------------
 -- REGISTRAR COLECCION MODIFICADA
@@ -805,11 +871,10 @@ incDocs n = do
 -- | Si ya está en la lista de colecciones modificadas
 -- | no hace nada.
 -- | Si no está, la agrega.
-registerCollectionChange :: Collection -> Eval ()
-registerCollectionChange collName = do
-  st <- get
-  let (docsChanged, colls) = logs st
-
-  if collName `elem` colls
+registerCollectionChange :: (MonadStateEval m) => Collection -> m ()
+registerCollectionChange coll = do
+  st <- getEval
+  let (d, cs) = logs st
+  if coll `elem` cs
      then return ()
-     else put st { logs = (docsChanged, collName : colls) }
+     else putEval st { logs = (d, coll:cs) }

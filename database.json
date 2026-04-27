@@ -1,8 +1,63 @@
 {
     "_meta": {
-        "nextId": 149
+        "nextId": 194
     },
     "animales": [
+        {
+            "_id": 159,
+            "age": 17,
+            "name": "Oso"
+        },
+        {
+            "_id": 158,
+            "age": 2,
+            "name": "Burro"
+        },
+        {
+            "_id": 157,
+            "age": 2,
+            "name": "Caballo"
+        },
+        {
+            "_id": 156,
+            "age": 21,
+            "name": "Vaca"
+        },
+        {
+            "_id": 155,
+            "age": 7.279,
+            "name": "Aguilucho"
+        },
+        {
+            "_id": 154,
+            "age": 1.199,
+            "name": "Raton"
+        },
+        {
+            "_id": 153,
+            "age": 2.29,
+            "name": "Zorro"
+        },
+        {
+            "_id": 152,
+            "age": 56.98,
+            "name": "Guepardo"
+        },
+        {
+            "_id": 151,
+            "age": 19.1,
+            "name": "Leonarda"
+        },
+        {
+            "_id": 150,
+            "age": 5,
+            "name": "Leona"
+        },
+        {
+            "_id": 149,
+            "age": 18,
+            "name": "Leon"
+        },
         {
             "_id": 144,
             "age": 15,
@@ -33,36 +88,110 @@
     ],
     "users": [
         {
+            "_id": 185,
+            "age": 27,
+            "name": "Tedej"
+        },
+        {
+            "_id": 184,
+            "age": 22,
+            "direccion": {
+                "calle": "Avellaneda",
+                "tipo": "casa"
+            },
+            "name": "Demi"
+        },
+        {
+            "_id": 183,
+            "age": 27,
+            "name": "Tedej"
+        },
+        {
+            "_id": 182,
+            "age": 22,
+            "name": "Demi"
+        },
+        {
+            "_id": 181,
+            "age": 7,
+            "name": "Sergio"
+        },
+        {
+            "_id": 180,
+            "age": 22,
+            "name": "Delfinal"
+        },
+        {
+            "_id": 179,
+            "age": 17,
+            "name": "Leopoldo"
+        },
+        {
+            "_id": 178,
+            "age": 20,
+            "name": "Sophia"
+        },
+        {
+            "_id": 175,
+            "age": 27,
+            "name": "Martin"
+        },
+        {
+            "_id": 174,
+            "age": 15,
+            "name": "Sofia"
+        },
+        {
+            "_id": 167,
+            "active": false,
+            "age": 26,
+            "country": "AR",
+            "name": "Rocio",
+            "score": 24
+        },
+        {
+            "_id": 166,
+            "active": true,
+            "age": 28,
+            "country": "AR",
+            "name": "Paula",
+            "score": 17
+        },
+        {
+            "_id": 165,
+            "active": true,
+            "age": 35,
+            "country": "AR",
+            "name": "Carlos",
+            "score": 13
+        },
+        {
             "_id": 146,
             "age": 29,
             "country": "AR",
             "name": "Belen",
-            "score": 9,
-            "socore": 1
+            "score": 11
         },
         {
             "_id": 145,
             "age": 27,
             "country": "AR",
             "name": "Valentina",
-            "score": 9,
-            "socore": 1
+            "score": 11
         },
         {
             "_id": 142,
             "age": 29,
             "country": "AR",
             "name": "Belen",
-            "score": 9,
-            "socore": 1
+            "score": 11
         },
         {
             "_id": 141,
             "age": 27,
             "country": "AR",
             "name": "Valentina",
-            "score": 7,
-            "socore": 1
+            "score": 11
         },
         {
             "_id": 140,
@@ -77,33 +206,33 @@
             "age": 40,
             "country": "AR",
             "name": "Maria",
-            "score": 25,
-            "socore": 1
-        },
-        {
-            "_id": 138,
-            "age": 18,
-            "country": "CL",
-            "name": "Luis",
-            "score": 15
+            "score": 11
         },
         {
             "_id": 137,
             "active": true,
             "age": 30,
             "country": "AR",
+            "direccion": {
+                "calle": "Silva 123",
+                "piso": "6A",
+                "tipo": "departamento"
+            },
             "name": "Ana",
-            "score": 20,
-            "socore": 1
+            "score": 11
         },
         {
             "_id": 136,
             "active": true,
             "age": 25,
+            "category": "gold",
             "country": "AR",
+            "direccion": {
+                "calle": "Falsa 123",
+                "tipo": "casa"
+            },
             "name": "Roman",
-            "score": 120,
-            "socore": 1
+            "score": 11
         }
     ]
 }

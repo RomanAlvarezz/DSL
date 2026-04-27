@@ -1,0 +1,1 @@
+insert.animales({name: "Leon", age: 15 + 3});

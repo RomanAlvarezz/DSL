@@ -1,13 +1,13 @@
-timestamp.usuarios("antes_delete");
+timestamp.users("antes_delete");
 
 transaction{
-  delete.usuarios(edad > 40)
+  delete.users(age > 30)
 };
 
-find.usuarios()
+find.users()
   .preview();
 
-rollback.usuarios("antes_delete");
+rollback.users("antes_delete");
 
-find.usuarios()
+find.users()
   .preview()

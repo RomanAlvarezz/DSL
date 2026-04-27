@@ -1,0 +1,14 @@
+createView("conCalleCargada",
+  find.users()
+    .filter(exists(direccion.calle))
+    .preview()
+);
+
+useView("conCalleCargada");
+
+transaction{
+  insert.users({name: "Demi", age: 22, direccion: {tipo: "casa", calle: "Avellaneda"}});
+  insert.users({name: "Tedej", age: 27})
+};
+
+useView("conCalleCargada")

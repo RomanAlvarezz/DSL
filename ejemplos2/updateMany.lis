@@ -1,9 +1,9 @@
-updateMany.animales(
+updateMany.animals(
   age == 10,
   { perrosMenores: true }
 );
 
 updateMany.users(
   country == "AR",
-  { socore: 1 }
+  { score: 11 }
 ) 

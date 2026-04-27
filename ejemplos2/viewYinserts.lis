@@ -1,14 +1,14 @@
 createView("mayores",
-  find.usuarios()
-    .filter(!(edad < 18))
+  find.users()
+    .filter(!(age < 18 + 2))
     .preview()
 );
 
 useView("mayores");
 
 transaction{
-  insert.usuarios({nombre: "Sofia", edad: 15});
-  insert.usuarios({nombre: "Martin", edad: 27})
+  insert.users({name: "Demi", age: 22});
+  insert.users({name: "Tedej", age: 27})
 };
 
 useView("mayores")

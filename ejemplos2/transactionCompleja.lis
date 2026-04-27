@@ -1,15 +1,15 @@
 transaction{
-  insertMany.usuarios([
-    {nombre: "Carlos", edad: 35, activo: true},
-    {nombre: "Paula", edad: 28, activo: true},
-    {nombre: "Rocio", edad: 16, activo: false}
+  insertMany.users([
+    {name: "Carlos", age: 35, active: true, country: "AR", score: 13},
+    {name: "Paula", age: 28, active: true, country: "AR", score: 17},
+    {name: "Rocio", age: 26, active: false, country: "AR", score: 24}
   ]);
 
-  updateOne.usuarios(
-    nombre == "Paula",
-    {categoria: "gold"}
+  updateOne.users(
+    name == "Roman",
+    {category: "gold"}
   );
 
-  delete.usuarios(edad < 23)
+  delete.users(age < 19)
 
 }
