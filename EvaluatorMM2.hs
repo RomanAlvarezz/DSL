@@ -244,12 +244,12 @@ evalComm (CommInsert coll exp) = do
   case validateNoIdField doc of
     Nothing -> throwEval ReservedField
     Just cleanDoc -> do
-      newId <- incId
-      let docWithId = ("_id", VInt newId) : cleanDoc
       docsMaybe <- lookupDB coll
       case docsMaybe of
         Nothing -> throwEval (CollectionNotFound coll)
         Just docs -> do
+          newId <- incId
+          let docWithId = ("_id", VInt newId) : cleanDoc
           insertDB coll (docWithId : docs)
           incDocs 1
           registerCollectionChange coll
