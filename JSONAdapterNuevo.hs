@@ -1,24 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module JSONAdapterNuevo(
-  -- ya existentes
-  jsonToDatabase,
-  databaseToJson,
-  jsonToValue,
-  valueToJson,
-
+module JSONAdapterNuevo(jsonToDatabase, databaseToJson, jsonToValue, valueToJson,
   -- para snapshots
-  databaseToJsonSnap,
-  jsonToDatabaseSnap,
-  timestampSnapshotToJson,
-  jsonToTimestampSnapshot,
-
+  databaseToJsonSnap, jsonToDatabaseSnap, timestampSnapshotToJson, jsonToTimestampSnapshot,
   -- para views
-  findToJson,
-  jsonToFind,
-
-  -- helper necesario
-  parseCollection
+  findToJson, jsonToFind, parseCollection
 ) where
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Key as K
@@ -34,9 +20,7 @@ import ValueNuevo hiding (FieldName)
 -------------------------------------------------------
 -- JSON -> VALUE
 -------------------------------------------------------
-
 jsonToValue :: A.Value -> Value
-
 jsonToValue (A.String t) =
   VString (str t)
 
@@ -63,9 +47,7 @@ jsonToValue (A.Object obj) =
 -------------------------------------------------------
 -- VALUE -> JSON
 -------------------------------------------------------
-
 valueToJson :: Value -> A.Value
-
 valueToJson (VString s) =
   A.String (text s)
 
@@ -148,7 +130,6 @@ parseCollection _ =
 -- DATABASE -> JSON
 -------------------------------------------------------
 databaseToJson :: Database -> Int -> A.Value
-
 databaseToJson db nextId =
   A.Object (
     KM.fromList (
@@ -160,7 +141,6 @@ databaseToJson db nextId =
   )
 
 metaObject :: Int -> A.Value
-
 metaObject n =
   A.Object (
     KM.fromList
@@ -169,14 +149,12 @@ metaObject n =
 
 
 collectionToJson :: [Document] -> A.Value
-
 collectionToJson docs =
   A.Array (
     V.fromList (map documentToJson docs)
   )
 
 documentToJson :: Document -> A.Value
-
 documentToJson doc =
   A.Object (
     KM.fromList
@@ -194,9 +172,7 @@ truncateTOScientific n x =
 -------------------------------------------------------
 -- NumExp -> JSON
 -------------------------------------------------------
-
 numExpToJson :: NumExp -> A.Value
-
 numExpToJson (NConst (NInt n)) =
   obj "int" [("value", A.Number (fromIntegral n))]
 
@@ -234,9 +210,7 @@ numExpToJson (NDiv a b) =
 -------------------------------------------------------
 -- JSON -> NumExp
 -------------------------------------------------------
-
 jsonToNumExp :: A.Value -> Either String NumExp
-
 jsonToNumExp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
 
@@ -293,7 +267,9 @@ jsonToNumExp (A.Object obj) =
     bin cons = do
       l <- getField "l" obj
       r <- getField "r" obj
-      cons <$> jsonToNumExp l <*> jsonToNumExp r
+      left <- jsonToNumExp l
+      right <- jsonToNumExp r
+      return (cons left right)
 
 jsonToNumExp _ =
   Left "NumExp invalida"
@@ -301,9 +277,7 @@ jsonToNumExp _ =
 -------------------------------------------------------
 -- StrExp -> JSON
 -------------------------------------------------------
-
 strExpToJson :: StrExp -> A.Value
-
 strExpToJson (SConst s) =
   obj "string"
     [ ("value", A.String (text s)) ]
@@ -316,9 +290,7 @@ strExpToJson (SVar f) =
 -------------------------------------------------------
 -- JSON -> StrExp
 -------------------------------------------------------
-
 jsonToStrExp :: A.Value -> Either String StrExp
-
 jsonToStrExp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
 
@@ -347,9 +319,7 @@ jsonToStrExp _ =
 -------------------------------------------------------
 -- BoolExp -> JSON
 -------------------------------------------------------
-
 boolExpToJson :: BoolExp -> A.Value
-
 boolExpToJson BTrue =
   obj "true" []
 
@@ -415,6 +385,7 @@ boolExpToJson (NeqBool a b) =
 boolExpToJson (IsNull f) =
   obj "isNull"
     [ ("field", pathExpToJson f) ]
+
 -- ==========================================================
 
 boolExpToJson (Lt a b) =
@@ -454,12 +425,11 @@ pathExpToJson (PAccess p f) =
     [ ("path", pathExpToJson p)
     , ("field", A.String (text f))
     ]
+
 -------------------------------------------------------
 -- JSON -> BoolExp
 -------------------------------------------------------
-
 jsonToBoolExp :: A.Value -> Either String BoolExp
-
 jsonToBoolExp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
 
@@ -475,17 +445,22 @@ jsonToBoolExp (A.Object obj) =
 
     Just (A.String "not") -> do
       v <- getField "value" obj
-      Not <$> jsonToBoolExp v
+      b <- jsonToBoolExp v
+      return (Not b)
 
     Just (A.String "and") -> do
       l <- getField "l" obj
       r <- getField "r" obj
-      And <$> jsonToBoolExp l <*> jsonToBoolExp r
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (And left right)
 
     Just (A.String "or") -> do
       l <- getField "l" obj
       r <- getField "r" obj
-      Or <$> jsonToBoolExp l <*> jsonToBoolExp r
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (Or left right)
 
     Just (A.String "eqN") ->
       binNum EqNum
@@ -524,7 +499,8 @@ jsonToBoolExp (A.Object obj) =
 
     Just (A.String "exists") -> do
       v <- getField "value" obj
-      Exists <$> jsonToPathExp v
+      p <- jsonToPathExp v
+      return (Exists p)
 
     _ ->
       Left "BoolExp desconocido"
@@ -534,35 +510,38 @@ jsonToBoolExp (A.Object obj) =
     binNum cons = do
       l <- getField "l" obj
       r <- getField "r" obj
-      cons <$> jsonToNumExp l <*> jsonToNumExp r
+      left <- jsonToNumExp l
+      right <- jsonToNumExp r
+      return (cons left right)
 
     binStr cons = do
       l <- getField "l" obj
       r <- getField "r" obj
-      cons <$> jsonToStrExp l <*> jsonToStrExp r
+      left <- jsonToStrExp l
+      right <- jsonToStrExp r
+      return (cons left right)
 
     binBool cons = do
       l <- getField "l" obj
       r <- getField "r" obj
-      cons <$> jsonToBoolExp l <*> jsonToBoolExp r
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (cons left right)
 
 jsonToBoolExp _ =
   Left "BoolExp invalido"
 
 jsonToPathExp :: A.Value -> Either String PathExp
-
 jsonToPathExp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
-
     Just (A.String "pathVar") -> do
       name <- getStringField "name" obj
       Right (PVar name)
-
     Just (A.String "pathAccess") -> do
       p <- getField "path" obj
       f <- getStringField "field" obj
-      PAccess <$> jsonToPathExp p <*> pure f
-
+      path <- jsonToPathExp p
+      return (PAccess path f)
     _ ->
       Left "PathExp desconocido"
 
@@ -572,9 +551,7 @@ jsonToPathExp _ =
 -------------------------------------------------------
 -- JsonExp -> JSON
 -------------------------------------------------------
-
 jsonExpToJson :: JsonExp -> A.Value
-
 jsonExpToJson (JObject fields) =
   obj "object"
     [ ("fields",
@@ -607,84 +584,53 @@ jsonExpToJson (JPath p) =
     [ ("value", pathExpToJson p) ]
 
 
--------------------------------------------------------
--- Helper para fields de JObject
--------------------------------------------------------
-
+-- helper para fields de JObject
 jsonFieldToJson :: (FieldName, JsonExp) -> A.Value
-
 jsonFieldToJson (k, v) =
   A.Object (KM.fromList
     [ (stringToKey "k", A.String (text k))
     , (stringToKey "v", jsonExpToJson v)
     ])
 
-
 -------------------------------------------------------
 -- JSON -> JsonExp
 -------------------------------------------------------
-
 jsonToJsonExp :: A.Value -> Either String JsonExp
-
 jsonToJsonExp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
-
-    --------------------------------------------------
     -- object
-    --------------------------------------------------
-
     Just (A.String "object") -> do
       arr <- getArrayField "fields" obj
       fields <- mapM jsonToJsonField arr
       Right (JObject fields)
-
-    --------------------------------------------------
     -- array
-    --------------------------------------------------
-
     Just (A.String "array") -> do
       arr <- getArrayField "values" obj
       xs <- mapM jsonToJsonExp arr
       Right (JArray xs)
-
-    --------------------------------------------------
     -- num
-    --------------------------------------------------
-
     Just (A.String "jsonNum") -> do
       v <- getField "value" obj
-      JNum <$> jsonToNumExp v
-
-    --------------------------------------------------
+      n <- jsonToNumExp v
+      return (JNum n)
     -- str
-    --------------------------------------------------
-
     Just (A.String "jsonStr") -> do
       v <- getField "value" obj
-      JStr <$> jsonToStrExp v
-
-    --------------------------------------------------
+      s <- jsonToStrExp v
+      return (JStr s)
     -- bool
-    --------------------------------------------------
-
     Just (A.String "jsonBool") -> do
       v <- getField "value" obj
-      JBool <$> jsonToBoolExp v
-
-    --------------------------------------------------
+      b <- jsonToBoolExp v
+      return (JBool b)
     -- null
-    --------------------------------------------------
-
     Just (A.String "jsonNull") ->
       Right JNull
-
-    --------------------------------------------------
     -- path
-    --------------------------------------------------
-
     Just (A.String "jsonPath") -> do
       v <- getField "value" obj
-      JPath <$> jsonToPathExp v
+      p <- jsonToPathExp v
+      return (JPath p)
 
     _ ->
       Left "JsonExp desconocida"
@@ -693,85 +639,23 @@ jsonToJsonExp _ =
   Left "JsonExp invalida"
 
 
--------------------------------------------------------
 -- Helper para fields de JObject
--------------------------------------------------------
-
 jsonToJsonField :: A.Value -> Either String (FieldName, JsonExp)
-
 jsonToJsonField (A.Object obj) = do
   k <- case KM.lookup (stringToKey "k") obj of
     Just (A.String t) -> Right (str t)
     _ -> Left "field key invalida"
-
   v <- case KM.lookup (stringToKey "v") obj of
     Just val -> jsonToJsonExp val
     Nothing -> Left "field sin valor"
-
   return (k, v)
 
 jsonToJsonField _ =
   Left "field mal formado"
 
 -------------------------------------------------------
--- Exp -> JSON
--------------------------------------------------------
-
-expToJson :: Exp -> A.Value
-
-expToJson (ENum n) =
-  obj "numExp"
-    [("value", numExpToJson n)]
-
-expToJson (EBool b) =
-  obj "boolExp"
-    [("value", boolExpToJson b)]
-
-expToJson (EJson j) =
-  obj "jsonExp"
-    [("value", jsonExpToJson j)]
-
-expToJson (EStr s) =
-  obj "strExp"
-    [("value", strExpToJson s)]
-
--------------------------------------------------------
--- JSON -> Exp
--------------------------------------------------------
-
-jsonToExp :: A.Value -> Either String Exp
-
-jsonToExp (A.Object obj) =
-  case KM.lookup (stringToKey "type") obj of
-
-    Just (A.String "numExp") -> do
-      v <- getField "value" obj
-      ENum <$> jsonToNumExp v
-
-    Just (A.String "boolExp") -> do
-      v <- getField "value" obj
-      EBool <$> jsonToBoolExp v
-
-    Just (A.String "jsonExp") -> do
-      v <- getField "value" obj
-      EJson <$> jsonToJsonExp v
-
-    Just (A.String "strExp") -> do
-      v <- getField "value" obj
-      EStr <$> jsonToStrExp v
-
-    _ ->
-      Left "Exp desconocida"
-
-jsonToExp _ =
-  Left "Exp invalida"
-
-
-
--------------------------------------------------------
 -- database -> Json (sin nextId, para timestamps)
 -------------------------------------------------------
-
 databaseToJsonSnap :: Database -> A.Value
 databaseToJsonSnap db =
   A.Object (
@@ -784,7 +668,6 @@ databaseToJsonSnap db =
 -------------------------------------------------------
 -- Json -> database (sin nextId, para timestamps)
 -------------------------------------------------------
-
 jsonToDatabaseSnap :: A.Value -> Either String Database
 jsonToDatabaseSnap (A.Object obj) = do
   pairs <- mapM parsePair (KM.toList obj)
@@ -801,7 +684,6 @@ jsonToDatabaseSnap _ =
 -------------------------------------------------------
 -- timestamp -> Json
 -------------------------------------------------------
-
 timestampSnapshotToJson :: TimestampSnapshot -> A.Value
 timestampSnapshotToJson (DBSnapshot db) =
   A.Object (KM.fromList
@@ -820,7 +702,6 @@ timestampSnapshotToJson (CollSnapshot coll docs) =
 -------------------------------------------------------
 -- Json -> timestamp
 -------------------------------------------------------
-
 jsonToTimestampSnapshot :: A.Value -> Either String TimestampSnapshot
 jsonToTimestampSnapshot (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -832,29 +713,22 @@ jsonToTimestampSnapshot (A.Object obj) =
           return (DBSnapshot db)
         Nothing ->
           Left "Falta campo 'data' en snapshot db"
-
     Just (A.String "collection") ->
       case ( KM.lookup (stringToKey "collection") obj
            , KM.lookup (stringToKey "data") obj ) of
-
         (Just (A.String coll), Just docsVal) -> do
           docs <- parseCollection docsVal
           return (CollSnapshot (str coll) docs)
-
         _ ->
           Left "Snapshot collection mal formado"
-
     _ ->
       Left "Tipo de snapshot desconocido"
-
 jsonToTimestampSnapshot _ =
   Left "Snapshot debe ser un objeto JSON"
-
 
 -------------------------------------------------------
 -- FIND -> JSON
 -------------------------------------------------------
-
 findToJson :: Find -> A.Value
 findToJson (Find coll ops term) =
   A.Object (KM.fromList
@@ -863,12 +737,9 @@ findToJson (Find coll ops term) =
     , (stringToKey "terminal", terminalToJson term)
     ])
 
-
 -------------------------------------------------------
 -- JSON -> Find
 -------------------------------------------------------
-
-
 jsonToFind :: A.Value -> Either String Find
 jsonToFind (A.Object obj) = do
   coll <- getStringField "collection" obj
@@ -883,13 +754,10 @@ jsonToFind (A.Object obj) = do
 
 jsonToFind _ = Left "Find debe ser objeto"
 
-
 -------------------------------------------------------
 -- QueryOp -> JSON
 -------------------------------------------------------
-
 queryOpToJson :: QueryOp -> A.Value
-
 queryOpToJson (QFilter cond) =
   obj "filter" [("cond", boolExpToJson cond)]
 
@@ -909,7 +777,6 @@ queryOpToJson (QGroup gs) =
 -------------------------------------------------------
 -- JSON -> QueryOp
 -------------------------------------------------------
-
 jsonToQueryOp :: A.Value -> Either String QueryOp
 jsonToQueryOp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -950,7 +817,6 @@ jsonToQueryOp _ = Left "QueryOp debe ser objeto"
 -------------------------------------------------------
 -- Sort -> JSON
 -------------------------------------------------------
-
 sortFieldToJson :: (FieldName, SortOrder) -> A.Value
 sortFieldToJson (f, ord) =
   A.Object (KM.fromList
@@ -961,7 +827,6 @@ sortFieldToJson (f, ord) =
 -------------------------------------------------------
 -- JSON -> Sort
 -------------------------------------------------------
-
 jsonToSortField :: A.Value -> Either String (FieldName, SortOrder)
 jsonToSortField (A.Object obj) = do
   f <- case KM.lookup (stringToKey "field") obj of
@@ -981,9 +846,7 @@ jsonToSortField _ = Left "sort field mal formado"
 -------------------------------------------------------
 -- Termianl -> JSON
 -------------------------------------------------------
-
 terminalToJson :: QueryTerminal -> A.Value
-
 terminalToJson TerminalPreview =
   obj "preview" []
 
@@ -993,7 +856,6 @@ terminalToJson (TerminalSave path) =
 -------------------------------------------------------
 -- JSON -> Terminal
 -------------------------------------------------------
-
 jsonToTerminal :: A.Value -> Either String QueryTerminal
 jsonToTerminal (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -1014,7 +876,6 @@ jsonToTerminal _ = Left "terminal invalido"
 -------------------------------------------------------
 -- GroupSpec -> JSON
 -------------------------------------------------------
-
 groupSpecToJson :: GroupSpec -> A.Value
 groupSpecToJson (GroupSpec fields aggs having) =
   A.Object (KM.fromList
@@ -1027,34 +888,26 @@ groupSpecToJson (GroupSpec fields aggs having) =
 -------------------------------------------------------
 -- JSON -> GroupSpec
 -------------------------------------------------------
-
 jsonToGroupSpec :: A.Value -> Either String GroupSpec
 jsonToGroupSpec (A.Object obj) = do
-
   fields <- case KM.lookup (stringToKey "fields") obj of
     Just (A.Array arr) ->
       Right [ str t | A.String t <- V.toList arr ]
     _ -> Left "group sin fields"
-
   aggs <- case KM.lookup (stringToKey "aggs") obj of
     Just (A.Array arr) ->
       mapM jsonToAggregate (V.toList arr)
     _ -> Right []
-
   having <- case KM.lookup (stringToKey "having") obj of
     Just A.Null -> Right Nothing
     Just v -> fmap Just (jsonToBoolExp v)
     Nothing -> Right Nothing
-
   return (GroupSpec fields aggs having)
-
 jsonToGroupSpec _ = Left "group invalido"
-
 
 -------------------------------------------------------
 -- Aggregate -> JSON
 -------------------------------------------------------
-
 aggregateToJson :: Aggregate -> A.Value
 aggregateToJson (Aggregate f field alias) =
   A.Object (KM.fromList
@@ -1066,10 +919,8 @@ aggregateToJson (Aggregate f field alias) =
 -------------------------------------------------------
 -- JSON -> Aggregate
 -------------------------------------------------------
-
 jsonToAggregate :: A.Value -> Either String Aggregate
 jsonToAggregate (A.Object obj) = do
-
   func <- case KM.lookup (stringToKey "func") obj of
     Just (A.String "AggCount") -> Right AggCount
     Just (A.String "AggSum") -> Right AggSum
@@ -1077,15 +928,12 @@ jsonToAggregate (A.Object obj) = do
     Just (A.String "AggMin") -> Right AggMin
     Just (A.String "AggMax") -> Right AggMax
     _ -> Left "agg func invalida"
-
   field <- case KM.lookup (stringToKey "field") obj of
     Just (A.String t) -> Right (str t)
     _ -> Left "agg field invalido"
-
   alias <- case KM.lookup (stringToKey "alias") obj of
     Just (A.String t) -> Right (str t)
     _ -> Left "agg alias invalido"
-
   return (Aggregate func field alias)
 
 jsonToAggregate _ = Left "aggregate invalido"
@@ -1093,7 +941,6 @@ jsonToAggregate _ = Left "aggregate invalido"
 -------------------------------------------------------
 -- HELPERS DE KEYS / TEXT
 -------------------------------------------------------
-
 keyToString :: K.Key -> String
 keyToString = T.unpack . K.toText
 
@@ -1118,7 +965,6 @@ str = T.unpack
 -------------------------------------------------------
 -- HELPERS GENERICOS P JSON
 -------------------------------------------------------
-
 getField :: String -> KM.KeyMap A.Value -> Either String A.Value
 getField k obj =
   maybe (Left ("Falta campo " ++ k)) Right

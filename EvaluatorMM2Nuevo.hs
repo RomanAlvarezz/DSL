@@ -1,9 +1,7 @@
 module EvaluatorMM2Nuevo where
 
 import ASTNuevo
---import qualified Data.Map as M
 import Data.List (groupBy, sortOn, sortBy)
---import Data.Scientific (Scientific, scientific)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.KeyMap as KM
 import qualified Data.Aeson.Key as K
@@ -17,7 +15,6 @@ import Control.Exception (catch, IOException)
 import Control.Monad (ap, liftM, filterM, foldM)
 
 import ValueNuevo ( Value(..), TimestampSnapshot(..), Document, Database, CollectionData)
---import JSONAdapter (valueToJson)
 import JSONAdapterNuevo (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, timestampSnapshotToJson, jsonToTimestampSnapshot, jsonToFind, findToJson)
 
 
@@ -140,7 +137,7 @@ deleteMap key ((k,v):xs) = if key == k then xs else (k,v) : deleteMap key xs
 data EvalState = EvalState
   { database :: Database
   , nextId   :: Int
-  , logs     :: (Int, [Collection])  -- cantidadDocumentosModificados, listaDeColeccionesModificadas)
+  , logs     :: (Int, [Collection])  -- (cantidadDocumentosModificados, listaDeColeccionesModificadas)
   }
 
 -------------------------------------------------------
@@ -195,14 +192,12 @@ showError (ViewAlreadyExists v) =
 -------------------------------------------------------
 -- PROGRAMA
 -------------------------------------------------------
-
 evalProgram :: (MonadStateEval m, MonadErrorEval m, MonadIOEval m) => Program -> m ()
 evalProgram = evalComm
 
 -------------------------------------------------------
 -- COMANDOS
 -------------------------------------------------------
-
 evalComm :: (MonadStateEval m, MonadErrorEval m, MonadIOEval m) => Comm -> m ()
 
 evalComm Skip = return ()
@@ -214,7 +209,6 @@ evalComm (Seq c1 c2) = do
 -------------------------------------------------------
 -- CREATE / DROP
 -------------------------------------------------------
-
 evalComm (CommCreateColl name) = do
   exists <- memberDB name
   if exists
@@ -234,9 +228,8 @@ evalComm (CommDropColl name) = do
 -------------------------------------------------------
 -- INSERT
 -------------------------------------------------------
-
 evalComm (CommInsert coll exp) = do
-  obj <- evalJsonExpAsObject exp emptyDoc -- Garantiza que insertamos un objeto
+  obj <- evalJsonExpAsObject exp emptyDoc 
   cleanDoc <- case validateNoIdField obj of
                 Nothing -> throwEval ReservedField
                 Just cd -> return cd        
@@ -258,7 +251,6 @@ evalComm (CommInsertMany coll (e:es)) = do
 -------------------------------------------------------
 -- DELETE
 -------------------------------------------------------
-
 evalComm (CommDelete coll cond) = do
   docsMaybe <- lookupDB coll
   case docsMaybe of
@@ -285,7 +277,7 @@ evalComm (CommUpdateOne coll cond exp) = do
       (changed, docs') <- updateDocs True cond cleanDoc docs
       insertDB coll docs'
       if changed > 0 then do
-        incDocs changed -- Aunque sea 1, mantenemos consistencia
+        incDocs changed 
         registerCollectionChange coll
       else return ()
 
@@ -309,7 +301,6 @@ evalComm (CommUpdateMany coll cond exp) = do
 -------------------------------------------------------
 -- CONSULTAS
 -------------------------------------------------------
-
 evalComm (CommQuery find) = do
   res <- evalFind find
   evalTerminal (getTerminal find) res
@@ -317,7 +308,6 @@ evalComm (CommQuery find) = do
 -------------------------------------------------------
 -- VISTAS
 -------------------------------------------------------
-
 evalComm (CommCreateView name find) = do
   viewsMap <- liftIOEval readViewsFile
   if memberMap name viewsMap
@@ -388,7 +378,6 @@ evalComm (CommRollback target label) = do
 -------------------------------------------------------
 -- TRANSACCIONES
 -------------------------------------------------------
-
 evalComm (CommTransaction comms) = do
   snapshot <- getEval
   catchEval
@@ -398,10 +387,8 @@ evalComm (CommTransaction comms) = do
 -------------------------------------------------------
 -- EVALUACION DE CONSULTAS
 -------------------------------------------------------
-
 evalFind :: (MonadStateEval m, MonadErrorEval m) => Find -> m [Document]
 evalFind (Find coll ops term) = do
-  --st <- getEval
   docsMaybe <- lookupDB coll
   case docsMaybe of
     Nothing -> throwEval (CollectionNotFound coll)
@@ -417,7 +404,6 @@ applyPipeline docs (op:rest) = do
 -------------------------------------------------------
 -- GROUP
 -------------------------------------------------------
-
 lookupField :: FieldName -> Document -> Value
 lookupField f doc =
   case lookup f doc of
@@ -435,87 +421,33 @@ groupDocuments fields docs =
     sorted = sortOn (groupKey fields) docs
     sameKey d1 d2 = groupKey fields d1 == groupKey fields d2
 
-{- buildGroupDoc :: [FieldName] -> [Aggregate] -> [Document] -> Document
-buildGroupDoc fields aggs docs =
-  let keyVals = map (\f -> (f, lookupField f (head docs))) fields
-      aggVals = map (`applyAggregate` docs) aggs
-  in keyVals ++ aggVals -}
-
 buildGroupDoc :: (MonadErrorEval m) => [FieldName] -> [Aggregate] -> [Document] -> m Document
 buildGroupDoc fields aggs docs = do
-  -- Los campos por los que agrupamos (asumimos que el primero tiene los valores)
   let keyVals = map (\f -> (f, lookupField f (head docs))) fields
-  -- Las agregaciones ahora se ejecutan con mapM
   aggResults <- mapM (`applyAggregate` docs) aggs
   return (keyVals ++ aggResults)
 
-{- applyAggregate :: Aggregate -> [Document] -> (FieldName, Value)
-
-applyAggregate (Aggregate AggCount _ alias) docs =
-  (alias, VNum (NInt (length docs)))
-
-applyAggregate (Aggregate AggSum field alias) docs =
-  let vals = [ fromIntegral n | doc <- docs, Just (VNum (NInt n)) <- [lookup field doc]]
-        ++ [ f | doc <- docs, Just (VNum (NFloat f)) <- [lookup field doc]]
-  in
-    if null vals
-      then (alias, VNull)
-      else
-        let total = sum vals
-        in
-          if all isIntValue vals
-            then (alias, VNum (NInt (round total)))
-            else (alias, VNum (NFloat total))
-  where
-    isIntValue x = x == fromIntegral (round x)
-
-applyAggregate (Aggregate AggAvg field alias) docs =
-  let vals = [ fromIntegral n | doc <- docs, Just (VNum (NInt n)) <- [lookup field doc]]
-        ++ [ f | doc <- docs, Just (VNum (NFloat f)) <- [lookup field doc]]
-      c = length vals
-  in
-    if c == 0
-      then (alias, VNull)
-      else
-        let avg = sum vals / fromIntegral c
-        in (alias, VNum (NFloat avg))
-
-applyAggregate (Aggregate AggMin field alias) docs =
-  let vals = [ v | doc <- docs, Just v <- [lookup field doc]]
-  in
-    if null vals
-      then (alias, VNull)
-      else (alias, minimum vals)
-
-applyAggregate (Aggregate AggMax field alias) docs =
-  let vals = [ v | doc <- docs, Just v <- [lookup field doc]]
-  in
-    if null vals
-      then (alias, VNull)
-      else (alias, maximum vals) -}
-
 applyAggregate :: (MonadErrorEval m) => Aggregate -> [Document] -> m (FieldName, Value)
-
--- COUNT: Siempre devuelve un Int
 applyAggregate (Aggregate AggCount _ alias) docs =
   return (alias, VNum (NInt (length docs)))
 
--- SUM: Usamos evalPathExp y helpers numéricos
 applyAggregate (Aggregate AggSum path alias) docs = do
-  -- Extraemos los valores usando evalPathExp (ignoramos errores de campo no encontrado -> 0)
-  vals <- mapM (\d -> catchEval (evalPathExp (PVar path) d) (\_ -> return (VNum (NInt 0)))) docs
-  
-  -- Filtramos solo los que son números para sumar
+  vals <- mapM
+    (\d ->
+      catchEval
+        (evalPathExp (PVar path) d)
+        (\_ -> return (VNum (NInt 0)))
+    )
+    docs
+
   let nums = [ n | VNum n <- vals ]
-  
-  if null nums 
+
+  if null nums
     then return (alias, VNull)
     else do
-      -- Usamos un fold con numBinaryOp para mantener la precisión (Int vs Float)
       total <- foldM (numBinaryOp (+) (+)) (NInt 0) nums
       return (alias, VNum total)
 
--- AVG: Reutilizamos la lógica de suma pero forzamos Float al final
 applyAggregate (Aggregate AggAvg path alias) docs = do
   vals <- mapM (\d -> catchEval (evalPathExp (PVar path) d) (\_ -> return VNull)) docs
   let nums = [ n | VNum n <- vals ]
@@ -531,7 +463,7 @@ applyAggregate (Aggregate AggAvg path alias) docs = do
                          NFloat f -> f
       return (alias, VNum (NFloat (totalValue / fromIntegral c)))
 
--- MIN / MAX: Aprovechamos que Value es instancia de Ord
+-- aprovecamos que Value es instancia de Ord para max y min
 applyAggregate (Aggregate aggOp path alias) docs = do
   vals <- mapM (\d -> catchEval (evalPathExp (PVar path) d) (\_ -> return VNull)) docs
   let validVals = filter (/= VNull) vals
@@ -547,9 +479,7 @@ applyAggregate (Aggregate aggOp path alias) docs = do
 -------------------------------------------------------
 -- PIPELINE
 -------------------------------------------------------
-
 applyOp :: (MonadErrorEval m) => [Document] -> QueryOp -> m [Document]
-
 applyOp docs (QFilter cond) =
   filterM (safeEvalBool cond) docs
 
@@ -577,23 +507,12 @@ applyOp docs (QSort fields) =
                 else res
         _ -> compareFields rest d1 d2
 
--- En applyOp ... QGroup
 applyOp docs (QGroup (GroupSpec fields aggs having)) = do
   let groups = groupDocuments fields docs
-  groupedDocs <- mapM (buildGroupDoc fields aggs) groups -- Cambio aquí
+  groupedDocs <- mapM (buildGroupDoc fields aggs) groups
   case having of
     Nothing -> return groupedDocs
     Just cond -> filterM (safeEvalBool cond) groupedDocs
-{- applyOp docs (QGroup (GroupSpec fields aggs having)) = do
-
-  let groups = groupDocuments fields docs
-
-  let groupedDocs = map (buildGroupDoc fields aggs) groups
-
-  case having of
-    Nothing -> return groupedDocs
-
-    Just cond -> filterM (safeEvalBool cond) groupedDocs -}
 
 -------------------------------------------------------
 -- TERMINALES
@@ -652,7 +571,6 @@ evalNumExp (NDiv a b) doc = do
 -------------------------------------------------------
 -- HELPERS NUMERICOS
 -------------------------------------------------------
-
 numBinaryOp :: (MonadErrorEval m) => (Int -> Int -> Int) -> (Double -> Double -> Double)
   -> Number -> Number -> m Number
 
@@ -677,7 +595,7 @@ numDivOp _ (NFloat 0) =
   throwEval DivisionByZero
 
 numDivOp (NInt x) (NInt y) =
-  return (NFloat (fromIntegral x / fromIntegral y)) --permite 5/2 = 2.5
+  return (NFloat (fromIntegral x / fromIntegral y)) -- nos permite 5/2 = 2.5
 
 numDivOp (NFloat x) (NFloat y) =
   return (NFloat (x / y))
@@ -691,11 +609,9 @@ numDivOp (NFloat x) (NInt y) =
 -------------------------------------------------------
 -- STREXP
 -------------------------------------------------------
-
 evalStrExp :: (MonadErrorEval m) => StrExp -> Document -> m String
 -- Constante string
 evalStrExp (SConst s) _ = return s
-
 -- Variable string
 evalStrExp (SVar f) doc =
   case lookup f doc of
@@ -706,28 +622,18 @@ evalStrExp (SVar f) doc =
 -------------------------------------------------------
 -- BOOLEXP
 -------------------------------------------------------
-
 evalBoolExp :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
-
--------------------------------------------------------
--- Literales
--------------------------------------------------------
 evalBoolExp BTrue _ = return True
-
 evalBoolExp BFalse _ = return False
 
--------------------------------------------------------
 -- Variable booleana
--------------------------------------------------------
 evalBoolExp (BVar f) doc =
   case lookup f doc of
     Just (VBool b) -> return b
     Just _         -> throwEval TypeError
     Nothing        -> throwEval (FieldNotFoundInObject f)
 
--------------------------------------------------------
 -- Operadores lógicos
--------------------------------------------------------
 evalBoolExp (Not b) doc = do
   v <- evalBoolExp b doc
   return (not v)
@@ -742,10 +648,8 @@ evalBoolExp (Or a b) doc = do
   v2 <- evalBoolExp b doc
   return (v1 || v2)
 
--------------------------------------------------------
 -- Igualdad / Desigualdad
--------------------------------------------------------
------ num
+-- num
 evalBoolExp (EqNum a b) doc = do
   v1 <- evalNumExp a doc
   v2 <- evalNumExp b doc
@@ -783,7 +687,6 @@ evalBoolExp (IsNull a) doc = do
   v <- evalPathExp a doc  
   return (v == VNull) 
 
-
 -------------------------------------------------------
 -- Comparaciones numéricas
 -------------------------------------------------------
@@ -810,7 +713,6 @@ evalBoolExp (Ge a b) doc = do
 -------------------------------------------------------
 -- Exists
 -------------------------------------------------------
-
 evalBoolExp (Exists p) doc = 
   catchEval 
     (evalPathExp p doc >> return True) 
@@ -822,12 +724,8 @@ evalBoolExp (Exists p) doc =
 -------------------------------------------------------
 -- JSONEXP
 -------------------------------------------------------
-
 evalJsonExp :: (MonadErrorEval m) => JsonExp -> Document -> m Value
-
--------------------------------------------------------
 -- Object
--------------------------------------------------------
 evalJsonExp (JObject fields) doc = do
   vals <- mapM evalField fields
   return (VObject vals)
@@ -836,21 +734,23 @@ evalJsonExp (JObject fields) doc = do
       v <- evalJsonExp e doc
       return (f, v)
 
--------------------------------------------------------
 -- Array
--------------------------------------------------------
 evalJsonExp (JArray xs) doc = do
   vals <- mapM (\e -> evalJsonExp e doc) xs
   return (VArray vals)
 
--------------------------------------------------------
 -- Num / Str / Bool / Null
--------------------------------------------------------
-evalJsonExp (JNum n) doc = VNum <$> evalNumExp n doc
+evalJsonExp (JNum n) doc = do
+  num <- evalNumExp n doc
+  return (VNum num)
 
-evalJsonExp (JStr s) doc = VString <$> evalStrExp s doc
+evalJsonExp (JStr s) doc = do
+  str <- evalStrExp s doc
+  return (VString str)
 
-evalJsonExp (JBool b) doc = VBool <$> evalBoolExp b doc
+evalJsonExp (JBool b) doc = do
+  bool <- evalBoolExp b doc
+  return (VBool bool)
 
 evalJsonExp JNull _ = return VNull
 
@@ -870,71 +770,16 @@ evalPathExp (PAccess p f) doc = do
       case lookup f obj of
         Just v  -> return v
         Nothing -> throwEval (FieldNotFoundInObject f)
-    _ -> throwEval TypeError -- Intentaste hacer .field a algo que no es objeto
+    _ -> throwEval TypeError 
 
 -------------------------------------------------------
--- EXP (wrapper final)
+-- HELPERS
 -------------------------------------------------------
--- este dejaria de servir
-evalExp :: (MonadErrorEval m) => Exp -> Document -> m Value
-
--------------------------------------------------------
--- Wrapper por tipo
--------------------------------------------------------
-
-evalExp (ENum n) doc = VNum <$> evalNumExp n doc
-
-evalExp (EStr s) doc = VString <$> evalStrExp s doc
-
-evalExp (EBool b) doc = VBool <$> evalBoolExp b doc
-
-evalExp (EJson j) doc = evalJsonExp j doc
-
-
--------------------------------------------------------
--- HELPERS (son viejos, ver si todavia sirven)
--------------------------------------------------------
-
--- | Verifica que el documento NO tenga el campo "_id".
--- | Si lo tiene -> Nothing
--- | Si no lo tiene -> Just doc
 validateNoIdField :: Document -> Maybe Document
 validateNoIdField doc =
   case lookup "_id" doc of
     Just _ -> Nothing
     Nothing -> Just doc
-
-{- updateDocs :: (MonadErrorEval m) => Bool -> BoolExp -> Document -> [Document] -> m [Document]
-updateDocs _ _ _ [] = return []
-updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
-  match <- safeEvalBool cond d
-  if match
-    then do
-      let alreadySame =
-            all (\(k,v) -> lookup k d == Just v) cleanDoc
-      if alreadySame
-        then
-          if stopAfterFirst
-            then return (d:ds)
-            else do
-              rest <- updateDocs stopAfterFirst cond cleanDoc ds
-              return (d:rest)
-        else do
-          let oldId = getId d
-          let merged =
-                ("_id", oldId) :
-                mergeFields
-                  (filter (\(k,_) -> k /= "_id") d)
-                  cleanDoc
-
-          if stopAfterFirst
-            then return (merged : ds)
-            else do
-              rest <- updateDocs stopAfterFirst cond cleanDoc ds
-              return (merged : rest)
-    else do
-      rest <- updateDocs stopAfterFirst cond cleanDoc ds
-      return (d : rest) -}
 
 updateDocs :: (MonadErrorEval m) => Bool -> BoolExp -> Document -> [Document] -> m (Int, [Document])
 updateDocs _ _ _ [] = return (0, [])
@@ -942,7 +787,7 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
   match <- safeEvalBool cond d
   if match
     then do
-      -- Verificamos si el cambio realmente modifica algo
+      -- Verifico si el cambio realmente modifica algo
       let alreadySame = all (\(k,v) -> lookup k d == Just v) cleanDoc
       if alreadySame
         then if stopAfterFirst 
@@ -963,7 +808,6 @@ updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
       (count, rest) <- updateDocs stopAfterFirst cond cleanDoc ds
       return (count, d : rest)
 
--- este hacerlo no tan permisivo, como lo pensamos
 safeEvalBool :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 safeEvalBool cond doc =
   catchEval 
@@ -1004,20 +848,15 @@ getTerminal (Find _ _ t) = t
 getOps :: Find -> [QueryOp]
 getOps (Find _ ops _) = ops
 
--- | Incrementa la cantidad de documentos modificados
+-- ncrementa la cantidad de documentos modificados
 incDocs :: (MonadStateEval m) => Int -> m ()
 incDocs n = do
   st <- getEval
   let (d, cs) = logs st
   putEval st { logs = (d + n, cs) }
 
--------------------------------------------------------
--- REGISTRAR COLECCION MODIFICADA
--------------------------------------------------------
--- | Registra el nombre de una colección modificada.
--- | Si ya está en la lista de colecciones modificadas
--- | no hace nada.
--- | Si no está, la agrega.
+
+-- registra coleccion modificada
 registerCollectionChange :: (MonadStateEval m) => Collection -> m ()
 registerCollectionChange coll = do
   st <- getEval

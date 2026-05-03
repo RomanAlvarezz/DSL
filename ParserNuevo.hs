@@ -1,8 +1,6 @@
 module ParserNuevo where
 
---import Control.Monad (guard)
 import Text.ParserCombinators.Parsec
---import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language (emptyDef)
 import ASTNuevo
@@ -168,7 +166,8 @@ pBoolVariable = do
 pExists :: Parser BoolExp
 pExists = do
   reservedP "exists"
-  Exists <$> parensP pPathExp
+  p <- parensP pPathExp
+  return (Exists p)
 
 pIsNull :: Parser BoolExp
 pIsNull = do
@@ -281,13 +280,6 @@ pJObject :: Parser JsonExp
 pJObject = do
   fields <- bracesP (pJField `sepBy` commaP)
   return (JObject fields)
-
-{- pJField :: Parser (FieldName, JsonExp)
-pJField = do
-  name <- identifierP
-  reservedOpP ":"
-  value <- pJsonExp
-  return (name, value) -}
 
 pJField :: Parser (FieldName, JsonExp)
 pJField =
@@ -578,11 +570,11 @@ pUpdateOneComm = do
   reservedP "updateOne"
   reservedOpP "."
   col <- identifierP
-  (cond, doc) <- parensP $ do
+  (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
     d <- pJsonExp
-    return (c, d)
+    return (c, d))
   return (CommUpdateOne col cond doc)
 
 pUpdateManyComm :: Parser Comm
