@@ -1,0 +1,9 @@
+find.users()
+.filter(
+  exists(country)
+)
+.groupby(country)
+.count("totalUsuarios", name)
+.avg("promedioEdad", age)
+.having(totalUsuarios > 1)
+.preview()

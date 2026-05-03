@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 196
+        "nextId": 203
     },
     "animales": [
         {
@@ -88,16 +88,49 @@
     ],
     "users": [
         {
+            "_id": 202,
+            "active": false,
+            "age": 26,
+            "country": "AR",
+            "name": "Rocio",
+            "score": 24
+        },
+        {
+            "_id": 201,
+            "active": true,
+            "age": 28,
+            "country": "AR",
+            "name": "Paula",
+            "score": 17
+        },
+        {
+            "_id": 200,
+            "active": true,
+            "age": 35,
+            "country": "AR",
+            "name": "Carlos",
+            "score": 13
+        },
+        {
+            "_id": 196,
+            "active": true,
+            "age": 31,
+            "country": "AR",
+            "name": "Lucia",
+            "score": 42
+        },
+        {
             "_id": 185,
             "age": 27,
             "name": "Tedej"
         },
         {
             "_id": 184,
-            "age": 22,
+            "active": true,
+            "age": 23,
             "direccion": {
-                "calle": "Avellaneda",
-                "tipo": "casa"
+                "altura": 1051,
+                "calle": "Almafuerte"
             },
             "name": "Demi"
         },
@@ -112,19 +145,9 @@
             "name": "Demi"
         },
         {
-            "_id": 181,
-            "age": 7,
-            "name": "Sergio"
-        },
-        {
             "_id": 180,
             "age": 22,
             "name": "Delfinal"
-        },
-        {
-            "_id": 179,
-            "age": 17,
-            "name": "Leopoldo"
         },
         {
             "_id": 178,
@@ -135,11 +158,6 @@
             "_id": 175,
             "age": 27,
             "name": "Martin"
-        },
-        {
-            "_id": 174,
-            "age": 15,
-            "name": "Sofia"
         },
         {
             "_id": 167,

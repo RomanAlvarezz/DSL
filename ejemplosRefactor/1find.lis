@@ -1,0 +1,8 @@
+find.users()
+.filter(
+  exists(direccion.calle) && country eqS "AR"
+)
+.select(name, age, country)
+.sort({age: desc})
+.limit(5)
+.preview()

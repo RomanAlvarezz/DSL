@@ -1,5 +1,5 @@
 find.users()
-  .filter(name == "John" && age == 35)
+  .filter(age == 35)
   .select(name, age)
   .sort({ age: desc })
   .preview()

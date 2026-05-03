@@ -1,0 +1,7 @@
+insert.users({
+  name:s "Lucia",
+  age:n 31,
+  country:s "AR",
+  active:b true,
+  score:n 42
+})

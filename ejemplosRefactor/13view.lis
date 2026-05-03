@@ -1,0 +1,7 @@
+createView("mayores",
+  find.users()
+    .filter(!(age < 23 + 2))
+    .preview()
+);
+
+useView("mayores")

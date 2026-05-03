@@ -1,0 +1,15 @@
+transaction{
+  insertMany.users([
+    {name:s "Carlos", age:n 35, active:b true, country:s "AR", score:n 13},
+    {name:s "Paula", age:n 28, active:b true, country:s "AR", score:n 17},
+    {name:s "Rocio", age:n 26, active:b false, country:s "AR", score:n 24}
+  ]);
+
+  updateOne.users(
+    name eq "Roman",
+    {category:s "gold"}
+  );
+
+  delete.users(age < 19)
+
+}

@@ -1,0 +1,3 @@
+delete.users(
+  isNull(nickname) || age < 10
+)

@@ -5,16 +5,22 @@ import System.Exit (exitFailure)
 
 import Text.ParserCombinators.Parsec (parse)
 
-import Parser (pProgram)
-import AST
+--import Parser (pProgram)  ->  comentado para la prueba del ultimo parser nuevo
+import ParserNuevo (pProgram)
+--import AST  -> comentado para la prueba del ulitmo AST nuevo
+import ASTNuevo
+
 --import Evaluator     -> comentado para el uso del nuevo evaluador con nuestras monadas
 
 -- importo el nuevo evaluatorMM (este tiene evalExp y evalDocExp)
 --import EvaluatorMM
 
 -- importo nuevo evaluatorMM2 (este tiene unificado evalExp y evalDocExp)
-import EvaluatorMM2
-import JSONAdapter
+--import EvaluatorMM2
+--import JSONAdapter
+import EvaluatorMM2Nuevo
+import JSONAdapterNuevo
+
 
 --import Control.Monad.State     -> no necesito mas estos import ya que tenemos nuestra propia monada
 --import Control.Monad.Except

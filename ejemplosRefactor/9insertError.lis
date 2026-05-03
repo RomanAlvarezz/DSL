@@ -1,0 +1,6 @@
+insert.users({
+  name:s "Bruno",
+  age:n 19/0,
+  nickname:nl null,
+  active:b false
+})

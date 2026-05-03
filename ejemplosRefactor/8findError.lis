@@ -1,0 +1,6 @@
+find.users()
+.filter(age eq 5/0)
+.select(name, age, country)
+.sort({age: desc})
+.limit(5)
+.preview()

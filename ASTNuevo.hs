@@ -1,0 +1,219 @@
+module ASTNuevo where
+
+-- ======================================================
+-- PROGRAMA
+-- ======================================================
+-- Un programa es una secuencia de comandos ejecutables
+-- sobre la base de datos JSON.
+-- ======================================================
+
+type Program = Comm
+
+type Collection      = String
+type ViewName        = String
+type FieldName       = String
+type TimestampLabel  = String
+type JsonPath        = String
+
+-- ======================================================
+-- COMANDOS (STATEMENTS)
+-- ======================================================
+data Comm
+  = Skip
+  | Seq Comm Comm
+  -- consultas
+  | CommQuery Find
+  -- collections
+  | CommCreateColl Collection
+  | CommDropColl Collection
+  -- inserts
+  | CommInsert Collection JsonExp
+  | CommInsertMany Collection [JsonExp]
+  -- updates
+  | CommUpdateOne Collection BoolExp JsonExp
+  | CommUpdateMany Collection BoolExp JsonExp
+  -- deletes
+  | CommDelete Collection BoolExp
+  -- transacciones
+  | CommTransaction [Comm]
+  -- timestamps
+  | CommTimestamp TimestampTarget TimestampLabel
+  | CommRollback TimestampTarget TimestampLabel
+  -- views
+  | CommCreateView ViewName Find
+  | CommUseView ViewName ViewOption
+  deriving (Show, Eq)
+
+-- ======================================================
+-- CONSULTAS
+-- ======================================================
+-- Una consulta está compuesta por:
+--   - una fuente (colección o vista)
+--   - una secuencia de operaciones
+--   - un operador terminal obligatorio
+-- ======================================================
+
+data Find = Find Collection [QueryOp] QueryTerminal 
+  deriving (Show, Eq)
+
+-- ======================================================
+-- OPERACIONES DE CONSULTA (PIPELINE)
+-- ======================================================
+-- Representan transformaciones puras sobre el flujo
+-- de documentos.
+-- ======================================================
+
+data QueryOp
+  = QFilter BoolExp
+  | QSelect [FieldName]
+  | QSort [(FieldName, SortOrder)]
+  | QLimit Int
+  | QGroup GroupSpec
+  deriving (Show, Eq)
+
+data SortOrder = Asc | Desc
+  deriving (Show, Eq)
+
+-- ======================================================
+-- TERMINALES DE CONSULTA
+-- ======================================================
+-- Indican cómo finaliza una consulta.
+-- Solo uno es permitido por consulta.
+-- ======================================================
+
+data QueryTerminal
+  = TerminalPreview
+  | TerminalSave JsonPath
+  deriving (Show, Eq)
+
+-- ======================================================
+-- GROUP BY + AGREGACIONES
+-- ======================================================
+-- Se agrupan los documentos y se aplican funciones
+-- de agregación. Having es opcional.
+-- ======================================================
+
+data GroupSpec = GroupSpec [FieldName] [Aggregate] (Maybe BoolExp)
+  deriving (Show, Eq)
+
+data Aggregate = Aggregate AggFunc FieldName FieldName
+  deriving (Show, Eq)
+
+data AggFunc
+  = AggCount
+  | AggSum
+  | AggAvg
+  | AggMin
+  | AggMax
+  deriving (Show, Eq)
+
+-- ======================================================
+-- TIMESTAMPS
+-- ======================================================
+
+data TimestampTarget
+  = TSDatabase  -- Timestamp de toda la base de datos
+  | TSColl Collection  -- Timestamp de una vista específica
+  deriving (Show, Eq)
+
+-- ======================================================
+-- VIEWS
+-- ======================================================
+
+data ViewOption
+  = ViewOnly
+  | ViewWithPipeline Find
+  deriving (Show, Eq)
+
+-- ======================================================
+-- EXPRESIONES
+-- ======================================================
+data Number = NInt Int | NFloat Double
+  deriving (Show, Eq)
+
+instance Ord Number where
+  compare (NInt a)   (NInt b)   = compare a b
+  compare (NFloat a) (NFloat b) = compare a b
+  compare (NInt a)   (NFloat b) = compare (fromIntegral a) b
+  compare (NFloat a) (NInt b)   = compare a (fromIntegral b)
+
+-- ======================================================
+-- EXPRESIONES NUMERICAS
+-- ======================================================
+data NumExp
+  = NConst Number
+  | NVar FieldName
+  | NAdd NumExp NumExp
+  | NSub NumExp NumExp
+  | NMul NumExp NumExp
+  | NDiv NumExp NumExp
+  deriving (Show, Eq)
+
+-- ======================================================
+-- EXPRESIONES STRING
+-- ======================================================
+data StrExp
+  = SConst String
+  | SVar FieldName
+  deriving (Show, Eq)
+
+-- ======================================================
+-- BOOLEANOS
+-- ======================================================
+data BoolExp
+  = BTrue
+  | BFalse
+  | BVar FieldName
+  | Not BoolExp
+  | And BoolExp BoolExp
+  | Or  BoolExp BoolExp
+
+  | EqNum NumExp NumExp
+  | NeqNum NumExp NumExp
+  | EqStr StrExp StrExp
+  | NeqStr StrExp StrExp
+  | EqBool BoolExp BoolExp
+  | NeqBool BoolExp BoolExp
+  | IsNull PathExp
+
+  | Lt  NumExp NumExp
+  | Le  NumExp NumExp
+  | Gt  NumExp NumExp
+  | Ge  NumExp NumExp
+
+  | Exists PathExp
+  deriving (Show, Eq)
+  
+-- ======================================================
+-- PATH (para exists y acceso)
+-- ======================================================
+data PathExp
+  = PVar FieldName
+  | PAccess PathExp FieldName
+  deriving (Show, Eq)
+
+-- ======================================================
+-- EXPRESIONES JSON
+-- ======================================================
+
+data JsonExp
+  = JObject [(FieldName, JsonExp)]
+  | JArray [JsonExp]
+  | JNum NumExp
+  | JStr StrExp
+  | JBool BoolExp
+  | JNull
+  | JPath PathExp
+  deriving (Show, Eq)
+
+
+-- ======================================================
+-- NUCLEO DE TODOS LOS TIPOS (VALUES) VER
+-- ======================================================
+
+data Exp
+  = ENum NumExp
+  | EBool BoolExp
+  | EJson JsonExp
+  | EStr StrExp
+

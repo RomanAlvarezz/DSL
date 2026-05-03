@@ -1,1 +1,34 @@
-{}
+{
+    "mayores": {
+        "collection": "users",
+        "pipeline": [
+            {
+                "cond": {
+                    "type": "not",
+                    "value": {
+                        "l": {
+                            "name": "age",
+                            "type": "var"
+                        },
+                        "r": {
+                            "l": {
+                                "type": "int",
+                                "value": 23
+                            },
+                            "r": {
+                                "type": "int",
+                                "value": 2
+                            },
+                            "type": "add"
+                        },
+                        "type": "lt"
+                    }
+                },
+                "type": "filter"
+            }
+        ],
+        "terminal": {
+            "type": "preview"
+        }
+    }
+}

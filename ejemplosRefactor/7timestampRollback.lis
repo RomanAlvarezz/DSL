@@ -1,0 +1,25 @@
+timestamp.database("antes_de_pruebas");
+
+insert.users({
+  name:s "Nadia",
+  age:n 38,
+  country:s "AR",
+  active:b true,
+  score:n 99
+});
+
+insert.users({
+  name:s "Juliette",
+  age:n 33,
+  country:s "ES",
+  active:b true,
+  score:n 98
+});
+
+find.users()
+.preview();
+
+rollback.database("antes_de_pruebas");
+
+find.users()
+.preview()
