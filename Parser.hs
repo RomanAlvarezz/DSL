@@ -243,7 +243,7 @@ pPathExp = do
 -- ======================================================
 -- PARSER DE JSONEXP
 -- ======================================================
--- pruebo de sacar los try de aca
+
 pJsonExp :: Parser JsonExp
 pJsonExp =
       pJObject

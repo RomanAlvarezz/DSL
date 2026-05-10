@@ -24,6 +24,9 @@ import JSONAdapter (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, timesta
 
 newtype Eval a = Eval { runEval :: EvalState -> IO (Either EvalError (a, EvalState)) }
 
+{-
+Este es la porcion de codigo que Mauro agrego para calmar al GHC
+
 instance Functor Eval where
   fmap = liftM
 instance Applicative Eval where
@@ -37,7 +40,39 @@ instance Monad Eval where
     case res of
       Left e -> return (Left e)
       Right (a, s') -> runEval (f a) s')
+-}
 
+{-
+instance Functor Eval where
+  fmap f m = Eval (\s -> do
+    res <- runEval m s
+    case res of
+      Left e -> return (Left e)
+      Right (a, s') -> return (Right (f a, s'))
+    )
+
+instance Applicative Eval where
+  pure x = Eval (\s -> return (Right (x, s)))
+
+  mf <*> ma = Eval (\s -> do
+    resF <- runEval mf s
+    case resF of
+      Left e -> return (Left e)
+
+      Right (f, s') -> do
+        resA <- runEval ma s'
+        case resA of
+          Left e -> return (Left e)
+          Right (a, s'') -> return (Right (f a, s''))
+    )
+
+instance Monad Eval where
+  m >>= f = Eval (\s -> do
+    res <- runEval m s
+    case res of
+      Left e -> return (Left e)
+      Right (a, s') -> runEval (f a) s')
+-}
 -------------------------------------------------------
 -- TYPECLASSES
 -------------------------------------------------------
@@ -464,7 +499,7 @@ applyAggregate (Aggregate aggOp path alias) docs = do
     else let res = case aggOp of
                      AggMin -> minimum validVals
                      AggMax -> maximum validVals
-                     _      -> VNull -- No debería pasar
+--                     _      -> VNull -- No debería pasar
          in return (alias, res)
 
 -------------------------------------------------------
