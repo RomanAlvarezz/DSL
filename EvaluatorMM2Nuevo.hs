@@ -22,9 +22,7 @@ import JSONAdapterNuevo (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, ti
 -- MONADA PROPIA
 -------------------------------------------------------
 
-newtype Eval a = Eval {
-  runEval :: EvalState -> IO (Either EvalError (a, EvalState))
-}
+newtype Eval a = Eval { runEval :: EvalState -> IO (Either EvalError (a, EvalState)) }
 
 instance Functor Eval where
   fmap = liftM
@@ -187,13 +185,6 @@ showError (CollectionAlreadyExists c) =
 
 showError (ViewAlreadyExists v) =
   "La vista '" ++ v ++ "' ya existe"
-
-
--------------------------------------------------------
--- PROGRAMA
--------------------------------------------------------
-evalProgram :: (MonadStateEval m, MonadErrorEval m, MonadIOEval m) => Program -> m ()
-evalProgram = evalComm
 
 -------------------------------------------------------
 -- COMANDOS

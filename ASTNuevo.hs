@@ -1,11 +1,5 @@
 module ASTNuevo where
 
--- ======================================================
--- PROGRAMA
--- ======================================================
-
-type Program = Comm
-
 type Collection      = String
 type ViewName        = String
 type FieldName       = String
@@ -191,15 +185,3 @@ data JsonExp
   | JNull
   | JPath PathExp
   deriving (Show, Eq)
-
-
--- ======================================================
--- NUCLEO DE TODOS LOS TIPOS (VALUES) VER
--- ======================================================
-
-data Exp
-  = ENum NumExp
-  | EBool BoolExp
-  | EJson JsonExp
-  | EStr StrExp
-
