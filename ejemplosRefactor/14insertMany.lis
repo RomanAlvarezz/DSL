@@ -1,0 +1,6 @@
+insertMany.users(
+  [ 
+    { name:s "Juan", age:n 27, country:s "AR", score:n 7 }, 
+    { name:s "Ana", age:n 29, country:s "AR", score:n 9  } 
+  ]
+)

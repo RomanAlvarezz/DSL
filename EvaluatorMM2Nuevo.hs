@@ -537,11 +537,19 @@ evalNumExp :: (MonadErrorEval m) => NumExp -> Document -> m Number
 evalNumExp (NConst n) _ = return n
 
 -- Variables numéricas
+{--
 evalNumExp (NVar f) doc =
   case lookup f doc of
     Just (VNum n) -> return n
     Just _        -> throwEval TypeError
     Nothing       -> throwEval (FieldNotFoundInObject f)
+--}
+-- varibles y acceso a campos numericos
+evalNumExp (NPath p) doc = do
+  v <- evalPathExp p doc
+  case v of
+    VNum n -> return n
+    _      -> throwEval TypeError
 
 -- Suma
 evalNumExp (NAdd a b) doc = do
@@ -613,11 +621,20 @@ evalStrExp :: (MonadErrorEval m) => StrExp -> Document -> m String
 -- Constante string
 evalStrExp (SConst s) _ = return s
 -- Variable string
+{--
 evalStrExp (SVar f) doc =
   case lookup f doc of
     Just (VString s) -> return s
     Just _           -> throwEval TypeError
     Nothing          -> throwEval (FieldNotFoundInObject f)
+--}
+
+-- varible y acceso a campos string
+evalStrExp (SPath p) doc = do
+  v <- evalPathExp p doc
+  case v of
+    VString s -> return s
+    _         -> throwEval TypeError
 
 -------------------------------------------------------
 -- BOOLEXP
@@ -627,11 +644,20 @@ evalBoolExp BTrue _ = return True
 evalBoolExp BFalse _ = return False
 
 -- Variable booleana
+{--
 evalBoolExp (BVar f) doc =
   case lookup f doc of
     Just (VBool b) -> return b
     Just _         -> throwEval TypeError
     Nothing        -> throwEval (FieldNotFoundInObject f)
+--}
+
+-- varibles y acceso a campos booleanos
+evalBoolExp (BPath p) doc = do
+  v <- evalPathExp p doc
+  case v of
+    VBool b -> return b
+    _       -> throwEval TypeError
 
 -- Operadores lógicos
 evalBoolExp (Not b) doc = do

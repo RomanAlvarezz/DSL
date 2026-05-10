@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 203
+        "nextId": 210
     },
     "animales": [
         {
@@ -86,7 +86,47 @@
             "perrosMenores": true
         }
     ],
+    "logs": [
+        {
+            "_id": 206,
+            "date": "7/5/2026",
+            "msg": "inicio"
+        }
+    ],
     "users": [
+        {
+            "_id": 209,
+            "active": true,
+            "age": 32,
+            "country": "US",
+            "direccion": {
+                "calle": "Falsetti",
+                "tipo": "departamento"
+            },
+            "name": "Luciana",
+            "score": 42
+        },
+        {
+            "_id": 205,
+            "age": 29,
+            "country": "AR",
+            "name": "Ana",
+            "score": 9
+        },
+        {
+            "_id": 204,
+            "age": 27,
+            "country": "AR",
+            "name": "Juan",
+            "score": 7
+        },
+        {
+            "_id": 203,
+            "active": true,
+            "age": 29,
+            "name": "Lucas",
+            "nickname": null
+        },
         {
             "_id": 202,
             "active": false,
@@ -126,13 +166,13 @@
         },
         {
             "_id": 184,
-            "active": true,
-            "age": 23,
+            "active": false,
+            "age": 27,
             "direccion": {
-                "altura": 1051,
+                "altura": 1047,
                 "calle": "Almafuerte"
             },
-            "name": "Demi"
+            "name": "Vollering"
         },
         {
             "_id": 183,
@@ -141,8 +181,13 @@
         },
         {
             "_id": 182,
-            "age": 22,
-            "name": "Demi"
+            "active": false,
+            "age": 27,
+            "direccion": {
+                "altura": 1047,
+                "calle": "Almafuerte"
+            },
+            "name": "Vollering"
         },
         {
             "_id": 180,

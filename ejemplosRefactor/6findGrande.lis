@@ -1,9 +1,17 @@
+insert.users({
+  name:s "Luciana",
+  age:n 32,
+  country:s "US",
+  active:b true,
+  score:n 42,
+  direccion:p {calle:s "Falsetti", tipo:s "departamento"} 
+});
+
+
 find.users()
-.filter(
-  exists(country)
-)
+.filter( exists(country) && direccion.tipo eqS "departamento" )
 .groupby(country)
 .count("totalUsuarios", name)
 .avg("promedioEdad", age)
-.having(totalUsuarios > 1)
+.having(totalUsuarios > 0)
 .preview()

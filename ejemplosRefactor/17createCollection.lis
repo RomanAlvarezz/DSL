@@ -1,0 +1,10 @@
+createCollection.logs();
+insert.logs(
+  { 
+    msg :s "inicio", 
+    date :s "7/5/2026" 
+  }
+);
+
+find.logs()
+.preview()

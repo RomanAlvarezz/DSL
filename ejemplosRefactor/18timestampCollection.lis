@@ -1,0 +1,19 @@
+timestamp.logs("logs_antes_de_pruebas");
+
+insert.logs({
+  msg:s "segundo hola",
+  date:s "N/A"
+});
+
+insert.logs({
+  msg:s "tercer hola",
+  date:s "N/A"
+});
+
+find.logs()
+.preview();
+
+rollback.logs("logs_antes_de_pruebas");
+
+find.logs()
+.preview()

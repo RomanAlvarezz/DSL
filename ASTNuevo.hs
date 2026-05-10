@@ -3,6 +3,7 @@ module ASTNuevo where
 -- ======================================================
 -- PROGRAMA
 -- ======================================================
+
 type Program = Comm
 
 type Collection      = String
@@ -43,12 +44,14 @@ data Comm
 -- ======================================================
 -- CONSULTAS
 -- ======================================================
+
 data Find = Find Collection [QueryOp] QueryTerminal 
   deriving (Show, Eq)
 
 -- ======================================================
 -- OPERACIONES DE CONSULTA (PIPELINE)
 -- ======================================================
+
 data QueryOp
   = QFilter BoolExp
   | QSelect [FieldName]
@@ -63,6 +66,7 @@ data SortOrder = Asc | Desc
 -- ======================================================
 -- TERMINALES DE CONSULTA
 -- ======================================================
+
 data QueryTerminal
   = TerminalPreview
   | TerminalSave JsonPath
@@ -71,6 +75,7 @@ data QueryTerminal
 -- ======================================================
 -- GROUP BY + AGREGACIONES
 -- ======================================================
+
 data GroupSpec = GroupSpec [FieldName] [Aggregate] (Maybe BoolExp)
   deriving (Show, Eq)
 
@@ -88,6 +93,7 @@ data AggFunc
 -- ======================================================
 -- TIMESTAMPS
 -- ======================================================
+
 data TimestampTarget
   = TSDatabase  -- Timestamp de toda la base de datos
   | TSColl Collection  -- Timestamp de una collection específica
@@ -96,6 +102,7 @@ data TimestampTarget
 -- ======================================================
 -- VIEWS
 -- ======================================================
+
 data ViewOption
   = ViewOnly
   | ViewWithPipeline Find
@@ -118,7 +125,8 @@ instance Ord Number where
 -- ======================================================
 data NumExp
   = NConst Number
-  | NVar FieldName
+  | NPath PathExp
+  -- | NVar FieldName
   | NAdd NumExp NumExp
   | NSub NumExp NumExp
   | NMul NumExp NumExp
@@ -130,7 +138,8 @@ data NumExp
 -- ======================================================
 data StrExp
   = SConst String
-  | SVar FieldName
+  | SPath PathExp
+  -- | SVar FieldName
   deriving (Show, Eq)
 
 -- ======================================================
@@ -139,7 +148,8 @@ data StrExp
 data BoolExp
   = BTrue
   | BFalse
-  | BVar FieldName
+  | BPath PathExp
+  -- | BVar FieldName
   | Not BoolExp
   | And BoolExp BoolExp
   | Or  BoolExp BoolExp
@@ -159,9 +169,9 @@ data BoolExp
 
   | Exists PathExp
   deriving (Show, Eq)
-
+  
 -- ======================================================
--- PATH (para exists y acceso)
+-- PATH (acceso a variables y campos anidados)
 -- ======================================================
 data PathExp
   = PVar FieldName
@@ -171,6 +181,7 @@ data PathExp
 -- ======================================================
 -- EXPRESIONES JSON
 -- ======================================================
+
 data JsonExp
   = JObject [(FieldName, JsonExp)]
   | JArray [JsonExp]
@@ -180,4 +191,15 @@ data JsonExp
   | JNull
   | JPath PathExp
   deriving (Show, Eq)
+
+
+-- ======================================================
+-- NUCLEO DE TODOS LOS TIPOS (VALUES) VER
+-- ======================================================
+
+data Exp
+  = ENum NumExp
+  | EBool BoolExp
+  | EJson JsonExp
+  | EStr StrExp
 

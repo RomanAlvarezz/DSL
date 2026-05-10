@@ -1,0 +1,688 @@
+σ = DB
+TS, VWS = efectos externos/laterales
+
+:  ← Este operador nos sirve para indicar de que tipo es un Value
+:! ← Este operador nos indica que el Value no es del tipo especificado
+
+viewRead(v) ← Método que toma el nombre de la vista, la busca en el archivo que almacena las vistas y devuelve el Find correspondiente a ésta, donde Find contiene la coleccion a la que se le va a realizar la query, el conjunto de operaciones que se va a realizar sobre ésta y el terminal, que puede ser salida por pantalla o escritura en archivo
+
+viewWrite(v, f) ← Método que toma el nombre de  vista, el Find que va a almacenar, al cual contiene la coleccion a la que se le va a realizar la query, el conjunto de operaciones que se va a realizar sobre ésta y el terminal, que puede ser salida por pantalla o escritura en archivo y lo escribe en el archivo que almacena las vistas
+
+evalTerminal(qt, docs) ← Metodo que toma un queryTerminal y un listado de documentos. Dependiendo del queryTerminal, si es Preview produce una salida donde se mostraran los documentos por terminal, o si es Save se prioduce una salida donde se escribiran los documentos en el archivo especificado
+
+desencapsulador(Value)  ← Método que permite desempaquetar el valor almacenado dentro de cada instancia de Value.
+
+append ← Método que toma una colección, un objeto y devuelve la colección actualizada con el objeto agregado.
+
+delete(cn) ← Método que toma el nombre de una colección y devuelve un nuevo estado sin la colección asociada a cn.
+
+firstDoc(docs) ← Método que toma un lista de documentos, y devuelve solamente el primero de ellos.
+
+lastsDocs(docs) ← Método que toma un lista de documentos y devuelve todos menos el primero.
+
+merge(doc1, doc2) ← El método merge recibe dos documentos doc1 y doc2, y devuelve una copia actualizada de doc1 en la que los valores de las propiedades comunes con doc2 se sobrescriben con los de doc2, y las propiedades presentes únicamente en doc2 se agregan al resultado.
+
+cn ∉ dom(σ) ← usamos el no pertenece para saber si existe o no una colección en la db
+
+select(fields, d) ← devuelve el documento formado únicamente por los campos de d cuyos nombres pertenecen a fields
+
+take(n, docs) ← devuelve los primeros n documentos de docs (si hay menos de n, devuelve todos)
+
+sort(fields, docs) ← devuelve docs ordenados lexicográficamente según la secuencia de campos indicada en fields,
+respetando para cada campo su dirección(Asc o Desc). Si un campo no está presente en alguno de los documentos comparados, se continúa con el siguiente criterio de orden.
+
+____________________Semantica de Seq____________________
+
+
+────────────────────────(SEQ1)
+⟨skip; c₁, σ⟩ ↝ ⟨c₁, σ⟩ 
+
+
+⟨c₀, σ⟩ ↝ ⟨c₀', σ'⟩
+──────────────────────────────(SEQ2)
+⟨c₀ ; c₁, σ⟩ ↝ ⟨c₀' ; c₁, σ'⟩
+
+
+
+
+____________________Semantica de CreateColection____________________
+
+
+collName ∉ dom(σ)   
+──────────────────────────────────────────────────────────── (C-CreateColl)
+(CommCreateColl collName, σ) →  (skip, [ σ | collName : [] ])
+
+
+
+collName ∈ dom(σ)   
+──────────────────────────────────────────────────────────── (C-CCAlreadyExists)
+(CommCreateColl collName, σ) →  (erri, σ)
+
+
+
+____________________Semantica de DropColection____________________
+
+
+collName ∈ dom(σ)   
+──────────────────────────────────────────────────────────── (C-DropColl)
+(CommDropColl collName, σ) →  (skip, delete(collName))
+
+
+
+collName ∉ dom(σ)   
+──────────────────────────────────────────────────────────── (C-DPNoCollection)
+(CommDropColl collName, σ) →  (erri, σ)
+
+
+
+____________________Semantica de Insert____________________
+
+
+⟨e, σ⟩ ⇓evalJsonAsObject o    
+─────────────────────────────────────────────────── (C-Insert)
+(CommInsert cn e, σ) →  (skip, [σ| cn : append σ(cn) o ])   
+
+
+cn ∉ dom(σ) 
+──────────────────────────────── (CI-NoCollection) error collection inexist
+(CommInsert cn e, σ) ⇓ (erri, σ)
+
+
+
+
+____________________Semantica de InsertMany____________________
+
+
+──────────────────────────────────────────(C-InsertMany-Empty)
+(CommInsertMany cn nil, σ) → (skip, σ)
+
+
+──────────────────────────────────────────────────────────────────────────(C-InsertMany-Step)
+(CommInsertMany cn (cons e es), σ) → (insert cn e ; insertMany cn es, σ)
+
+
+
+
+____________________Semantica de Delete____________________
+
+
+docs′ = { d ∈ σ(cn) ∣ ⟨cond,d⟩ ⇓evalSafeBool false } 
+───────────────────────────────────────────────────────(C−Delete) 
+(CommDelete cn cond, σ) → (skip, [σ∣cn:docs′])
+
+
+cn ∉ dom(σ)
+──────────────────────────────────────────────(C−DeleteError) 
+(CommDelete cn cond, σ) → (err, σ)
+
+
+
+
+____________________Semantica de UpdateOne____________________
+
+
+(e, emptyDoc) ⇓evalJsonAsObject u     (cond, u, σ(cn), σ)⇓updateDocsOne docs'
+──────────────────────────────────────────────────────────────────────────────────── (C-UpdateOne)
+(CommUpdateOne cn cond e, σ) → (skip, [σ | cn : docs'])
+
+
+(e, emptyDoc) ⇓evalJsonAsObject err 
+──────────────────────────────────────────────────────────────────────────────────── (C-UpdateOneErrDoc)
+(CommUpdateOne cn cond e, σ) → err
+
+
+cn ∉ dom(σ)
+──────────────────────────────────────────────────────────────────────────────────── (C-UpdateOneCollNotFound)
+(CommUpdateOne cn cond e, σ) → err
+
+
+
+
+____________________Semantica de UpdateMany____________________
+
+
+(e, emptyDoc) ⇓evalJsonAsObject u    (cond, u, σ(cn), σ)⇓updateDocsMany docs'
+───────────────────────────────────────────────────────────────────────────── (C-UpdateMany)
+(CommUpdateMany cn cond e, σ) → (skip, [σ | cn : docs'])
+
+
+(e, emptyDoc) ⇓evalJsonAsObject err
+────────────────────────────────────────────────────────────── (C-UpdateManyErrDoc)
+(CommUpdateMany cn cond e, σ) → err
+
+
+cn ∉ dom(σ)
+────────────────────────────────────────────────────────────── (C-UpdateManyCollNotFound)
+(CommUpdateMany cn cond e, σ) → err
+
+
+
+
+docsNA = { d ∈ docs | ⟨cond,d⟩ ⇓evalBool false }     docs′ = { d ∈ σ(cn) | ⟨cond,d⟩ ⇓evalBool true} 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────── (C-UpdateDocsOne)
+(updateDocsOne cond u docs, σ) → (skip, [σ | cn : docsNA ++ marge(firstDoc(docs'), u) ++ lastsDocs(docs')])
+
+
+
+docsNA = { d ∈ docs | ⟨cond,d⟩ ⇓evalBool false }     docs′ = { d ∈ σ(cn) | ⟨cond,d⟩ ⇓evalBool true → marge(d, u) } 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── (C-UpdateDocsMany)
+(updateDocsMany cond u docs, σ) → (skip, [σ | cn : docsNA ++ docs'])
+
+
+
+____________________Semantica de CreateView____________________
+
+
+──────────────────────────────────────────────────────────(C-CreateView) Creacion de una vista
+(CommCreateView v f, σ) ~>{ viewWrite(v, f) } (skip, σ)
+
+
+
+
+____________________Semantica de UseView____________________
+
+f = viewRead(v)
+────────────────────────────────────────────────────────────────────────(C-UseViewVO) Uso de una vista
+(CommUseView v ViewOnly, σ) ~{ viewRead(v) }~> (CommQuery f, σ)
+
+
+ v ∉ dom(viewRead(v))
+────────────────────────────────────────────────────────────────────────(C-UseViewErr) Uso de una vista
+(CommUseView v ViewOnly, σ) ~{ viewRead(v) }~> err
+
+
+
+───────────────────────────────────────────────────────────────────────────────(C-UseViewWP)vista con pipeline
+(CommUseView v (ViewWithPipeline f₂), σ) ~>{ viewRead(v) } (CommQuery f', σ)
+
+
+Find coll ops queryTerminal = viewRead(v)
+────────────────────────────────────────────────────────────────────────────────────────────────────────(C-UseViewWP)
+(CommUseView v (ViewWithPipeline Find coll ops' qT), σ) ~{ viewRead(v) }~> (CommQuery (Find coll (ops ++ ops') qT), σ)
+
+
+
+____________________Semantica de Transaction____________________
+
+(comms, σ)⇓execCommsTrans σ'
+──────────────────────────────────────────────────────────(C-transaction)
+(CommTransaction comms , σ) → (skip, σ')
+
+
+(comms, σ)⇓execCommsTrans err
+──────────────────────────────────────────────────────────(C-transactionErr)
+(CommTransaction comms , σ) → (skip, σ)
+
+
+
+____________________Semantica de Timestamp____________________
+
+
+──────────────────────────────────────────────────────────────────────────────────────(C-TimestampDB)
+(CommTimestamp (TSDatabase) label, σ) ~{ timestampWrite(label, σ) }~> (skip, σ)
+
+
+
+──────────────────────────────────────────────────────────────────────────────────────(C-TimestampColl)
+(CommTimestamp (TSColl coll) label, σ) ~{ timestampWrite(label, σ(coll)) }~> (skip, σ)
+
+
+
+coll ∉ dom(σ)
+──────────────────────────────────────────────────────────(C-TimestampCollNotFound)
+(CommTimestamp (TSColl coll) label, σ) → err
+
+
+
+
+____________________Semantica de RollBack____________________
+
+
+σ' = timestampRead(label)
+──────────────────────────────────────────────────────────────────────────────────────(C-RollbackDB)
+(CommRollback (TSDatabase) label, σ) ~{ timestampRead(label) }~> (skip, σ')
+
+
+
+snapDocs = timestampRead(label)
+──────────────────────────────────────────────────────────────────────────────────────────────────(C-RollbackColl)
+(CommRollback (TSColl coll) label, σ) ~{ timestampRead(label) }~> (skip, [σ | coll : snapDocs])
+
+
+
+ ∄ timestampRead(label) 
+──────────────────────────────────────────────────────────────────────(C-RollbackErr)
+(CommRollback target label, σ) ~{ timestampRead(label) }~> err
+
+
+
+
+____________________Semantica de execCommsTrans____________________
+
+
+────────────────────(execCommsTrans)
+⟨[],σ⟩ ⇓ σ
+
+
+(comm,σ)⇓ (skip,σ')     ⟨comms,σ'⟩⇓ σ''
+────────────────────────────────────────(execCommsTrans)
+⟨cons comm comms,σ⟩ ⇓ σ''
+
+
+(comm,σ)⇓ (err,σ')  
+────────────────────────────────(execCommsTrans)
+⟨cons comm comms,σ⟩ ⇓ err
+
+
+
+
+____________________ Expresiones numéricas ____________________
+
+
+─────────────────────────────────────────(E-ConstNumber)
+( NConst n, d, σ) ⇓  n
+
+
+
+(lookup f d) ⇓ VNum v
+──────────────────────────────────────────── (evalNumExp-var)
+(NVar f, d, σ) ⇓ v
+
+
+
+(e1, d) ⇓ n1     (e2, d) ⇓ n2
+—───────────────────────────────────────────────── (evalNumExp-add)
+(NAdd e1 e2, d, σ) ⇓ n1 + n2
+
+
+
+(e1, d) ⇓ n1     (e2, d) ⇓ n2
+—───────────────────────────────────────────────────── (evalNumExp-sub)
+(NSub  e1 e2, d, σ ⇓ n1 - n2
+
+
+
+(e1, d) ⇓ n1     (e2, d) ⇓ n2
+—─────────────────────────────────────────────────── (evalNumExp-Mul)
+(NMul e1 e2 ,d, σ) ⇓ n1 * n2
+
+
+
+(e1, d) ⇓ n1     (e2, d) ⇓ n2    n2 != 0
+—──────────────────────────────────────────────────── (evalNumExp-Div)
+(NDiv e1 e2 ,d, σ) ⇓ n1 / n2
+
+
+
+(e1, d) ⇓ n1     (e2, d) ⇓ n2    n2 == 0
+—───────────────────────────────────────────────────── (evalNumExp-DivByZero)
+(NDiv e1 e2 ,d, σ) ⇓ DivByZero
+
+
+
+____________________ Expresiones literales/cadenas ____________________
+
+
+───────────────────────────────── (evalStrExp-Const)
+( SConst s, d, σ) ⇓  s
+
+
+
+(lookup f d) ⇓ VString s
+──────────────────────────────── (evalStrExp-var)
+(SVar  f, d, σ) ⇓ s
+
+
+
+
+__________________ Expresiones booleanas ____________________
+
+
+──────────────────────────── (evalBoolExp-True)
+(BTrue, d, σ) ⇓ true
+
+
+──────────────────────────────── (evalBoolExp-False)
+(BFalse, d, σ) ⇓ false
+
+
+
+(lookup f d) ⇓ VBool b
+───────────────────────────── (evalBoolExp-var)
+(BVar  f, d, σ) ⇓ b
+
+
+
+(b, d, σ) ⇓ true
+────────────────────────────────── (evalBoolExp-NotTrue)
+(Not b, d, σ) ⇓ false
+
+
+
+(b, d, σ) ⇓ false
+─────────────────────────────────── (evalBoolExp-NotFalse)
+(Not b, d, σ) ⇓ true
+
+
+
+(a, d, σ) ⇓evalBooExp v1   (b, d, σ) ⇓evalBooExp v2
+—───────────────────────────────────────────────────────── (evalBoolExp-And)
+(And a b, d, σ) ⇓ (v1 && v2)
+
+
+
+(b1, d, σ) ⇓ b1    (b2, d, σ) ⇓b2
+──────────────────────────────────────────────────────── (evalBoolExp-Or)
+(Or b1 b2, d, σ) ⇓ ( v1 || v2)
+
+
+
+(a, d, σ) ⇓evalNumExp v1   (b, d, σ) ⇓evalNumExp v2
+—─────────────────────────────────────────────────────── (evalBoolExp-EqNum)
+(EqNum a b, d, σ) ⇓ (v1 == v2)
+
+
+
+(a, d, σ) ⇓evalNumExp v1   (b, d, σ) ⇓evalNumExp v2
+—────────────────────────────────────────────────────── (evalBoolExp-NeqNum)
+(NeqNum a b, d, σ) ⇓ (v1 != v2)
+
+
+
+(a, d, σ) ⇓evalStrExp v1   (b, d, σ) ⇓evalStrExp v2
+—──────────────────────────────────────────────────────── (evalBoolExp-EqStr)
+(EqStr  a b, d, σ) ⇓ (v1 == v2)
+
+
+
+(a, d, σ) ⇓evalStrExp v1   (b, d, σ) ⇓evalStrExp v2
+—────────────────────────────────────────────────────── (evalBoolExp-NeqStr)
+(NeqStr a b, d, σ) ⇓ (v1 != v2)
+
+
+
+(a, d, σ) ⇓evalBoolExp v1   (b, d, σ) ⇓evalBoolExp v2
+—────────────────────────────────────────────────────────── (evalBoolExp-EqBool)
+(EqBool a b, d, σ) ⇓ (v1 == v2)
+
+
+
+(a, d, σ) ⇓evalBoolExp v1   (b, d, σ) ⇓evalBoolExp v2
+—─────────────────────────────────────────────────────────── (evalBoolExp-NeqStr)
+(NeqBool a b, d, σ) ⇓ (v1 != v2)
+
+
+
+(a, d, σ) ⇓evalPathExp v1
+—───────────────────────────────────────────────────────── (evalBoolExp-IsNull)
+(IsNull  a, d, σ) ⇓ (v1 == VNull)
+
+
+
+(a, d, σ) ⇓evaNumlExp v1   (b, d, σ) ⇓evalNumExp v2
+—─────────────────────────────────────────────────────────────── (evalBoolExp-Lt)
+(Lt a b, d, σ) ⇓ (v1 < v2)
+
+
+
+(a, d, σ) ⇓evaNumlExp v1   (b, d, σ) ⇓evalNumExp v2
+—─────────────────────────────────────────────────────────── (evalBoolExp-Le)
+(Le a b, d, σ) ⇓ (v1 <= v2)
+
+
+
+(a, d, σ) ⇓evaNumlExp v1   (b, d, σ) ⇓evalNumExp v2
+—────────────────────────────────────────────────── (evalBoolExp-Gt)
+(Gt a b, d, σ) ⇓ (v1 > v2)
+
+
+
+(a, d, σ) ⇓evaNumlExp v1   (b, d, σ) ⇓evalNumExp v2
+—───────────────────────────────────────────────── (evalBoolExp-Ge)
+(Ge a b, d, σ) ⇓ (v1 >= v2)
+
+
+
+(a, d, σ) ⇓evalPathExp v1
+—──────────────────────────────────────────────── (evalBoolExp-Exist)
+(Exist  a, d, σ) ⇓ true
+
+
+(a, d, σ) ⇓evalPathExp FieldNotFoundInObjetc
+—─────────────────────────────────────────────── (evalBoolExp-Exist)
+(Exists  a, d, σ) ⇓ false
+
+
+(a, d, σ) ⇓evalPathExp err     
+—───────────────────────────────────────────── (evalBoolExp-Exist)
+(Exists  a, d, σ) ⇓ err
+
+
+
+
+____________________ Expresiones Json  ____________________
+
+(n, d, σ) ⇓evalNumExp v
+─────────────────────────────────────────────────────────────── (evalJsonExp-Num)
+(JNum n, d, σ) ⇓ v
+
+
+
+(n, d, σ) ⇓evalStrExp v
+─────────────────────────────────────────────────────────────── (evalJsonExp-Str)
+(JStr n, d, σ) ⇓ v
+
+
+
+(n, d, σ) ⇓evalBoolExp v
+─────────────────────────────────────────────────────────────── (evalJsonExp-Bool)
+(JBool n, d, σ) ⇓ v
+
+
+
+─────────────────────────────────────────────────────────────── (evalJsonExp-Str)
+(JNull ,  d, σ) ⇓ VNull
+
+
+
+(n, d, σ) ⇓evalPathExp v
+─────────────────────────────────────────────────────────────── (evalJsonExp-Pathl)
+(JPath n, d, σ) ⇓ v
+
+
+
+∀i ∈ {1..n}. (e_i, d,  σ) ⇓evalJsonExp v_i
+───────────────────────────────────────────────────────────────────── (evalJsonExp-Object)
+(JObjectExp [(f1,e1),...,(fn,en)], σ) ⇓ VObject [(f1,v1),...,(fn,vn)]
+
+
+
+∀i ∈ {1..n}. (e_i, d, σ) ⇓evalJsonExp  v_i
+───────────────────────────────────────────────────────────────evalJsonExp-Array)
+(JArrayExp [e1,...,en], σ) ⇓ VArray [v1,...,vn]
+
+
+
+___________ Expresiones JsonAsObject  ___________
+
+
+(e, d, σ) ⇓evalJsonExp v    v: VObjetc
+─────────────────────────────────────────────────────────────── (evalJsonAsObject)
+(JSonExp  e, d, σ) ⇓ desencapsulador(v)
+
+
+
+(e, d, σ) ⇓evalJsonExp v       v!: VObject
+─────────────────────────────────────────────────────────────── (evalJsonExp-Str)
+(JSonExp  e, d, σ) ⇓ err
+
+
+
+
+
+____________________Semantica de CommQuery____________________
+
+
+  (Find coll ops term)⇓evalFind  docs
+──────────────────────────────────────────────────────────────────────────────(C-Query)
+(CommQuery (Find coll ops term), σ) ~{ evalTerminal(term, docs) }~> (skip, σ)
+
+
+  (σ(cn), ops)⇓applyPipeline docs
+──────────────────────────────────────────────────────────────────────────────(Find)
+(Find coll ops term, σ) ⇓ docs 
+
+
+  cn ∉ dom(σ)
+──────────────────────────────────────────────────────────────────────────────(Find-Err)
+(Find coll ops term, σ) ⇓ err 
+
+
+
+(docs, op)⇓applyOp docs'     (docs', ops)⇓applyPipeline docs''
+──────────────────────────────────────────────────────────────────────────────(ApplyPipeline)
+(applyPipeline docs (cons op ops), σ) ⇓ docs''
+
+  
+──────────────────────────────────────────────────────────────────────────────(ApplyPipeline-nil)
+(applyPipeline docs nil, σ) ⇓ docs
+
+
+
+docs' = { d ∈ docs | ⟨cond, d⟩ ⇓evalSafeBool true } 
+──────────────────────────────────────────────────────────────────────────────(ApplyOp-QFilter)
+(applyOp docs (QFilter cond), σ) ⇓ docs'
+
+
+docs' = { select(fields, d) | d ∈ docs }          
+────────────────────────────────────────────────────── (ApplyOp-QSelect) defini select arriba de todo
+(applyOp docs (QSelect fields), σ) ⇓ docs'
+
+
+docs' = [{ (k, v) | (k,v) ∈ d, k ∈ fields}| d ∈ docs] 
+────────────────────────────────────────────────────── (ApplyOp-QSelect)opcion sin func aux
+(applyOp docs (QSelect fields), σ) ⇓ docs'
+
+
+docs' = take(num, docs)
+────────────────────────────────────────────────(ApplyOp-QLimit) defini limit arriba de todo(definir recursivo)
+(applyOp docs (QLimit num), σ) ⇓ docs'
+
+
+docs' = sort(fields, docs)
+──────────────────────────────────────────────────────────────(ApplyOp-QSort)
+(applyOp docs (QSort fields), σ) ⇓ docs'
+
+
+
+(docs fields, σ) ⇓groupDocuments groups
+
+(fields aggs, groups, σ) ⇓buildGroupDoc groupedDocs
+
+(groupedDocs having, σ) ⇓applyHaving docs'
+────────────────────────────────────────────────────────────────────────────────── (ApplyOp-QGroup)
+(applyOp docs (QGroup (GroupSpec fields aggs having)), σ) ⇓ docs'
+
+
+
+n = count(docs)
+────────────────────────────────────────────────────────────────────────(AA-Count)  AGREGAR COUNT
+(applyAggregate (Aggregate AggCount path alias) docs, σ)⇓ (alias, n)
+
+
+∀i ∈ {1..n}. (path doc_i, σ) ⇓evalNumExp v_i
+───────────────────────────────────────────────────────────────────────────────────────────────(AA-Sum)  AGREGAR SUM
+(applyAggregate (Aggregate AggSum path alias) [d_1, ..., d_n], σ) ⇓ (alias, sum[v_1,..., v_n])
+
+
+∀i ∈ {1..n}. (path doc_i, σ) ⇓evalNumExp v_i
+───────────────────────────────────────────────────────────────────────────────────────────────(AA-Sum)  AGREGAR AVG
+(applyAggregate (Aggregate AggAvg path alias) [d_1, ..., d_n], σ) ⇓ (alias, avg[v_1,..., v_n])
+
+
+∀i ∈ {1..n}. (path doc_i, σ) ⇓evalNumExp v_i
+───────────────────────────────────────────────────────────────────────────────────────────────(AA-Sum)  AGREGAR min
+(applyAggregate (Aggregate AggMin path alias) [d_1, ..., d_n], σ) ⇓ (alias, min[v_1,..., v_n])
+
+
+∀i ∈ {1..n}. (path doc_i, σ) ⇓evalNumExp v_i
+───────────────────────────────────────────────────────────────────────────────────────────────(AA-Sum)  AGREGAR max
+(applyAggregate (Aggregate AggMax path alias) [d_1, ..., d_n], σ) ⇓ (alias, max[v_1,..., v_n])
+
+
+
+
+(agg docs, σ) ⇓ApplyAggregate keyValue      (buildGroupDoc fields aggs docs, σ)⇓ keysValue
+──────────────────────────────────────────────────────────────────────────────────────────────(buildGroupDocCons)
+(buildGroupDoc fields (cons agg  aggs) docs, σ)⇓ (cons keyValue keysValue)
+
+
+──────────────────────────────────────────────(buildGroupDocNil)
+(buildGroupDoc fields nil docs, σ)⇓ nil
+
+
+groups = {{ d ∈ docs | (fiels, d)⇓key llave = k | {(fiels, d')⇓key k | d' ∈ docs}}
+──────────────────────────────────────────────────────────────────────────────────(groupDocument)
+(groupDocument docs fields, σ) ⇓ groups
+
+
+
+llave = {(k, v) | f ∈ fields, (f, v) ∈ d}
+──────────────────────────────────────────────(keys)
+(key fields doc, σ) ⇓ llave
+
+
+
+
+
+
+
+
+
+───────regla de having───────
+
+──────────────────────────────────────────────────── (ApplyHaving-None)
+(groupedDocs, Nothing) ⇓applyHaving groupedDocs
+
+
+docs' = { d ∈ groupedDocs | ⟨cond, d⟩ ⇓evalSafeBool true }
+──────────────────────────────────────────────────────────── (ApplyHaving-Cond)
+(groupedDocs, Just cond) ⇓applyHaving docs'
+
+
+
+───────regla de sort───────
+
+docs' = [d₁, d₂, ..., dₙ]    ∀ k ∈ {1, ..., n-1}, d_k ≤fields d_{k+1}
+────────────────────────────────────────────────────────────────────────── (Sort)
+sort(fields, docs) ⇓ docs'
+
+
+El sort devuelve una lista de documentos tal que cada documento está correctamente ordenado respecto del siguiente según los criterios definidos en fields.
+
+
+───────reglas de comparacion───────
+
+
+───────────────────────── (Sort-Compare-Empty) si no hay mas criterios
+d₁ ≤[] d₂
+
+
+lookup(f, d₁) = v₁   lookup(f, d₂) = v₂   v₁ < v₂
+───────────────────────────────────────────────────────────── (Sort-Compare-Asc) orden ascendente
+d₁ ≤((f, Asc) : rest) d₂
+
+
+lookup(f, d₁) = v₁   lookup(f, d₂) = v₂   v₁ > v₂
+───────────────────────────────────────────────────────────── (Sort-Compare-Desc) caso descendente
+d₁ ≤((f, Desc) : rest) d₂
+
+
+lookup(f, d₁) = v   lookup(f, d₂) = v   d₁ ≤rest d₂
+───────────────────────────────────────────────────────────── (Sort-Compare-Eq)igualdad, sigue con el sig criterio
+d₁ ≤((f, ord) : rest) d₂
+
+
+
+──────────────────────────────────────────────────────────────────────────────(ApplyOp-Group)
+(applyOp docs (QGroup (GroupSpec fields aggs having)), σ) ⇓ docs'

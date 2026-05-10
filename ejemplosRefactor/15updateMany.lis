@@ -1,0 +1,9 @@
+updateMany.users(
+  name eqS "Demi",
+  {
+    name:s "Vollering",
+    age:n 27,
+    direccion:p {calle:s "Almafuerte", altura:n 1047},
+    active:b false
+  }
+)

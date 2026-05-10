@@ -179,8 +179,15 @@ numExpToJson (NConst (NInt n)) =
 numExpToJson (NConst (NFloat f)) =
   obj "float" [("value", A.Number (realToFrac f))]
 
+{--
 numExpToJson (NVar f) =
   obj "var" [("name", A.String (text f))]
+--}
+
+-- nuevo
+numExpToJson (NPath p) =
+  obj "path"
+    [ ("value", pathExpToJson p) ]
 
 numExpToJson (NAdd a b) =
   obj "add"
@@ -221,10 +228,16 @@ jsonToNumExp (A.Object obj) =
     Just (A.String "float") -> do
       v <- getFloatValue
       Right (NConst (NFloat v))
-
+    {--
     Just (A.String "var") -> do
       name <- getStringField "name" obj
       Right (NVar name)
+    --}
+    -- nuevo
+    Just (A.String "path") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (NPath p)
 
 
     Just (A.String "add") ->
@@ -282,10 +295,15 @@ strExpToJson (SConst s) =
   obj "string"
     [ ("value", A.String (text s)) ]
 
-strExpToJson (SVar f) =
+  {- 
+  strExpToJson (SVar f) =
   obj "var"
-    [ ("name", A.String (text f)) ]
-
+    [ ("name", A.String (text f)) ] 
+  -}
+-- nuevo
+strExpToJson (SPath p) =
+  obj "path"
+    [ ("value", pathExpToJson p) ]
 
 -------------------------------------------------------
 -- JSON -> StrExp
@@ -298,9 +316,16 @@ jsonToStrExp (A.Object obj) =
       v <- getStringValue
       Right (SConst v)
 
+    {--
     Just (A.String "var") -> do
       name <- getStringField "name" obj
       Right (SVar name)
+    --}
+    -- nuevo
+    Just (A.String "path") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (SPath p)
 
     _ ->
       Left "StrExp desconocida"
@@ -326,9 +351,15 @@ boolExpToJson BTrue =
 boolExpToJson BFalse =
   obj "false" []
 
+{--
 boolExpToJson (BVar f) =
   obj "boolVar"
     [ ("name", A.String (text f)) ]
+--}
+-- nuevo
+boolExpToJson (BPath p) =
+  obj "boolPath"
+    [ ("value", pathExpToJson p) ]
 
 boolExpToJson (Not b) =
   obj "not"
@@ -439,9 +470,16 @@ jsonToBoolExp (A.Object obj) =
     Just (A.String "false") ->
       Right BFalse
 
+    {--
     Just (A.String "boolVar") -> do
       name <- getStringField "name" obj
       Right (BVar name)
+    --}
+    -- nuevo
+    Just (A.String "boolPath") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (BPath p)
 
     Just (A.String "not") -> do
       v <- getField "value" obj
@@ -652,6 +690,57 @@ jsonToJsonField (A.Object obj) = do
 
 jsonToJsonField _ =
   Left "field mal formado"
+
+-------------------------------------------------------
+-- Exp -> JSON
+-------------------------------------------------------
+{--
+expToJson :: Exp -> A.Value
+expToJson (ENum n) =
+  obj "numExp"
+    [("value", numExpToJson n)]
+
+expToJson (EBool b) =
+  obj "boolExp"
+    [("value", boolExpToJson b)]
+
+expToJson (EJson j) =
+  obj "jsonExp"
+    [("value", jsonExpToJson j)]
+
+expToJson (EStr s) =
+  obj "strExp"
+    [("value", strExpToJson s)]
+--}
+-------------------------------------------------------
+-- JSON -> Exp
+-------------------------------------------------------
+{--
+jsonToExp :: A.Value -> Either String Exp
+jsonToExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+    Just (A.String "numExp") -> do
+      v <- getField "value" obj
+      n <- jsonToNumExp v
+      return (ENum n)
+    Just (A.String "boolExp") -> do
+      v <- getField "value" obj
+      b <- jsonToBoolExp v
+      return (EBool b)
+    Just (A.String "jsonExp") -> do
+      v <- getField "value" obj
+      j <- jsonToJsonExp v
+      return (EJson j)
+    Just (A.String "strExp") -> do
+      v <- getField "value" obj
+      s <- jsonToStrExp v
+      return (EStr s)
+    _ ->
+      Left "Exp desconocida"
+jsonToExp _ =
+  Left "Exp invalida"
+--}
+
 
 -------------------------------------------------------
 -- database -> Json (sin nextId, para timestamps)

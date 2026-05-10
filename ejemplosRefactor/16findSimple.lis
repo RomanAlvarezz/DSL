@@ -1,0 +1,4 @@
+find.users()
+.filter( exists(country) && direccion.tipo eqS "casa" )
+.limit(2)
+.preview()
