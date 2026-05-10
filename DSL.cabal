@@ -18,11 +18,11 @@ extra-source-files:  CHANGELOG.md
 
 executable DSL
   main-is:             Main.hs
-  other-modules:       ASTNuevo
-                   , ParserNuevo
-                   , EvaluatorMM2Nuevo
-                   , JSONAdapterNuevo
-                   , ValueNuevo
+  other-modules:       AST
+                   , Parser
+                   , Evaluator
+                   , JSONAdapter
+                   , Value
   -- other-extensions:
   build-depends:       base >=4.13 && <4.14,
                      aeson == 2.1.2.1,

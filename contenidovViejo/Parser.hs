@@ -1,9 +1,11 @@
-module ParserNuevo where
+module Parser where
 
+import Control.Monad (guard)
 import Text.ParserCombinators.Parsec
+import Text.Parsec.Expr
 import Text.Parsec.Token
 import Text.Parsec.Language (emptyDef)
-import ASTNuevo
+import AST
 
 
 totParser :: Parser a -> Parser a
@@ -19,7 +21,7 @@ dsl = makeTokenParser emptyDef
   , commentStart    = "/*"
   , commentEnd      = "*/"
   , reservedNames =
-      [ "find", "filter", "select", "sort", "limit", "createCollection", "dropCollection", "true", "false", "null"
+      [ "find", "true", "false", "null"
       , "asc", "desc"
       , "insert", "insertMany", "updateOne", "updateMany", "delete"
       , "groupby", "having"
@@ -29,16 +31,14 @@ dsl = makeTokenParser emptyDef
       , "createView", "useView"
       , "database"
       , "exists", "skip"
-      , "eq", "neq", "eqS", "neqS", "eqB", "neqB", "isNull"
       ]
   , reservedOpNames =
       [ ".", ",", ":", "==", "!=", ">", "<", ">=", "<="
       , "+", "-", "*", "/"
-      , "&&", "||", "!"
-      ,":n",":s",":b",":nl",":p"
+      , "&&", "||"
       ]
   }
-
+-- pArray
 identifierP = identifier dsl
 reservedP   = reserved dsl
 reservedOpP = reservedOp dsl
@@ -54,290 +54,149 @@ whiteSpaceP = whiteSpace dsl
 bracketsP :: Parser a -> Parser a
 bracketsP = brackets dsl
 
--- ======================================================
--- PARSER DE NUMEXP
--- ======================================================
-pNumExp :: Parser NumExp
-pNumExp = parseNumAddSub
+pExists :: Parser BoolExp
+pExists = do
+  reservedP "exists"
+  e <- parensP pExp
+  return (Exists e)
 
-parseNumAddSub :: Parser NumExp
-parseNumAddSub = chainl1 parseNumMulDiv numAddSubOp
 
-numAddSubOp :: Parser (NumExp -> NumExp -> NumExp)
-numAddSubOp =
-      (reservedOpP "+" >> return NAdd)
-  <|> (reservedOpP "-" >> return NSub)
+pExp :: Parser Exp
+pExp = parseAddSub
 
-parseNumMulDiv :: Parser NumExp
-parseNumMulDiv = chainl1 parseNumFactor numMulDivOp
+parseAddSub :: Parser Exp
+parseAddSub = chainl1 parseMulDiv addSubOp
 
-numMulDivOp :: Parser (NumExp -> NumExp -> NumExp)
-numMulDivOp =
-      (reservedOpP "*" >> return NMul)
-  <|> (reservedOpP "/" >> return NDiv)
+addSubOp :: Parser (Exp -> Exp -> Exp)
+addSubOp =
+      (reservedOpP "+" >> return AddExp)
+  <|> (reservedOpP "-" >> return SubExp)
 
-parseNumFactor :: Parser NumExp
-parseNumFactor =
-      parensP pNumExp
+parseMulDiv :: Parser Exp
+parseMulDiv = chainl1 parseFactor mulDivOp
+
+mulDivOp :: Parser (Exp -> Exp -> Exp)
+mulDivOp =
+      (reservedOpP "*" >> return MulExp)
+  <|> (reservedOpP "/" >> return DivExp)
+
+parseFactor :: Parser Exp
+parseFactor =
+      parensP pExp
+  <|> try parseFieldAccess
   <|> try (do
         f <- floatP
-        return (NConst (NFloat f)))
+        return (FloatExp f))
   <|> do
         i <- integerP
-        return (NConst (NInt (fromInteger i)))
+        return (IntExp (fromInteger i))
   <|> do
-        name <- pPathExp
-        return (NPath name)
+        s <- stringP
+        return (StringExp s)
+  <|> do
+        reservedP "true"
+        return (BoolExpVal True)
+  <|> do
+        reservedP "false"
+        return (BoolExpVal False)
+  <|> do
+        reservedP "null"
+        return NullExp
+  <|> pObject
+  <|> pArray
 
--- ======================================================
--- PARSER DE STREXP
--- ======================================================
-pStrExp :: Parser StrExp
-pStrExp =
-      try pStringConst -- saco 'try' ya que stringP e identifierP una emp con " y el otro con letra
-  <|> pStringPath
+parseFieldAccess :: Parser Exp
+parseFieldAccess = do
+  name <- identifierP
+  let base = VarExp name
+  fields <- many (do
+    reservedOpP "."
+    identifierP
+    )
+  return (foldl FieldAccess base fields)
 
-pStringConst :: Parser StrExp
-pStringConst = do
-  s <- stringP
-  return (SConst s)
+-- Objetos y Arrays JSON     
+pObject :: Parser Exp
+pObject = do
+  fields <- bracesP (pField `sepBy` commaP)
+  return (JObjectExp fields)
 
-pStringPath :: Parser StrExp
-pStringPath = do
-  name <- pPathExp 
-  return (SPath name)
+pField :: Parser (FieldName, Exp)
+pField = do
+  f <- identifierP
+  reservedOpP ":"
+  v <- pExp
+  return (f, v)
 
--- ======================================================
--- PARSER DE BOOLEXP
--- ======================================================
+pArray :: Parser Exp
+pArray = do
+  elems <- bracketsP (pExp `sepBy` commaP)
+  return (JArrayExp elems)
+
 pBoolExp :: Parser BoolExp
 pBoolExp = parseOr
 
--- nivel más alto: ||
 parseOr :: Parser BoolExp
 parseOr = chainl1 parseAnd orOp
 
 orOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-orOp =
-  reservedOpP "||" >> return Or
+orOp = reservedOpP "||" >> return Or
 
--- nivel medio: &&
 parseAnd :: Parser BoolExp
 parseAnd = chainl1 parseNot andOp
 
 andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-andOp =
-  reservedOpP "&&" >> return And
+andOp = reservedOpP "&&" >> return And
 
--- nivel siguiente: !
 parseNot :: Parser BoolExp
 parseNot =
       (reservedOpP "!" >> do
           b <- parseNot
           return (Not b))
-  <|> pBoolComparison
+  <|> pBoolTerm
 
--- nivel de comparaciones booleanas, acá viven eqB, eq, eqS y las relacionales
-pBoolComparison :: Parser BoolExp
-pBoolComparison =
-      try pEqBool
-  <|> try pEqNum
-  <|> try pEqStr
-  <|> pBoolAtom
-
--- nivel base: booleanos "atómicos" que pueden participar tanto solos como dentro de eqB / neqB
-pBoolAtom :: Parser BoolExp
-pBoolAtom =
+pBoolTerm :: Parser BoolExp
+pBoolTerm =
       parensP pBoolExp
   <|> try pExists
-  <|> try pIsNull
-  <|> try pRelational
-  <|> try pBoolLiteral
-  <|> pBoolVariable
+  <|> pComparison
+  <|> do
+        reservedP "true"
+        return BTrue
+  <|> do
+        reservedP "false"
+        return BFalse
 
-pBoolLiteral :: Parser BoolExp
-pBoolLiteral =
-      (reservedP "true" >> return BTrue)
-  <|> (reservedP "false" >> return BFalse)
-
-pBoolVariable :: Parser BoolExp
-pBoolVariable = do
-  name <- pPathExp
-  return (BPath name)
-
-pExists :: Parser BoolExp
-pExists = do
-  reservedP "exists"
-  p <- parensP pPathExp
-  return (Exists p)
-
-pIsNull :: Parser BoolExp
-pIsNull = do
-  reservedP "isNull"
-  field <- parensP pPathExp
-  return (IsNull field)
-
--- comparaciones numéricas
-pEqNum :: Parser BoolExp
-pEqNum = do
-  e1 <- pNumExp
-  op <- pEqNumOp
-  e2 <- pNumExp
+pComparison :: Parser BoolExp
+pComparison = do
+  e1 <- pExp
+  op <- compOp
+  e2 <- pExp
   return (op e1 e2)
 
-pEqNumOp :: Parser (NumExp -> NumExp -> BoolExp)
-pEqNumOp =
-      (reservedP "eq" >> return EqNum)
-  <|> (reservedP "neq" >> return NeqNum)
-
--- comparaciones de strings
-pEqStr :: Parser BoolExp
-pEqStr = do
-  e1 <- pStrExp
-  op <- pEqStrOp
-  e2 <- pStrExp
-  return (op e1 e2)
-
-pEqStrOp :: Parser (StrExp -> StrExp -> BoolExp)
-pEqStrOp =
-      (reservedP "eqS" >> return EqStr)
-  <|> (reservedP "neqS" >> return NeqStr)
-
--- comparaciones booleanas IMPORTANTE: usamos pBoolAtom y NO pBoolExp para evitar recursión infinita
-pEqBool :: Parser BoolExp
-pEqBool = do
-  e1 <- pBoolAtom
-  op <- pEqBoolOp
-  e2 <- pBoolAtom
-  return (op e1 e2)
-
-pEqBoolOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-pEqBoolOp =
-      (reservedP "eqB" >> return EqBool)
-  <|> (reservedP "neqB" >> return NeqBool)
-
--- comparaciones relacionales
-pRelational :: Parser BoolExp
-pRelational = do
-  e1 <- pNumExp
-  op <- relOp
-  e2 <- pNumExp
-  return (op e1 e2)
-
-relOp :: Parser (NumExp -> NumExp -> BoolExp)
-relOp =
-      (reservedOpP ">=" >> return Ge)
-  <|> (reservedOpP "<=" >> return Le)
-  <|> (reservedOpP ">"  >> return Gt)
-  <|> (reservedOpP "<"  >> return Lt)
-
--- ======================================================
--- path expressions
--- ======================================================
-pPathExp :: Parser PathExp
-pPathExp = do
-  base <- identifierP
-  fields <- many (reservedOpP "." >> identifierP)
-  return (foldl PAccess (PVar base) fields)
-
--- ======================================================
--- PARSER DE JSONEXP
--- ======================================================
--- pruebo de sacar los try de aca
-pJsonExp :: Parser JsonExp
-pJsonExp =
-      pJObject
-  <|> pJArray
-  <|> pJNull
-  <|> pJBool
-  <|> pJNum
-  <|> pJStr
-  <|> pJPath
-
-pJNull :: Parser JsonExp
-pJNull = do
-  reservedP "null"
-  return JNull
-
-pJBool = do
-  b <- pBoolLiteral
-  return (JBool b)
-
-pJNum :: Parser JsonExp
-pJNum = do
-  n <- pNumExp
-  return (JNum n)
-
-pJStr :: Parser JsonExp
-pJStr = do
-  s <- pStrExp
-  return (JStr s)
-
-pJObject :: Parser JsonExp
-pJObject = do
-  fields <- bracesP (pJField `sepBy` commaP)
-  return (JObject fields)
-
-pJField :: Parser (FieldName, JsonExp)
-pJField =
-      try pJFieldNull
-  <|> try pJFieldNum
-  <|> try pJFieldStr
-  <|> try pJFieldBool
-  <|> pJFieldPath
-
-pJFieldNum :: Parser (FieldName, JsonExp)
-pJFieldNum = do
-  name <- identifierP
-  reservedOpP ":n"
-  value <- pNumExp
-  return (name, JNum value)
-
-pJFieldStr :: Parser (FieldName, JsonExp)
-pJFieldStr = do
-  name <- identifierP
-  reservedOpP ":s"
-  value <- pStrExp
-  return (name, JStr value)
-
-pJFieldBool :: Parser (FieldName, JsonExp)
-pJFieldBool = do
-  name <- identifierP
-  reservedOpP ":b"
-  value <- pBoolExp
-  return (name, JBool value)
-
-pJFieldNull :: Parser (FieldName, JsonExp)
-pJFieldNull = do
-  name <- identifierP
-  reservedOpP ":nl"
-  reservedP "null"
-  return (name, JNull)
-
-pJFieldPath :: Parser (FieldName, JsonExp)
-pJFieldPath = do
-  name <- identifierP
-  reservedOpP ":p"
-  value <- try pJObject <|> pJPath
-  return (name, value)
-
--- decidir si queremos un array de expresiones json o solo de objetos json
-pJArray :: Parser JsonExp
-pJArray = do
-  elems <- bracketsP (pJsonExp `sepBy` commaP)
-  return (JArray elems)
-
-pJPath :: Parser JsonExp
-pJPath = do
-  path <- pPathExp
-  return (JPath path)
-
--- ======================================================
--- PARSER DE COMANDOS
--- ======================================================
+compOp :: Parser (Exp -> Exp -> BoolExp)
+compOp =
+      do
+        reservedOpP "=="
+        return Eq
+  <|> do
+        reservedOpP "!="
+        return Neq
+  <|> do
+        reservedOpP ">"
+        return Gt
+  <|> do
+        reservedOpP ">="
+        return Ge
+  <|> do
+        reservedOpP "<"
+        return Lt
+  <|> do
+        reservedOpP "<="
+        return Le
 
 -- Operaciones del pipeline
--- creo que aca estan correctos los try ya que todos comienzan con '.' excepto sort
+
 pQueryOp :: Parser QueryOp
 pQueryOp =
       try pFilter
@@ -347,6 +206,7 @@ pQueryOp =
   <|> try pGroup
 
 -- Filter
+
 pFilter :: Parser QueryOp
 pFilter = do
   reservedOpP "."
@@ -355,6 +215,7 @@ pFilter = do
   return (QFilter b)
 
 -- Select
+
 pSelect :: Parser QueryOp
 pSelect = do
   reservedOpP "."
@@ -363,6 +224,7 @@ pSelect = do
   return (QSelect ids)
 
 -- Sort
+
 pSort :: Parser QueryOp
 pSort = do
   reservedOpP "."
@@ -400,7 +262,7 @@ pGroup = do
   hav <- optionMaybe (try pHaving)
   return (QGroup (GroupSpec fields aggs hav))
 
--- aca lo mismo, creo que porque empiezan con '.' estan bien los try
+
 pAggregate :: Parser Aggregate
 pAggregate =
       try pCount
@@ -408,6 +270,7 @@ pAggregate =
   <|> try pAvg
   <|> try pMin
   <|> try pMax
+
 
 pCount :: Parser Aggregate
 pCount = do
@@ -420,6 +283,7 @@ pCount = do
     return (a, b))
   return (Aggregate AggCount field alias)
 
+
 pSum :: Parser Aggregate
 pSum = do
   reservedOpP "."
@@ -430,6 +294,7 @@ pSum = do
     b <- identifierP
     return (a, b))
   return (Aggregate AggSum field alias)
+
 
 pAvg :: Parser Aggregate
 pAvg = do
@@ -442,6 +307,7 @@ pAvg = do
     return (a, b))
   return (Aggregate AggAvg field alias)
 
+
 pMin :: Parser Aggregate
 pMin = do
   reservedOpP "."
@@ -452,6 +318,7 @@ pMin = do
     b <- identifierP
     return (a, b))
   return (Aggregate AggMin field alias)
+
 
 pMax :: Parser Aggregate
 pMax = do
@@ -464,6 +331,7 @@ pMax = do
     return (a, b))
   return (Aggregate AggMax field alias)
 
+
 pHaving :: Parser BoolExp
 pHaving = do
   reservedOpP "."
@@ -472,6 +340,7 @@ pHaving = do
   return b
 
 -- Terminales
+
 pTerminal :: Parser QueryTerminal
 pTerminal =
       try pPreview
@@ -499,6 +368,7 @@ parseJsonPath = do
   char '"'
   return (name ++ ".json")
 
+
 --Query completa target
 pFind :: Parser Find
 pFind = do
@@ -513,10 +383,10 @@ pFind = do
 --Statements
 pSkip :: Parser Comm
 pSkip = do
-  reservedP "skip"
+  reservedP "Skip"
   return Skip
 
--- crear coleccion
+
 pCreateCollection :: Parser Comm
 pCreateCollection = do
   reservedP "createCollection"
@@ -525,7 +395,6 @@ pCreateCollection = do
   parensP (return ())
   return (CommCreateColl col)
 
--- eliminar coleccion
 pDropCollection :: Parser Comm
 pDropCollection = do
   reservedP "dropCollection"
@@ -534,39 +403,34 @@ pDropCollection = do
   parensP (return ())
   return (CommDropColl col)
 
--- insert individual
 pInsert :: Parser Comm
 pInsert = do
   reservedP "insert"
   reservedOpP "."
   col <- identifierP
-  doc <- parensP pJsonExp
+  doc <- parensP pExp
   return (CommInsert col doc)
 
-
--- insert many
 pInsertManyComm :: Parser Comm
 pInsertManyComm = do
   reservedP "insertMany"
   reservedOpP "."
   col <- identifierP
-  docs <- parensP (bracketsP (pJsonExp `sepBy1` commaP))
-  return (CommInsertMany col docs)
+  listDoc <- parensP (bracketsP (pExp `sepBy1` commaP))
+  return (CommInsertMany col listDoc)
 
--- update one
 pUpdateOneComm :: Parser Comm
-pUpdateOneComm = do
+pUpdateOneComm = do  
   reservedP "updateOne"
   reservedOpP "."
   col <- identifierP
   (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
-    d <- pJsonExp
+    d <- pExp
     return (c, d))
   return (CommUpdateOne col cond doc)
 
--- uptade many
 pUpdateManyComm :: Parser Comm
 pUpdateManyComm = do
   reservedP "updateMany"
@@ -575,27 +439,26 @@ pUpdateManyComm = do
   (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
-    d <- pJsonExp
+    d <- pExp
     return (c, d))
   return (CommUpdateMany col cond doc)
 
--- delete document
+
 pDeleteComm :: Parser Comm
-pDeleteComm = do
+pDeleteComm = do  
   reservedP "delete"
   reservedOpP "."
   col <- identifierP
   cond <- parensP pBoolExp
   return (CommDelete col cond)
 
--- transaccion
 pTransactionComm :: Parser Comm
 pTransactionComm = do
   reservedP "transaction"
-  commList <- bracesP (pSingleStatement `sepBy1` semiP)
+  --reservedOpP "."
+  commList <- bracesP (pStatement `sepBy1` semiP)
   return (CommTransaction commList)
 
--- creacion de timestamp
 pTimestampComm :: Parser Comm
 pTimestampComm = do
   reservedP "timestamp"
@@ -604,7 +467,6 @@ pTimestampComm = do
   label <- parensP stringP
   return (CommTimestamp target label)
 
--- rollback
 pRollbackComm :: Parser Comm
 pRollbackComm = do
   reservedP "rollback"
@@ -613,7 +475,6 @@ pRollbackComm = do
   label <- parensP stringP
   return (CommRollback target label)
 
--- tipo de timestamp
 pTimestampTarget :: Parser TimestampTarget
 pTimestampTarget =
       do
@@ -623,7 +484,7 @@ pTimestampTarget =
         name <- identifierP
         return (TSColl name)
 
--- creacion de la vista
+
 pCreateViewComm :: Parser Comm
 pCreateViewComm = do
   reservedP "createView"
@@ -634,7 +495,6 @@ pCreateViewComm = do
     return (n, f))
   return (CommCreateView name findQ)
 
--- uso de la vista
 pUseViewComm :: Parser Comm
 pUseViewComm = do
   reservedP "useView"
@@ -642,7 +502,7 @@ pUseViewComm = do
   option <- pViewOption viewName
   return (CommUseView viewName option)
 
--- se ejecuta la vista sola o con pipeline
+-- parser de ViewOption
 pViewOption :: ViewName -> Parser ViewOption
 pViewOption viewName =
       try (do
@@ -660,26 +520,27 @@ seqOp = do
   semiP
   return Seq
 
--- pruebo sacando todos los try de aca (salvo find que ya no lo tenia desde antes)
 pSingleStatement :: Parser Comm
 pSingleStatement =
-     pSkip
-  <|> pTransactionComm
-  <|> pCreateCollection
-  <|> pDropCollection
-  <|> pCreateViewComm
-  <|> pUseViewComm
-  <|> pTimestampComm
-  <|> pRollbackComm
-  <|> pInsertManyComm
-  <|> pUpdateOneComm
-  <|> pUpdateManyComm
-  <|> pDeleteComm
-  <|> pInsert
+      try pSkip
+  <|> try pTransactionComm
+  <|> try pCreateCollection
+  <|> try pDropCollection
+  <|> try pCreateViewComm
+  <|> try pUseViewComm
+  <|> try pTimestampComm
+  <|> try pRollbackComm
+  <|> try pInsertManyComm
+  <|> try pUpdateOneComm
+  <|> try pUpdateManyComm
+  <|> try pDeleteComm
+  <|> try pInsert
   <|> do
         q <- pFind
         return (CommQuery q)
 
 -- Programa completo
+
 pProgram :: Parser Comm
 pProgram = totParser pStatement
+

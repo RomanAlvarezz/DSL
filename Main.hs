@@ -3,10 +3,10 @@ module Main where
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
 import Text.ParserCombinators.Parsec (parse)
-import ParserNuevo (pProgram)
-import ASTNuevo
-import EvaluatorMM2Nuevo
-import JSONAdapterNuevo
+import Parser (pProgram)
+import AST
+import Evaluator
+import JSONAdapter
 import qualified Data.Map as M
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode.Pretty as AP
@@ -84,7 +84,7 @@ runEvaluator ast jsonFile = do
 
   result <- runEval (evalComm ast) initialState
 
-  -- este case seria la nueva forma de ver el resultado de evaluatorMM
+  -- este case seria la nueva forma de ver el resultado de evaluator
   case result of
 
     Left err ->

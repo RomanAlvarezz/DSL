@@ -1,30 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
---module JSONAdapter( jsonToDatabase, databaseToJson, jsonToValue, valueToJson) where
-module JSONAdapter(
-  -- ya existentes
-  jsonToDatabase,
-  databaseToJson,
-  jsonToValue,
-  valueToJson,
-
+module JSONAdapter(jsonToDatabase, databaseToJson, jsonToValue, valueToJson,
   -- para snapshots
-  databaseToJsonSnap,
-  jsonToDatabaseSnap,
-  timestampSnapshotToJson,
-  jsonToTimestampSnapshot,
-
+  databaseToJsonSnap, jsonToDatabaseSnap, timestampSnapshotToJson, jsonToTimestampSnapshot,
   -- para views
-  findToJson,
-  jsonToFind,
-
-  -- helper necesario
-  parseCollection
+  findToJson, jsonToFind, parseCollection
 ) where
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Key as K
 import qualified Data.Aeson.KeyMap as KM
---import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Scientific (floatingOrInteger, Scientific, scientific)
@@ -32,14 +16,11 @@ import Data.Scientific (floatingOrInteger, Scientific, scientific)
 import AST
 import Prelude hiding (Eq)
 import Value hiding (FieldName)
---import Evaluator
 
 -------------------------------------------------------
 -- JSON -> VALUE
 -------------------------------------------------------
-
 jsonToValue :: A.Value -> Value
-
 jsonToValue (A.String t) =
   VString (str t)
 
@@ -48,11 +29,11 @@ jsonToValue (A.Bool b) =
 
 jsonToValue A.Null =
   VNull
-
+-- cambio aca por tipo nuestro Number
 jsonToValue (A.Number n) =
   case floatingOrInteger n of
-    Left f  -> VFloat f
-    Right i -> VInt i
+    Left f  -> VNum (NFloat f)
+    Right i -> VNum (NInt i)
 
 jsonToValue (A.Array arr) =
   VArray (map jsonToValue (V.toList arr))
@@ -66,9 +47,7 @@ jsonToValue (A.Object obj) =
 -------------------------------------------------------
 -- VALUE -> JSON
 -------------------------------------------------------
-
 valueToJson :: Value -> A.Value
-
 valueToJson (VString s) =
   A.String (text s)
 
@@ -77,14 +56,12 @@ valueToJson (VBool b) =
 
 valueToJson VNull =
   A.Null
-
-valueToJson (VInt i) =
+-- cambiado a nuestro tipo Number del AST
+valueToJson (VNum (NInt i)) =
   A.Number (fromIntegral i)
-
---valueToJson (VFloat f) =
---  A.Number (realToFrac f)
-valueToJson (VFloat f) =
-  A.Number (truncateTOScientific 3 f)
+-- cambiado a nuestro tipo Number del AST
+valueToJson (VNum (NFloat f)) =
+  A.Number (truncateTOScientific 5 f)
 
 valueToJson (VArray xs) =
   A.Array (V.fromList (map valueToJson xs))
@@ -153,19 +130,15 @@ parseCollection _ =
 -- DATABASE -> JSON
 -------------------------------------------------------
 databaseToJson :: Database -> Int -> A.Value
-
 databaseToJson db nextId =
   A.Object (
     KM.fromList (
       [ (stringToKey "_meta", metaObject nextId) ] ++
-      [ (stringToKey coll, collectionToJson docs)
-      | (coll, docs) <- db
-      ]
+      [ (stringToKey coll, collectionToJson docs) | (coll, docs) <- db ]
     )
   )
 
 metaObject :: Int -> A.Value
-
 metaObject n =
   A.Object (
     KM.fromList
@@ -174,14 +147,12 @@ metaObject n =
 
 
 collectionToJson :: [Document] -> A.Value
-
 collectionToJson docs =
   A.Array (
     V.fromList (map documentToJson docs)
   )
 
 documentToJson :: Document -> A.Value
-
 documentToJson doc =
   A.Object (
     KM.fromList
@@ -196,11 +167,582 @@ truncateTOScientific n x =
       scaled = truncate (x * fromIntegral factor)
   in scientific scaled (negate n)
 
+-------------------------------------------------------
+-- NumExp -> JSON
+-------------------------------------------------------
+numExpToJson :: NumExp -> A.Value
+numExpToJson (NConst (NInt n)) =
+  obj "int" [("value", A.Number (fromIntegral n))]
+
+numExpToJson (NConst (NFloat f)) =
+  obj "float" [("value", A.Number (realToFrac f))]
+
+{--
+numExpToJson (NVar f) =
+  obj "var" [("name", A.String (text f))]
+--}
+
+-- nuevo
+numExpToJson (NPath p) =
+  obj "path"
+    [ ("value", pathExpToJson p) ]
+
+numExpToJson (NAdd a b) =
+  obj "add"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+numExpToJson (NSub a b) =
+  obj "sub"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+numExpToJson (NMul a b) =
+  obj "mul"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+numExpToJson (NDiv a b) =
+  obj "div"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+
+-------------------------------------------------------
+-- JSON -> NumExp
+-------------------------------------------------------
+jsonToNumExp :: A.Value -> Either String NumExp
+jsonToNumExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+
+    Just (A.String "int") -> do
+      v <- getIntValue
+      Right (NConst (NInt v))
+
+    Just (A.String "float") -> do
+      v <- getFloatValue
+      Right (NConst (NFloat v))
+    {--
+    Just (A.String "var") -> do
+      name <- getStringField "name" obj
+      Right (NVar name)
+    --}
+    -- nuevo
+    Just (A.String "path") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (NPath p)
+
+
+    Just (A.String "add") ->
+      bin NAdd
+
+    Just (A.String "sub") ->
+      bin NSub
+
+    Just (A.String "mul") ->
+      bin NMul
+
+    Just (A.String "div") ->
+      bin NDiv
+
+    _ ->
+      Left "NumExp desconocida"
+
+  where
+
+    getIntValue = do
+      v <- getField "value" obj
+      case v of
+        A.Number n ->
+          case floatingOrInteger n of
+            Right i -> Right i
+            _ -> Left "No es int"
+        _ ->
+          Left "No es numero"
+
+    getFloatValue = do
+      v <- getField "value" obj
+      case v of
+        A.Number n ->
+          case floatingOrInteger n of
+            Left f  -> Right f
+            Right i -> Right (fromIntegral i)
+        _ ->
+          Left "No es numero"
+
+    bin cons = do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToNumExp l
+      right <- jsonToNumExp r
+      return (cons left right)
+
+jsonToNumExp _ =
+  Left "NumExp invalida"
+
+-------------------------------------------------------
+-- StrExp -> JSON
+-------------------------------------------------------
+strExpToJson :: StrExp -> A.Value
+strExpToJson (SConst s) =
+  obj "string"
+    [ ("value", A.String (text s)) ]
+
+  {- 
+  strExpToJson (SVar f) =
+  obj "var"
+    [ ("name", A.String (text f)) ] 
+  -}
+-- nuevo
+strExpToJson (SPath p) =
+  obj "path"
+    [ ("value", pathExpToJson p) ]
+
+-------------------------------------------------------
+-- JSON -> StrExp
+-------------------------------------------------------
+jsonToStrExp :: A.Value -> Either String StrExp
+jsonToStrExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+
+    Just (A.String "string") -> do
+      v <- getStringValue
+      Right (SConst v)
+
+    {--
+    Just (A.String "var") -> do
+      name <- getStringField "name" obj
+      Right (SVar name)
+    --}
+    -- nuevo
+    Just (A.String "path") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (SPath p)
+
+    _ ->
+      Left "StrExp desconocida"
+
+  where
+
+    getStringValue = do
+      v <- getField "value" obj
+      case v of
+        A.String t -> Right (str t)
+        _ -> Left "No es string"
+
+jsonToStrExp _ =
+  Left "StrExp invalida"
+
+-------------------------------------------------------
+-- BoolExp -> JSON
+-------------------------------------------------------
+boolExpToJson :: BoolExp -> A.Value
+boolExpToJson BTrue =
+  obj "true" []
+
+boolExpToJson BFalse =
+  obj "false" []
+
+{--
+boolExpToJson (BVar f) =
+  obj "boolVar"
+    [ ("name", A.String (text f)) ]
+--}
+-- nuevo
+boolExpToJson (BPath p) =
+  obj "boolPath"
+    [ ("value", pathExpToJson p) ]
+
+boolExpToJson (Not b) =
+  obj "not"
+    [ ("value", boolExpToJson b) ]
+
+boolExpToJson (And a b) =
+  obj "and"
+    [ ("l", boolExpToJson a)
+    , ("r", boolExpToJson b)
+    ]
+
+boolExpToJson (Or a b) =
+  obj "or"
+    [ ("l", boolExpToJson a)
+    , ("r", boolExpToJson b)
+    ]
+
+boolExpToJson (EqNum a b) =
+  obj "eqN"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (NeqNum a b) =
+  obj "neqN"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (EqStr a b) =
+  obj "eqS"
+    [ ("l", strExpToJson a)
+    , ("r", strExpToJson b)
+    ]
+
+boolExpToJson (NeqStr a b) =
+  obj "neqS"
+    [ ("l", strExpToJson a)
+    , ("r", strExpToJson b)
+    ]
+
+boolExpToJson (EqBool a b) =
+  obj "eqB"
+    [ ("l", boolExpToJson a)
+    , ("r", boolExpToJson b)
+    ]
+
+boolExpToJson (NeqBool a b) =
+  obj "neqB"
+    [ ("l", boolExpToJson a)
+    , ("r", boolExpToJson b)
+    ]
+
+boolExpToJson (IsNull f) =
+  obj "isNull"
+    [ ("field", pathExpToJson f) ]
+
+-- ==========================================================
+
+boolExpToJson (Lt a b) =
+  obj "lt"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (Le a b) =
+  obj "le"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (Gt a b) =
+  obj "gt"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (Ge a b) =
+  obj "ge"
+    [ ("l", numExpToJson a)
+    , ("r", numExpToJson b)
+    ]
+
+boolExpToJson (Exists p) =
+  obj "exists"
+    [ ("value", pathExpToJson p) ]
+
+pathExpToJson :: PathExp -> A.Value
+pathExpToJson (PVar f) =
+  obj "pathVar" [("name", A.String (text f))]
+
+pathExpToJson (PAccess p f) =
+  obj "pathAccess"
+    [ ("path", pathExpToJson p)
+    , ("field", A.String (text f))
+    ]
+
+-------------------------------------------------------
+-- JSON -> BoolExp
+-------------------------------------------------------
+jsonToBoolExp :: A.Value -> Either String BoolExp
+jsonToBoolExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+
+    Just (A.String "true") ->
+      Right BTrue
+
+    Just (A.String "false") ->
+      Right BFalse
+
+    {--
+    Just (A.String "boolVar") -> do
+      name <- getStringField "name" obj
+      Right (BVar name)
+    --}
+    -- nuevo
+    Just (A.String "boolPath") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      Right (BPath p)
+
+    Just (A.String "not") -> do
+      v <- getField "value" obj
+      b <- jsonToBoolExp v
+      return (Not b)
+
+    Just (A.String "and") -> do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (And left right)
+
+    Just (A.String "or") -> do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (Or left right)
+
+    Just (A.String "eqN") ->
+      binNum EqNum
+
+    Just (A.String "neqN") ->
+      binNum NeqNum
+
+    Just (A.String "eqS") ->
+      binStr EqStr
+
+    Just (A.String "neqS") ->
+      binStr NeqStr
+
+    Just (A.String "eqB") ->
+      binBool EqBool
+
+    Just (A.String "neqB") ->
+      binBool NeqBool
+
+    Just (A.String "isNull") -> do
+      v <- getField "field" obj
+      p <- jsonToPathExp v
+      Right (IsNull p)
+
+    Just (A.String "lt") ->
+      binNum Lt
+
+    Just (A.String "le") ->
+      binNum Le
+
+    Just (A.String "gt") ->
+      binNum Gt
+
+    Just (A.String "ge") ->
+      binNum Ge
+
+    Just (A.String "exists") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      return (Exists p)
+
+    _ ->
+      Left "BoolExp desconocido"
+
+  where
+
+    binNum cons = do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToNumExp l
+      right <- jsonToNumExp r
+      return (cons left right)
+
+    binStr cons = do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToStrExp l
+      right <- jsonToStrExp r
+      return (cons left right)
+
+    binBool cons = do
+      l <- getField "l" obj
+      r <- getField "r" obj
+      left <- jsonToBoolExp l
+      right <- jsonToBoolExp r
+      return (cons left right)
+
+jsonToBoolExp _ =
+  Left "BoolExp invalido"
+
+jsonToPathExp :: A.Value -> Either String PathExp
+jsonToPathExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+    Just (A.String "pathVar") -> do
+      name <- getStringField "name" obj
+      Right (PVar name)
+    Just (A.String "pathAccess") -> do
+      p <- getField "path" obj
+      f <- getStringField "field" obj
+      path <- jsonToPathExp p
+      return (PAccess path f)
+    _ ->
+      Left "PathExp desconocido"
+
+jsonToPathExp _ =
+  Left "PathExp invalido"
+
+-------------------------------------------------------
+-- JsonExp -> JSON
+-------------------------------------------------------
+jsonExpToJson :: JsonExp -> A.Value
+jsonExpToJson (JObject fields) =
+  obj "object"
+    [ ("fields",
+        A.Array (V.fromList (map jsonFieldToJson fields)))
+    ]
+
+jsonExpToJson (JArray xs) =
+  obj "array"
+    [ ("values",
+        A.Array (V.fromList (map jsonExpToJson xs)))
+    ]
+
+jsonExpToJson (JNum n) =
+  obj "jsonNum"
+    [ ("value", numExpToJson n) ]
+
+jsonExpToJson (JStr s) =
+  obj "jsonStr"
+    [ ("value", strExpToJson s) ]
+
+jsonExpToJson (JBool b) =
+  obj "jsonBool"
+    [ ("value", boolExpToJson b) ]
+
+jsonExpToJson JNull =
+  obj "jsonNull" []
+
+jsonExpToJson (JPath p) =
+  obj "jsonPath"
+    [ ("value", pathExpToJson p) ]
+
+
+-- helper para fields de JObject
+jsonFieldToJson :: (FieldName, JsonExp) -> A.Value
+jsonFieldToJson (k, v) =
+  A.Object (KM.fromList
+    [ (stringToKey "k", A.String (text k))
+    , (stringToKey "v", jsonExpToJson v)
+    ])
+
+-------------------------------------------------------
+-- JSON -> JsonExp
+-------------------------------------------------------
+jsonToJsonExp :: A.Value -> Either String JsonExp
+jsonToJsonExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+    -- object
+    Just (A.String "object") -> do
+      arr <- getArrayField "fields" obj
+      fields <- mapM jsonToJsonField arr
+      Right (JObject fields)
+    -- array
+    Just (A.String "array") -> do
+      arr <- getArrayField "values" obj
+      xs <- mapM jsonToJsonExp arr
+      Right (JArray xs)
+    -- num
+    Just (A.String "jsonNum") -> do
+      v <- getField "value" obj
+      n <- jsonToNumExp v
+      return (JNum n)
+    -- str
+    Just (A.String "jsonStr") -> do
+      v <- getField "value" obj
+      s <- jsonToStrExp v
+      return (JStr s)
+    -- bool
+    Just (A.String "jsonBool") -> do
+      v <- getField "value" obj
+      b <- jsonToBoolExp v
+      return (JBool b)
+    -- null
+    Just (A.String "jsonNull") ->
+      Right JNull
+    -- path
+    Just (A.String "jsonPath") -> do
+      v <- getField "value" obj
+      p <- jsonToPathExp v
+      return (JPath p)
+
+    _ ->
+      Left "JsonExp desconocida"
+
+jsonToJsonExp _ =
+  Left "JsonExp invalida"
+
+
+-- Helper para fields de JObject
+jsonToJsonField :: A.Value -> Either String (FieldName, JsonExp)
+jsonToJsonField (A.Object obj) = do
+  k <- case KM.lookup (stringToKey "k") obj of
+    Just (A.String t) -> Right (str t)
+    _ -> Left "field key invalida"
+  v <- case KM.lookup (stringToKey "v") obj of
+    Just val -> jsonToJsonExp val
+    Nothing -> Left "field sin valor"
+  return (k, v)
+
+jsonToJsonField _ =
+  Left "field mal formado"
+
+-------------------------------------------------------
+-- Exp -> JSON
+-------------------------------------------------------
+{--
+expToJson :: Exp -> A.Value
+expToJson (ENum n) =
+  obj "numExp"
+    [("value", numExpToJson n)]
+
+expToJson (EBool b) =
+  obj "boolExp"
+    [("value", boolExpToJson b)]
+
+expToJson (EJson j) =
+  obj "jsonExp"
+    [("value", jsonExpToJson j)]
+
+expToJson (EStr s) =
+  obj "strExp"
+    [("value", strExpToJson s)]
+--}
+-------------------------------------------------------
+-- JSON -> Exp
+-------------------------------------------------------
+{--
+jsonToExp :: A.Value -> Either String Exp
+jsonToExp (A.Object obj) =
+  case KM.lookup (stringToKey "type") obj of
+    Just (A.String "numExp") -> do
+      v <- getField "value" obj
+      n <- jsonToNumExp v
+      return (ENum n)
+    Just (A.String "boolExp") -> do
+      v <- getField "value" obj
+      b <- jsonToBoolExp v
+      return (EBool b)
+    Just (A.String "jsonExp") -> do
+      v <- getField "value" obj
+      j <- jsonToJsonExp v
+      return (EJson j)
+    Just (A.String "strExp") -> do
+      v <- getField "value" obj
+      s <- jsonToStrExp v
+      return (EStr s)
+    _ ->
+      Left "Exp desconocida"
+jsonToExp _ =
+  Left "Exp invalida"
+--}
+
 
 -------------------------------------------------------
 -- database -> Json (sin nextId, para timestamps)
 -------------------------------------------------------
-
 databaseToJsonSnap :: Database -> A.Value
 databaseToJsonSnap db =
   A.Object (
@@ -213,7 +755,6 @@ databaseToJsonSnap db =
 -------------------------------------------------------
 -- Json -> database (sin nextId, para timestamps)
 -------------------------------------------------------
-
 jsonToDatabaseSnap :: A.Value -> Either String Database
 jsonToDatabaseSnap (A.Object obj) = do
   pairs <- mapM parsePair (KM.toList obj)
@@ -230,7 +771,6 @@ jsonToDatabaseSnap _ =
 -------------------------------------------------------
 -- timestamp -> Json
 -------------------------------------------------------
-
 timestampSnapshotToJson :: TimestampSnapshot -> A.Value
 timestampSnapshotToJson (DBSnapshot db) =
   A.Object (KM.fromList
@@ -249,7 +789,6 @@ timestampSnapshotToJson (CollSnapshot coll docs) =
 -------------------------------------------------------
 -- Json -> timestamp
 -------------------------------------------------------
-
 jsonToTimestampSnapshot :: A.Value -> Either String TimestampSnapshot
 jsonToTimestampSnapshot (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -261,29 +800,22 @@ jsonToTimestampSnapshot (A.Object obj) =
           return (DBSnapshot db)
         Nothing ->
           Left "Falta campo 'data' en snapshot db"
-
     Just (A.String "collection") ->
       case ( KM.lookup (stringToKey "collection") obj
            , KM.lookup (stringToKey "data") obj ) of
-
         (Just (A.String coll), Just docsVal) -> do
           docs <- parseCollection docsVal
           return (CollSnapshot (str coll) docs)
-
         _ ->
           Left "Snapshot collection mal formado"
-
     _ ->
       Left "Tipo de snapshot desconocido"
-
 jsonToTimestampSnapshot _ =
   Left "Snapshot debe ser un objeto JSON"
-
 
 -------------------------------------------------------
 -- FIND -> JSON
 -------------------------------------------------------
-
 findToJson :: Find -> A.Value
 findToJson (Find coll ops term) =
   A.Object (KM.fromList
@@ -292,12 +824,9 @@ findToJson (Find coll ops term) =
     , (stringToKey "terminal", terminalToJson term)
     ])
 
-
 -------------------------------------------------------
 -- JSON -> Find
 -------------------------------------------------------
-
-
 jsonToFind :: A.Value -> Either String Find
 jsonToFind (A.Object obj) = do
   coll <- getStringField "collection" obj
@@ -312,13 +841,10 @@ jsonToFind (A.Object obj) = do
 
 jsonToFind _ = Left "Find debe ser objeto"
 
-
 -------------------------------------------------------
 -- QueryOp -> JSON
 -------------------------------------------------------
-
 queryOpToJson :: QueryOp -> A.Value
-
 queryOpToJson (QFilter cond) =
   obj "filter" [("cond", boolExpToJson cond)]
 
@@ -338,7 +864,6 @@ queryOpToJson (QGroup gs) =
 -------------------------------------------------------
 -- JSON -> QueryOp
 -------------------------------------------------------
-
 jsonToQueryOp :: A.Value -> Either String QueryOp
 jsonToQueryOp (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -379,7 +904,6 @@ jsonToQueryOp _ = Left "QueryOp debe ser objeto"
 -------------------------------------------------------
 -- Sort -> JSON
 -------------------------------------------------------
-
 sortFieldToJson :: (FieldName, SortOrder) -> A.Value
 sortFieldToJson (f, ord) =
   A.Object (KM.fromList
@@ -390,7 +914,6 @@ sortFieldToJson (f, ord) =
 -------------------------------------------------------
 -- JSON -> Sort
 -------------------------------------------------------
-
 jsonToSortField :: A.Value -> Either String (FieldName, SortOrder)
 jsonToSortField (A.Object obj) = do
   f <- case KM.lookup (stringToKey "field") obj of
@@ -410,9 +933,7 @@ jsonToSortField _ = Left "sort field mal formado"
 -------------------------------------------------------
 -- Termianl -> JSON
 -------------------------------------------------------
-
 terminalToJson :: QueryTerminal -> A.Value
-
 terminalToJson TerminalPreview =
   obj "preview" []
 
@@ -422,7 +943,6 @@ terminalToJson (TerminalSave path) =
 -------------------------------------------------------
 -- JSON -> Terminal
 -------------------------------------------------------
-
 jsonToTerminal :: A.Value -> Either String QueryTerminal
 jsonToTerminal (A.Object obj) =
   case KM.lookup (stringToKey "type") obj of
@@ -443,7 +963,6 @@ jsonToTerminal _ = Left "terminal invalido"
 -------------------------------------------------------
 -- GroupSpec -> JSON
 -------------------------------------------------------
-
 groupSpecToJson :: GroupSpec -> A.Value
 groupSpecToJson (GroupSpec fields aggs having) =
   A.Object (KM.fromList
@@ -456,34 +975,26 @@ groupSpecToJson (GroupSpec fields aggs having) =
 -------------------------------------------------------
 -- JSON -> GroupSpec
 -------------------------------------------------------
-
 jsonToGroupSpec :: A.Value -> Either String GroupSpec
 jsonToGroupSpec (A.Object obj) = do
-
   fields <- case KM.lookup (stringToKey "fields") obj of
     Just (A.Array arr) ->
       Right [ str t | A.String t <- V.toList arr ]
     _ -> Left "group sin fields"
-
   aggs <- case KM.lookup (stringToKey "aggs") obj of
     Just (A.Array arr) ->
       mapM jsonToAggregate (V.toList arr)
     _ -> Right []
-
   having <- case KM.lookup (stringToKey "having") obj of
     Just A.Null -> Right Nothing
     Just v -> fmap Just (jsonToBoolExp v)
     Nothing -> Right Nothing
-
   return (GroupSpec fields aggs having)
-
 jsonToGroupSpec _ = Left "group invalido"
-
 
 -------------------------------------------------------
 -- Aggregate -> JSON
 -------------------------------------------------------
-
 aggregateToJson :: Aggregate -> A.Value
 aggregateToJson (Aggregate f field alias) =
   A.Object (KM.fromList
@@ -495,10 +1006,8 @@ aggregateToJson (Aggregate f field alias) =
 -------------------------------------------------------
 -- JSON -> Aggregate
 -------------------------------------------------------
-
 jsonToAggregate :: A.Value -> Either String Aggregate
 jsonToAggregate (A.Object obj) = do
-
   func <- case KM.lookup (stringToKey "func") obj of
     Just (A.String "AggCount") -> Right AggCount
     Just (A.String "AggSum") -> Right AggSum
@@ -506,298 +1015,30 @@ jsonToAggregate (A.Object obj) = do
     Just (A.String "AggMin") -> Right AggMin
     Just (A.String "AggMax") -> Right AggMax
     _ -> Left "agg func invalida"
-
   field <- case KM.lookup (stringToKey "field") obj of
     Just (A.String t) -> Right (str t)
     _ -> Left "agg field invalido"
-
   alias <- case KM.lookup (stringToKey "alias") obj of
     Just (A.String t) -> Right (str t)
     _ -> Left "agg alias invalido"
-
   return (Aggregate func field alias)
 
 jsonToAggregate _ = Left "aggregate invalido"
 
-
--------------------------------------------------------
--- BoolExp -> JSON
--------------------------------------------------------
-
-boolExpToJson :: BoolExp -> A.Value
-
-boolExpToJson BTrue = obj "true" []
-boolExpToJson BFalse = obj "false" []
-
-boolExpToJson (Not b) =
-  obj "not" [("value", boolExpToJson b)]
-
-boolExpToJson (And a b) =
-  obj "and" [("l", boolExpToJson a), ("r", boolExpToJson b)]
-
-boolExpToJson (Or a b) =
-  obj "or" [("l", boolExpToJson a), ("r", boolExpToJson b)]
-
-boolExpToJson (Eq a b) =
-  obj "eq" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Neq a b) =
-  obj "neq" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Gt a b) =
-  obj "gt" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Ge a b) =
-  obj "ge" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Lt a b) =
-  obj "lt" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Le a b) =
-  obj "le" [("l", expToJson a), ("r", expToJson b)]
-
-boolExpToJson (Exists e) =
-  obj "exists" [("value", expToJson e)]
-
--------------------------------------------------------
--- JSON -> BoolExp
--------------------------------------------------------
-
-jsonToBoolExp :: A.Value -> Either String BoolExp
-jsonToBoolExp (A.Object obj) =
-  case KM.lookup (stringToKey "type") obj of
-
-    Just (A.String "true") -> Right BTrue
-    Just (A.String "false") -> Right BFalse
-
-    Just (A.String "not") -> do
-      v <- getField "value" obj
-      Not <$> jsonToBoolExp v
-
-    Just (A.String "and") -> do
-      l <- getField "l" obj
-      r <- getField "r" obj
-      And <$> jsonToBoolExp l <*> jsonToBoolExp r
-
-    Just (A.String "or") -> do
-      l <- getField "l" obj
-      r <- getField "r" obj
-      Or <$> jsonToBoolExp l <*> jsonToBoolExp r
-
-    Just (A.String "eq") ->
-      bin Eq
-
-    Just (A.String "neq") ->
-      bin Neq
-
-    Just (A.String "gt") ->
-      bin Gt
-
-    Just (A.String "ge") ->
-      bin Ge
-
-    Just (A.String "lt") ->
-      bin Lt
-
-    Just (A.String "le") ->
-      bin Le
-
-    Just (A.String "exists") -> do
-      v <- getField "value" obj
-      Exists <$> jsonToExp v
-
-    _ -> Left "BoolExp desconocido"
-
-  where
-    bin cons = do
-      l <- getField "l" obj
-      r <- getField "r" obj
-      cons <$> jsonToExp l <*> jsonToExp r
-
-jsonToBoolExp _ = Left "BoolExp invalido"
-
--------------------------------------------------------
--- Exp -> JSON
--------------------------------------------------------
-
-expToJson :: Exp -> A.Value
-
-expToJson (IntExp n) = obj "int" [("value", A.Number (fromIntegral n))]
-expToJson (FloatExp f) = obj "float" [("value", A.Number (realToFrac f))]
-expToJson (StringExp s) = obj "string" [("value", A.String (text s))]
-expToJson (BoolExpVal b) = obj "bool" [("value", A.Bool b)]
-expToJson NullExp = obj "null" []
-
-expToJson (VarExp f) = obj "var" [("name", A.String (text f))]
-
-expToJson (AddExp a b) =
-  obj "add" [("l", expToJson a), ("r", expToJson b)]
-
-expToJson (SubExp a b) =
-  obj "sub" [("l", expToJson a), ("r", expToJson b)]
-
-expToJson (MulExp a b) =
-  obj "mul" [("l", expToJson a), ("r", expToJson b)]
-
-expToJson (DivExp a b) =
-  obj "div" [("l", expToJson a), ("r", expToJson b)]
-
-expToJson (FieldAccess e f) =
-  obj "fieldAccess"
-    [ ("exp", expToJson e)
-    , ("field", A.String (text f))
-    ]
-
-expToJson (JObjectExp fields) =
-  obj "object"
-    [ ("fields", A.Array (V.fromList (map fieldToJson fields))) ]
-
-expToJson (JArrayExp xs) =
-  obj "array"
-    [ ("values", A.Array (V.fromList (map expToJson xs))) ]
-
-
--- Helpers
-
-obj :: T.Text -> [(T.Text, A.Value)] -> A.Value
-obj t fields =
-  A.Object (KM.fromList
-    ( (stringToKey "type", A.String t)
-    : [ (stringToKey (str k), v) | (k,v) <- fields ]
-    ))
-
-fieldToJson :: (FieldName, Exp) -> A.Value
-fieldToJson (k,v) =
-  A.Object (KM.fromList
-    [ (stringToKey "k", A.String (text k))
-    , (stringToKey "v", expToJson v)
-    ])
-
--------------------------------------------------------
--- JSON -> Exp
--------------------------------------------------------
-
-jsonToExp :: A.Value -> Either String Exp
-jsonToExp (A.Object obj) =
-  case KM.lookup (stringToKey "type") obj of
-
-    Just (A.String "int") -> do
-      v <- getNum
-      Right (IntExp v)
-
-    Just (A.String "float") -> do
-      v <- getFloat
-      Right (FloatExp v)
-
-    Just (A.String "string") -> do
-      v <- getStr
-      Right (StringExp v)
-
-    Just (A.String "bool") -> do
-      v <- getBool
-      Right (BoolExpVal v)
-
-    Just (A.String "null") ->
-      Right NullExp
-
-    Just (A.String "var") -> do
-      name <- getStringField "name" obj
-      Right (VarExp name)
-
-    Just (A.String "add") -> do
-      bin AddExp
-
-    Just (A.String "sub") ->  do
-      bin SubExp
-
-    Just (A.String "mul") -> do
-      bin MulExp
-
-    Just (A.String "div") -> do
-      bin DivExp
-
-    Just (A.String "fieldAccess") -> do
-      e <- getField "exp" obj
-      f <- getStringField "field" obj
-      FieldAccess <$> jsonToExp e <*> pure f
-
-    Just (A.String "object") -> do
-      arr <- getArrayField "fields" obj
-      fields <- mapM jsonToField arr
-      Right (JObjectExp fields)
-
-    Just (A.String "array") -> do
-      arr <- getArrayField "values" obj
-      xs <- mapM jsonToExp arr
-      Right (JArrayExp xs)
-    _ -> Left "Exp desconocida"
-
-  where
-    getStr = do
-      v <- getField "value" obj
-      case v of
-        A.String t -> Right (str t)
-        _ -> Left "No es string"
-
-    getBool = do
-      v <- getField "value" obj
-      case v of
-        A.Bool b -> Right b
-        _ -> Left "No es bool"
-
-    getNum = do
-      v <- getField "value" obj
-      case v of
-        A.Number n ->
-          case floatingOrInteger n of
-            Right i -> Right i
-            _ -> Left "No es int"
-        _ -> Left "No es numero"
-
-    getFloat = do
-      v <- getField "value" obj
-      case v of
-        A.Number n ->
-          case floatingOrInteger n of
-            Left f -> Right f
-            Right i -> Right (fromIntegral i)
-        _ -> Left "No es numero"
-
-
-    bin cons = do
-      l <- getField "l" obj
-      r <- getField "r" obj
-      cons <$> jsonToExp l <*> jsonToExp r
-
-
-jsonToField :: A.Value -> Either String (FieldName, Exp)
-jsonToField (A.Object obj) = do
-  k <- case KM.lookup (stringToKey "k") obj of
-    Just (A.String t) -> Right (str t)
-    _ -> Left "field key invalida"
-
-  v <- case KM.lookup (stringToKey "v") obj of
-    Just val -> jsonToExp val
-    Nothing -> Left "field sin valor"
-
-  return (k,v)
-
-jsonToField _ = Left "field mal formado"
-
-
 -------------------------------------------------------
 -- HELPERS DE KEYS / TEXT
 -------------------------------------------------------
-
 keyToString :: K.Key -> String
 keyToString = T.unpack . K.toText
 
 stringToKey :: String -> K.Key
 stringToKey = K.fromText . T.pack
 
+-- este metodo no lo usamos mas (por ahora no se borra)
 textToKey :: T.Text -> K.Key
 textToKey = K.fromText
 
+-- este tampoco lo usamos mas (por ahora no se borra)
 keyToText :: K.Key -> T.Text
 keyToText = K.toText
 
@@ -811,7 +1052,6 @@ str = T.unpack
 -------------------------------------------------------
 -- HELPERS GENERICOS P JSON
 -------------------------------------------------------
-
 getField :: String -> KM.KeyMap A.Value -> Either String A.Value
 getField k obj =
   maybe (Left ("Falta campo " ++ k)) Right
@@ -840,3 +1080,10 @@ getArrayField k obj = do
   case v of
     A.Array arr -> Right (V.toList arr)
     _ -> Left (k ++ " no es array")
+
+obj :: T.Text -> [(T.Text, A.Value)] -> A.Value
+obj t fields =
+  A.Object (KM.fromList
+    ( (stringToKey "type", A.String t)
+    : [ (stringToKey (str k), v) | (k,v) <- fields ]
+    ))

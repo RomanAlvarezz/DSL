@@ -1,14 +1,5 @@
 module AST where
 
--- ======================================================
--- PROGRAMA
--- ======================================================
--- Un programa es una secuencia de comandos ejecutables
--- sobre la base de datos JSON.
--- ====================================================== rollback
-
-type Program = Comm
-
 type Collection      = String
 type ViewName        = String
 type FieldName       = String
@@ -18,134 +9,72 @@ type JsonPath        = String
 -- ======================================================
 -- COMANDOS (STATEMENTS)
 -- ======================================================
--- Representan las instrucciones de primer nivel del DSL:
--- consultas, inserciones, borrados, transacciones, etc.
--- ======================================================
-
 data Comm
   = Skip
-
   | Seq Comm Comm
-
+  -- consultas
   | CommQuery Find
-    -- ^ Ejecución de una consulta (find + pipeline + terminal)
-
+  -- collections
   | CommCreateColl Collection
-   -- ^ Creacion de una collection
-
   | CommDropColl Collection
-  -- ^ Elimina una collection con todos los registros que contiene
-
-  | CommInsert Collection Exp
-    -- ^ Inserta un documento en una colección
-
-  | CommInsertMany Collection [Exp]
-    -- ^ Inserta múltiples documentos
-
-  | CommUpdateOne Collection BoolExp Exp
-    -- ^ Actualiza el primer documento que cumple la condición
-
-  | CommUpdateMany Collection BoolExp Exp
-    -- ^ Actualiza el primer documento que cumple la condición
-
+  -- inserts
+  | CommInsert Collection JsonExp
+  | CommInsertMany Collection [JsonExp]
+  -- updates
+  | CommUpdateOne Collection BoolExp JsonExp
+  | CommUpdateMany Collection BoolExp JsonExp
+  -- deletes
   | CommDelete Collection BoolExp
-    -- ^ Elimina documentos que cumplen la condición
-
+  -- transacciones
   | CommTransaction [Comm]
-    -- ^ Bloque transaccional
-
+  -- timestamps
   | CommTimestamp TimestampTarget TimestampLabel
-    -- ^ Marca un estado de la base de datos o una vista
-
   | CommRollback TimestampTarget TimestampLabel
-    -- ^ Revierte la base al timestamp indicado
-
+  -- views
   | CommCreateView ViewName Find
-    -- ^ Crea una vista a partir de una consulta
-
---  | CommUseView ViewName Find
   | CommUseView ViewName ViewOption
-    -- ^ Usa una vista como fuente de una consulta
   deriving (Show, Eq)
 
 -- ======================================================
 -- CONSULTAS
 -- ======================================================
--- Una consulta está compuesta por:
---   - una fuente (colección o vista)
---   - una secuencia de operaciones
---   - un operador terminal obligatorio
--- ======================================================
 
-data ViewOption
-  = ViewOnly              -- ejecutar solo la vista
-  | ViewWithPipeline Find -- ejecutar vista + pipeline + terminal
-  deriving (Show, Eq)
-
-data Find = Find Collection [QueryOp] QueryTerminal
+data Find = Find Collection [QueryOp] QueryTerminal 
   deriving (Show, Eq)
 
 -- ======================================================
 -- OPERACIONES DE CONSULTA (PIPELINE)
 -- ======================================================
--- Representan transformaciones puras sobre el flujo
--- de documentos.
--- ======================================================
 
 data QueryOp
   = QFilter BoolExp
-    -- ^ Filtrado de documentos
-
   | QSelect [FieldName]
-    -- ^ Proyección de campos
-
   | QSort [(FieldName, SortOrder)]
-    -- ^ Ordenamiento (multi-campo permitido)
-
   | QLimit Int
-    -- ^ Límite de resultados
-
   | QGroup GroupSpec
-    -- ^ Agrupamiento con agregaciones y having
+  deriving (Show, Eq)
+
+data SortOrder = Asc | Desc
   deriving (Show, Eq)
 
 -- ======================================================
 -- TERMINALES DE CONSULTA
 -- ======================================================
--- Indican cómo finaliza una consulta.
--- Solo uno es permitido por consulta.
--- ======================================================
 
 data QueryTerminal
   = TerminalPreview
-    -- ^ Muestra el resultado en consola
-
   | TerminalSave JsonPath
-    -- ^ Guarda el resultado en un archivo JSON
   deriving (Show, Eq)
 
 -- ======================================================
 -- GROUP BY + AGREGACIONES
 -- ======================================================
--- Se agrupan los documentos y se aplican funciones
--- de agregación. Having es opcional.
--- ======================================================
 
---data GroupSpec = GroupSpec
---  { groupField :: FieldName
---  , aggregates :: [Aggregate]
---  , havingCond :: Maybe BoolExp
---  }
---  deriving (Show, Eq)
-data GroupSpec = GroupSpec [FieldName] [Aggregate] (Maybe BoolExp) deriving (Show, Eq)
+data GroupSpec = GroupSpec [FieldName] [Aggregate] (Maybe BoolExp)
+  deriving (Show, Eq)
 
---data Aggregate = Aggregate
---  { aggFunc  :: AggFunc
---  , aggField :: FieldName
---  , aggAlias :: FieldName
---  }
---  deriving (Show, Eq)
-data Aggregate = Aggregate AggFunc FieldName FieldName deriving (Show, Eq)
+data Aggregate = Aggregate AggFunc FieldName FieldName
+  deriving (Show, Eq)
 
 data AggFunc
   = AggCount
@@ -156,70 +85,103 @@ data AggFunc
   deriving (Show, Eq)
 
 -- ======================================================
--- EXPRESIONES BOOLEANAS
--- ======================================================
--- Usadas principalmente en filtros y having.
+-- TIMESTAMPS
 -- ======================================================
 
-data BoolExp
-  = BTrue
-  | BFalse
-  | Not BoolExp
-  | And BoolExp BoolExp
-  | Or  BoolExp BoolExp
-  | Eq  Exp Exp
-  | Neq Exp Exp
-  | Lt  Exp Exp
-  | Le  Exp Exp
-  | Gt  Exp Exp
-  | Ge  Exp Exp
-  | Exists Exp
+data TimestampTarget
+  = TSDatabase  -- Timestamp de toda la base de datos
+  | TSColl Collection  -- Timestamp de una collection específica
+  deriving (Show, Eq)
+
+-- ======================================================
+-- VIEWS
+-- ======================================================
+
+data ViewOption
+  = ViewOnly
+  | ViewWithPipeline Find
   deriving (Show, Eq)
 
 -- ======================================================
 -- EXPRESIONES
 -- ======================================================
--- Representan valores, referencias a campos,
--- operaciones aritméticas y estructuras JSON.
+data Number = NInt Int | NFloat Double
+  deriving (Show, Eq)
+
+instance Ord Number where
+  compare (NInt a)   (NInt b)   = compare a b
+  compare (NFloat a) (NFloat b) = compare a b
+  compare (NInt a)   (NFloat b) = compare (fromIntegral a) b
+  compare (NFloat a) (NInt b)   = compare a (fromIntegral b)
+
 -- ======================================================
-
-data Exp
-  = IntExp Int
-  | FloatExp Double
-  | StringExp String
-  | BoolExpVal Bool
-  | NullExp
-
-  | AddExp Exp Exp
-  | SubExp Exp Exp
-  | MulExp Exp Exp
-  | DivExp Exp Exp
-
-  | VarExp FieldName
-    -- ^ Referencia a un campo del documento
-
-  | FieldAccess Exp FieldName
-    -- ^ Acceso a campos anidados
-
-  | JObjectExp [(FieldName, Exp)]
-    -- ^ Documento JSON
-
-  | JArrayExp [Exp]
-    -- ^ Array JSON
-
+-- EXPRESIONES NUMERICAS
+-- ======================================================
+data NumExp
+  = NConst Number
+  | NPath PathExp
+  -- | NVar FieldName
+  | NAdd NumExp NumExp
+  | NSub NumExp NumExp
+  | NMul NumExp NumExp
+  | NDiv NumExp NumExp
   deriving (Show, Eq)
 
 -- ======================================================
--- AUXILIARES
+-- EXPRESIONES STRING
 -- ======================================================
-
-data SortOrder = Asc | Desc
+data StrExp
+  = SConst String
+  | SPath PathExp
+  -- | SVar FieldName
   deriving (Show, Eq)
 
-data TimestampTarget
-  = TSDatabase
-    -- ^ Timestamp de toda la base de datos
+-- ======================================================
+-- BOOLEANOS
+-- ======================================================
+data BoolExp
+  = BTrue
+  | BFalse
+  | BPath PathExp
+  -- | BVar FieldName
+  | Not BoolExp
+  | And BoolExp BoolExp
+  | Or  BoolExp BoolExp
 
-  | TSColl Collection
-    -- ^ Timestamp de una vista específica
+  | EqNum NumExp NumExp
+  | NeqNum NumExp NumExp
+  | EqStr StrExp StrExp
+  | NeqStr StrExp StrExp
+  | EqBool BoolExp BoolExp
+  | NeqBool BoolExp BoolExp
+  | IsNull PathExp
+
+  | Lt  NumExp NumExp
+  | Le  NumExp NumExp
+  | Gt  NumExp NumExp
+  | Ge  NumExp NumExp
+
+  | Exists PathExp
+  deriving (Show, Eq)
+  
+-- ======================================================
+-- PATH (acceso a variables y campos anidados)
+-- ======================================================
+data PathExp
+  = PVar FieldName
+  | PAccess PathExp FieldName
+  deriving (Show, Eq)
+
+-- ======================================================
+-- EXPRESIONES JSON
+-- ======================================================
+
+data JsonExp
+  = JObject [(FieldName, JsonExp)]
+  | JArray [JsonExp]
+  | JNum NumExp
+  | JStr StrExp
+  | JBool BoolExp
+  | JNull
+  | JPath PathExp
   deriving (Show, Eq)
