@@ -24,14 +24,16 @@ import JSONAdapter (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, timesta
 
 newtype Eval a = Eval { runEval :: EvalState -> IO (Either EvalError (a, EvalState)) }
 
-{-
-Este es la porcion de codigo que Mauro agrego para calmar al GHC
+
 
 instance Functor Eval where
   fmap = liftM
+
 instance Applicative Eval where
   pure = return
   (<*>) = ap
+
+
 
 instance Monad Eval where
   return x = Eval (\s -> return (Right (x, s)))
@@ -40,9 +42,8 @@ instance Monad Eval where
     case res of
       Left e -> return (Left e)
       Right (a, s') -> runEval (f a) s')
--}
 
-{-
+{--
 instance Functor Eval where
   fmap f m = Eval (\s -> do
     res <- runEval m s
@@ -72,7 +73,9 @@ instance Monad Eval where
     case res of
       Left e -> return (Left e)
       Right (a, s') -> runEval (f a) s')
--}
+--}
+
+
 -------------------------------------------------------
 -- TYPECLASSES
 -------------------------------------------------------
@@ -255,10 +258,10 @@ evalComm (CommDropColl name) = do
 -- INSERT
 -------------------------------------------------------
 evalComm (CommInsert coll exp) = do
-  obj <- evalJsonExpAsObject exp emptyDoc 
+  obj <- evalJsonExpAsObject exp emptyDoc
   cleanDoc <- case validateNoIdField obj of
                 Nothing -> throwEval ReservedField
-                Just cd -> return cd        
+                Just cd -> return cd
   docsMaybe <- lookupDB coll
   case docsMaybe of
     Nothing -> throwEval (CollectionNotFound coll)
@@ -277,6 +280,7 @@ evalComm (CommInsertMany coll (e:es)) = do
 -------------------------------------------------------
 -- DELETE
 -------------------------------------------------------
+{--
 evalComm (CommDelete coll cond) = do
   docsMaybe <- lookupDB coll
   case docsMaybe of
@@ -287,6 +291,24 @@ evalComm (CommDelete coll cond) = do
       insertDB coll docs'
       incDocs deleted
       if deleted > 0 then registerCollectionChange coll else return ()
+--}
+evalComm (CommDelete coll cond) = do
+  docsMaybe <- lookupDB coll
+  case docsMaybe of
+    Nothing -> throwEval (CollectionNotFound coll)
+
+    Just docs -> do
+      docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
+      let deleted = length docs - length docs'
+
+      if deleted > 0
+        then do
+          insertDB coll docs'
+          incDocs deleted
+          registerCollectionChange coll
+        else
+          return ()
+
 
 -------------------------------------------------------
 -- UPDATE ONE
@@ -562,14 +584,6 @@ evalNumExp :: (MonadErrorEval m) => NumExp -> Document -> m Number
 -- Constantes
 evalNumExp (NConst n) _ = return n
 
--- Variables numéricas
-{--
-evalNumExp (NVar f) doc =
-  case lookup f doc of
-    Just (VNum n) -> return n
-    Just _        -> throwEval TypeError
-    Nothing       -> throwEval (FieldNotFoundInObject f)
---}
 -- varibles y acceso a campos numericos
 evalNumExp (NPath p) doc = do
   v <- evalPathExp p doc
@@ -646,14 +660,6 @@ numDivOp (NFloat x) (NInt y) =
 evalStrExp :: (MonadErrorEval m) => StrExp -> Document -> m String
 -- Constante string
 evalStrExp (SConst s) _ = return s
--- Variable string
-{--
-evalStrExp (SVar f) doc =
-  case lookup f doc of
-    Just (VString s) -> return s
-    Just _           -> throwEval TypeError
-    Nothing          -> throwEval (FieldNotFoundInObject f)
---}
 
 -- varible y acceso a campos string
 evalStrExp (SPath p) doc = do
@@ -668,15 +674,6 @@ evalStrExp (SPath p) doc = do
 evalBoolExp :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 evalBoolExp BTrue _ = return True
 evalBoolExp BFalse _ = return False
-
--- Variable booleana
-{--
-evalBoolExp (BVar f) doc =
-  case lookup f doc of
-    Just (VBool b) -> return b
-    Just _         -> throwEval TypeError
-    Nothing        -> throwEval (FieldNotFoundInObject f)
---}
 
 -- varibles y acceso a campos booleanos
 evalBoolExp (BPath p) doc = do
@@ -806,7 +803,6 @@ evalJsonExp (JBool b) doc = do
 
 evalJsonExp JNull _ = return VNull
 
--- Esta es la nueva forma de acceder a datos
 evalJsonExp (JPath p) doc = evalPathExp p doc
 
 evalPathExp :: (MonadErrorEval m) => PathExp -> Document -> m Value

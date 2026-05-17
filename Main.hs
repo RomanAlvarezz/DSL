@@ -67,7 +67,6 @@ runEvaluator ast jsonFile = do
   -------------------------------------------------------
   let initialState = EvalState
         { database = initialDB
-        --, runtime = runtimeCtx
         , nextId = nextIdVal
         , logs = (0,[])
         }
@@ -77,8 +76,6 @@ runEvaluator ast jsonFile = do
   -- 3 EJECUTAR PROGRAMA
   -------------------------------------------------------
   -- limpiar timestamps y views al inicio de cada ejecución
-  --BL.writeFile "timestamps.json" "{}"
-  --BL.writeFile "views.json" "{}"
   BL.writeFile "timestamps.json" (A.encode (A.Object mempty))
   BL.writeFile "views.json" (A.encode (A.Object mempty))
 
