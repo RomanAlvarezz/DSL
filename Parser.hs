@@ -248,12 +248,13 @@ pJsonExp :: Parser JsonExp
 pJsonExp =
       pJObject
   <|> pJArray
-  <|> pJNull
-  <|> pJBool
-  <|> pJNum
-  <|> pJStr
+--  <|> pJNull
+--  <|> pJBool
+--  <|> pJNum
+--  <|> pJStr
   <|> pJPath
 
+{--
 pJNull :: Parser JsonExp
 pJNull = do
   reservedP "null"
@@ -272,7 +273,7 @@ pJStr :: Parser JsonExp
 pJStr = do
   s <- pStrExp
   return (JStr s)
-
+--}
 pJObject :: Parser JsonExp
 pJObject = do
   fields <- bracesP (pJField `sepBy` commaP)
@@ -321,10 +322,10 @@ pJFieldPath = do
   value <- try pJObject <|> pJPath
   return (name, value)
 
--- decidir si queremos un array de expresiones json o solo de objetos json
+-- decidir si queremos un array de expresiones json o solo de objetos json, pruebo en cambiar pJsonExp por pJObject
 pJArray :: Parser JsonExp
 pJArray = do
-  elems <- bracketsP (pJsonExp `sepBy` commaP)
+  elems <- bracketsP (pJObject `sepBy` commaP)
   return (JArray elems)
 
 pJPath :: Parser JsonExp
@@ -534,13 +535,13 @@ pDropCollection = do
   parensP (return ())
   return (CommDropColl col)
 
--- insert individual
+-- insert individual, saco pJsonExp lo hago mas restringido
 pInsert :: Parser Comm
 pInsert = do
   reservedP "insert"
   reservedOpP "."
   col <- identifierP
-  doc <- parensP pJsonExp
+  doc <- parensP pJObject
   return (CommInsert col doc)
 
 
@@ -550,7 +551,7 @@ pInsertManyComm = do
   reservedP "insertMany"
   reservedOpP "."
   col <- identifierP
-  docs <- parensP (bracketsP (pJsonExp `sepBy1` commaP))
+  docs <- parensP (bracketsP (pJObject `sepBy1` commaP))
   return (CommInsertMany col docs)
 
 -- update one
@@ -562,7 +563,7 @@ pUpdateOneComm = do
   (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
-    d <- pJsonExp
+    d <- pJObject
     return (c, d))
   return (CommUpdateOne col cond doc)
 
@@ -575,7 +576,7 @@ pUpdateManyComm = do
   (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
-    d <- pJsonExp
+    d <- pJObject
     return (c, d))
   return (CommUpdateMany col cond doc)
 

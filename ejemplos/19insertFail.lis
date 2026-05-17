@@ -1,0 +1,7 @@
+insert.users({
+name:s "Facundo",
+age:n 27,
+active:b true,
+house:p {street:s "Almafuerte", number:n 1956},
+nullProp:nl null
+})

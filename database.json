@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 213
+        "nextId": 219
     },
     "animales": [
         {
@@ -94,6 +94,33 @@
         }
     ],
     "users": [
+        {
+            "_id": 218,
+            "active": true,
+            "age": 27,
+            "house": {
+                "number": 1956,
+                "street": "Almafuerte"
+            },
+            "name": "Facundo",
+            "nullProp": null
+        },
+        {
+            "_id": 214,
+            "name": "Martin"
+        },
+        {
+            "_id": 213,
+            "active": true,
+            "age": 32,
+            "country": "US",
+            "direccion": {
+                "calle": "Falsetti",
+                "tipo": "departamento"
+            },
+            "name": "Luciana",
+            "score": 42
+        },
         {
             "_id": 212,
             "active": true,
