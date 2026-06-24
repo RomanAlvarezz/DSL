@@ -1,5 +1,5 @@
 insert.users({
-  name:s "Mariela",
+  name:s "Juana",
   age:n 31,
   country:s "AR",
   active:b true,

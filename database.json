@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 224
+        "nextId": 226
     },
     "animales": [
         {
@@ -94,6 +94,22 @@
         }
     ],
     "users": [
+        {
+            "_id": 225,
+            "active": true,
+            "age": 31,
+            "country": "AR",
+            "name": "Juana",
+            "score": 42
+        },
+        {
+            "_id": 224,
+            "active": true,
+            "age": 31,
+            "country": "AR",
+            "name": "Mariela",
+            "score": 42
+        },
         {
             "_id": 223,
             "active": true,

@@ -228,9 +228,8 @@ pPathExp = do
   return (buildPath (base : fields))
 
 buildPath :: [FieldName] -> PathExp
-buildPath x:[]   = PVar x
+buildPath (x:[])   = PVar x
 buildPath (x:xs) = PAccess x (buildPath xs)
---buildPath _      = error "Path vacío"
 
 -- ======================================================
 -- PARSER DE JSONEXP
@@ -256,40 +255,41 @@ pJField =
   <|> try pJFieldBool
   <|> pJFieldPath
 
-pJFieldNum :: Parser (FieldName, JsonExp)
-pJFieldNum = do
+pTypedField :: String -> Parser a -> (a -> JsonExp) -> Parser (FieldName, JsonExp)
+pTypedField tag valueParser constructor = do
   name <- identifierP
-  reservedOpP ":n"
-  value <- pNumExp
-  return (name, JNum value)
+  reservedOpP tag
+  value <- valueParser
+  return (name, constructor value)
+
+pJFieldNum :: Parser (FieldName, JsonExp)
+pJFieldNum = pTypedField ":n" pNumExp JNum
 
 pJFieldStr :: Parser (FieldName, JsonExp)
-pJFieldStr = do
-  name <- identifierP
-  reservedOpP ":s"
-  value <- pStrExp
-  return (name, JStr value)
+pJFieldStr = pTypedField ":s" pStrExp JStr
 
 pJFieldBool :: Parser (FieldName, JsonExp)
-pJFieldBool = do
+pJFieldBool = pTypedField ":b" pBoolExp JBool
+
+pConstField :: String -> Parser b -> JsonExp -> Parser (FieldName, JsonExp)
+pConstField tag parser result = do
   name <- identifierP
-  reservedOpP ":b"
-  value <- pBoolExp
-  return (name, JBool value)
+  reservedOpP tag
+  parser
+  return (name, result)
+
+--pJFieldNull :: Parser (FieldName, JsonExp)
+--pJFieldNull = do
+--  name <- identifierP
+--  reservedOpP ":nl"
+--  reservedP "null"
+--  return (name, JNull)
 
 pJFieldNull :: Parser (FieldName, JsonExp)
-pJFieldNull = do
-  name <- identifierP
-  reservedOpP ":nl"
-  reservedP "null"
-  return (name, JNull)
+pJFieldNull = pConstField ":nl" (reservedP "null") JNull
 
 pJFieldPath :: Parser (FieldName, JsonExp)
-pJFieldPath = do
-  name <- identifierP
-  reservedOpP ":p"
-  value <- try pJObject <|> pJPath
-  return (name, value)
+pJFieldPath = pTypedField ":p" (try pJObject <|> pJPath) id
 
 
 pJArray :: Parser JsonExp
