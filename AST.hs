@@ -22,7 +22,7 @@ data Comm
   | CommInsertMany Collection [JsonExp]
   -- updates
   | CommUpdateOne Collection BoolExp JsonExp
-  | CommUpdateMany Collection BoolExp JsonExp
+  | CommUpdateMany Collection BoolExp JsonExp --capaz lo saque
   -- deletes
   | CommDelete Collection BoolExp
   -- transacciones
@@ -167,9 +167,9 @@ data BoolExp
 -- ======================================================
 -- PATH (acceso a variables y campos anidados)
 -- ======================================================
-data PathExp
+data PathExp -- representa una ruta de acceso a un campo dentro de un documento JSON
   = PVar FieldName
-  | PAccess PathExp FieldName
+  | PAccess FieldName PathExp 
   deriving (Show, Eq)
 
 -- ======================================================

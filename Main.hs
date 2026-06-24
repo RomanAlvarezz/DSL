@@ -27,7 +27,7 @@ runFiles :: FilePath -> FilePath -> IO ()
 runFiles queryFile jsonFile = do
   putStrLn "DEBUG: leyendo consulta"
 
-  input <- fmap (filter (/= '\r')) (readFile queryFile)
+  input <- fmap (filter (/= '\r')) (readFile queryFile) -- Hay que ver que carajo hace esta linea.
 
   case parse pProgram queryFile input of
     Left err -> do
@@ -47,9 +47,9 @@ runEvaluator ast jsonFile = do
   -- 1 LEER BASE DE DATOS JSON
   -------------------------------------------------------
 
-  jsonBytes <- BL.readFile jsonFile
-
-  jsonValue <- case A.decode jsonBytes of
+  jsonBytes <- BL.readFile jsonFile -- aca lee la base de datos
+ 
+  jsonValue <- case A.decode jsonBytes of -- A.decode jsonBytes intenta interpretar esos bytes como JSON
     Nothing -> do
       putStrLn "❌ Error: JSON inválido"
       exitFailure

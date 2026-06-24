@@ -1,12 +1,12 @@
 timestamp.logs("logs_antes_de_pruebas");
 
 insert.logs({
-  msg:s "segundo hola",
+  msg:s "segundo hola profe",
   date:s "N/A"
 });
 
 insert.logs({
-  msg:s "tercer hola",
+  msg:s " hola profe",
   date:s "N/A"
 });
 

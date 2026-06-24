@@ -29,7 +29,7 @@ jsonToValue (A.Bool b) =
 
 jsonToValue A.Null =
   VNull
--- cambio aca por tipo nuestro Number
+
 jsonToValue (A.Number n) =
   case floatingOrInteger n of
     Left f  -> VNum (NFloat f)
@@ -56,10 +56,10 @@ valueToJson (VBool b) =
 
 valueToJson VNull =
   A.Null
--- cambiado a nuestro tipo Number del AST
+
 valueToJson (VNum (NInt i)) =
   A.Number (fromIntegral i)
--- cambiado a nuestro tipo Number del AST
+
 valueToJson (VNum (NFloat f)) =
   A.Number (truncateTOScientific 5 f)
 
@@ -449,10 +449,10 @@ pathExpToJson :: PathExp -> A.Value
 pathExpToJson (PVar f) =
   obj "pathVar" [("name", A.String (text f))]
 
-pathExpToJson (PAccess p f) =
+pathExpToJson (PAccess f p) =
   obj "pathAccess"
-    [ ("path", pathExpToJson p)
-    , ("field", A.String (text f))
+    [ ("field", A.String (text f))
+    , ("path", pathExpToJson p)
     ]
 
 -------------------------------------------------------
@@ -577,7 +577,7 @@ jsonToPathExp (A.Object obj) =
       p <- getField "path" obj
       f <- getStringField "field" obj
       path <- jsonToPathExp p
-      return (PAccess path f)
+      return (PAccess f path)
     _ ->
       Left "PathExp desconocido"
 

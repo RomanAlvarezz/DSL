@@ -17,6 +17,15 @@ import Control.Monad (ap, liftM, filterM, foldM)
 import Value ( Value(..), TimestampSnapshot(..), Document, Database, CollectionData)
 import JSONAdapter (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, timestampSnapshotToJson, jsonToTimestampSnapshot, jsonToFind, findToJson)
 
+-------------------------------------------------------
+-- ESTADO GLOBAL DEL EVALUADOR
+-------------------------------------------------------
+
+data EvalState = EvalState
+  { database :: Database
+  , nextId   :: Int
+  , logs     :: (Int, [Collection])  -- (cantidadDocumentosModificados, listaDeColeccionesModificadas)
+  }
 
 -------------------------------------------------------
 -- MONADA PROPIA
@@ -25,15 +34,13 @@ import JSONAdapter (valueToJson, databaseToJsonSnap, jsonToDatabaseSnap, timesta
 newtype Eval a = Eval { runEval :: EvalState -> IO (Either EvalError (a, EvalState)) }
 
 
-
+{-
 instance Functor Eval where
   fmap = liftM
 
 instance Applicative Eval where
   pure = return
   (<*>) = ap
-
-
 
 instance Monad Eval where
   return x = Eval (\s -> return (Right (x, s)))
@@ -42,8 +49,8 @@ instance Monad Eval where
     case res of
       Left e -> return (Left e)
       Right (a, s') -> runEval (f a) s')
+-}
 
-{--
 instance Functor Eval where
   fmap f m = Eval (\s -> do
     res <- runEval m s
@@ -73,7 +80,7 @@ instance Monad Eval where
     case res of
       Left e -> return (Left e)
       Right (a, s') -> runEval (f a) s')
---}
+
 
 
 -------------------------------------------------------
@@ -95,7 +102,7 @@ class Monad m => MonadErrorEval m where
   catchEval :: m a -> (EvalError -> m a) -> m a
 
 class Monad m => MonadIOEval m where
-  liftIOEval :: IO a -> m a
+  liftIOEval :: IO a -> m a -- ???????????????????????????
 
 -------------------------------------------------------
 -- INSTANCIAS PARA Eval
@@ -155,7 +162,6 @@ memberMap key xs =
     Just _  -> True
     Nothing -> False
 
-
 insertMap :: (Eq k) => k -> v -> [(k,v)] -> [(k,v)]
 insertMap key val [] = [(key, val)]
 insertMap key val ((k,v):xs) = if key == k then (key, val) : xs else (k,v) : insertMap key val xs
@@ -165,16 +171,6 @@ deleteMap :: (Eq k) => k -> [(k,v)] -> [(k,v)]
 deleteMap _ [] = []
 deleteMap key ((k,v):xs) = if key == k then xs else (k,v) : deleteMap key xs
 
-
--------------------------------------------------------
--- ESTADO GLOBAL DEL EVALUADOR
--------------------------------------------------------
-
-data EvalState = EvalState
-  { database :: Database
-  , nextId   :: Int
-  , logs     :: (Int, [Collection])  -- (cantidadDocumentosModificados, listaDeColeccionesModificadas)
-  }
 
 -------------------------------------------------------
 -- ERRORES DEL EVALUADOR
@@ -204,7 +200,7 @@ showError (TimestampNotFound t) =
   "Timestamp '" ++ t ++ "' no encontrado"
 
 showError InvalidTimestampTarget =
-  "El tipo de rollback no coincide con el timestamp"
+  "El tipo de rollback no coinzzzzcide con el timestamp"
 
 showError TypeError =
   "Error de tipo en la operación"
@@ -280,18 +276,7 @@ evalComm (CommInsertMany coll (e:es)) = do
 -------------------------------------------------------
 -- DELETE
 -------------------------------------------------------
-{--
-evalComm (CommDelete coll cond) = do
-  docsMaybe <- lookupDB coll
-  case docsMaybe of
-    Nothing -> throwEval (CollectionNotFound coll)
-    Just docs -> do
-      docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
-      let deleted = length docs - length docs'
-      insertDB coll docs'
-      incDocs deleted
-      if deleted > 0 then registerCollectionChange coll else return ()
---}
+
 evalComm (CommDelete coll cond) = do
   docsMaybe <- lookupDB coll
   case docsMaybe of
@@ -357,7 +342,7 @@ evalComm (CommQuery find) = do
 -- VISTAS
 -------------------------------------------------------
 evalComm (CommCreateView name find) = do
-  viewsMap <- liftIOEval readViewsFile
+  viewsMap <- liftIOEval readViewsFile -- viewsMap tiene una lista con todas las vistas tipo  [ ("mayores", Find ...), ("empleados", Find ...), ...]
   if memberMap name viewsMap
     then throwEval (ViewAlreadyExists name)
     else liftIOEval (writeViewsFile (insertMap name find viewsMap))
@@ -379,7 +364,7 @@ evalComm (CommUseView name (ViewWithPipeline f)) = do
 -------------------------------------------------------
 -- TIMESTAMPS
 -------------------------------------------------------
-evalComm (CommTimestamp target label) = do
+evalComm (CommTimestamp target label) = do -- aca podriamos usar el pattermatching para target y me podria ahorrar un case de este codigo
   st <- getEval
   let db = database st
 
@@ -396,7 +381,7 @@ evalComm (CommTimestamp target label) = do
   liftIOEval ( do
     tsMap <- readTimestampsFile
     let newMap = insertMap label snap tsMap
-    writeTimestampsFile newMap)
+    writeTimestampsFile newMap) -- todo este do podria ser una sola funcionj
 
 
 -------------------------------------------------------
@@ -806,19 +791,22 @@ evalJsonExp JNull _ = return VNull
 evalJsonExp (JPath p) doc = evalPathExp p doc
 
 evalPathExp :: (MonadErrorEval m) => PathExp -> Document -> m Value
-evalPathExp (PVar f) doc = 
+
+evalPathExp (PVar f) doc =
   case lookup f doc of
     Just v  -> return v
     Nothing -> throwEval (FieldNotFoundInObject f)
 
-evalPathExp (PAccess p f) doc = do
-  val <- evalPathExp p doc
-  case val of
-    VObject obj -> 
-      case lookup f obj of
-        Just v  -> return v
-        Nothing -> throwEval (FieldNotFoundInObject f)
-    _ -> throwEval TypeError 
+evalPathExp (PAccess f rest) doc =
+  case lookup f doc of
+    Nothing ->
+      throwEval (FieldNotFoundInObject f)
+
+    Just (VObject obj) ->
+      evalPathExp rest obj
+
+    Just _ ->
+      throwEval TypeError
 
 -------------------------------------------------------
 -- HELPERS

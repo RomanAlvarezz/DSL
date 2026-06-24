@@ -64,9 +64,7 @@ parseNumAddSub :: Parser NumExp
 parseNumAddSub = chainl1 parseNumMulDiv numAddSubOp
 
 numAddSubOp :: Parser (NumExp -> NumExp -> NumExp)
-numAddSubOp =
-      (reservedOpP "+" >> return NAdd)
-  <|> (reservedOpP "-" >> return NSub)
+numAddSubOp = (reservedOpP "+" >> return NAdd) <|> (reservedOpP "-" >> return NSub)
 
 parseNumMulDiv :: Parser NumExp
 parseNumMulDiv = chainl1 parseNumFactor numMulDivOp
@@ -94,7 +92,7 @@ parseNumFactor =
 -- ======================================================
 pStrExp :: Parser StrExp
 pStrExp =
-      try pStringConst -- saco 'try' ya que stringP e identifierP una emp con " y el otro con letra
+      try pStringConst
   <|> pStringPath
 
 pStringConst :: Parser StrExp
@@ -145,7 +143,7 @@ pBoolComparison =
   <|> try pEqStr
   <|> pBoolAtom
 
--- nivel base: booleanos "atómicos" que pueden participar tanto solos como dentro de eqB / neqB
+
 pBoolAtom :: Parser BoolExp
 pBoolAtom =
       parensP pBoolExp
@@ -238,7 +236,12 @@ pPathExp :: Parser PathExp
 pPathExp = do
   base <- identifierP
   fields <- many (reservedOpP "." >> identifierP)
-  return (foldl PAccess (PVar base) fields)
+  return (buildPath (base : fields))
+
+buildPath :: [FieldName] -> PathExp
+buildPath [x]    = PVar x
+buildPath (x:xs) = PAccess x (buildPath xs)
+--buildPath _      = error "Path vacío"
 
 -- ======================================================
 -- PARSER DE JSONEXP
@@ -248,32 +251,9 @@ pJsonExp :: Parser JsonExp
 pJsonExp =
       pJObject
   <|> pJArray
---  <|> pJNull
---  <|> pJBool
---  <|> pJNum
---  <|> pJStr
   <|> pJPath
 
-{--
-pJNull :: Parser JsonExp
-pJNull = do
-  reservedP "null"
-  return JNull
 
-pJBool = do
-  b <- pBoolLiteral
-  return (JBool b)
-
-pJNum :: Parser JsonExp
-pJNum = do
-  n <- pNumExp
-  return (JNum n)
-
-pJStr :: Parser JsonExp
-pJStr = do
-  s <- pStrExp
-  return (JStr s)
---}
 pJObject :: Parser JsonExp
 pJObject = do
   fields <- bracesP (pJField `sepBy` commaP)
@@ -322,7 +302,7 @@ pJFieldPath = do
   value <- try pJObject <|> pJPath
   return (name, value)
 
--- decidir si queremos un array de expresiones json o solo de objetos json, pruebo en cambiar pJsonExp por pJObject
+
 pJArray :: Parser JsonExp
 pJArray = do
   elems <- bracketsP (pJObject `sepBy` commaP)
@@ -338,7 +318,6 @@ pJPath = do
 -- ======================================================
 
 -- Operaciones del pipeline
--- creo que aca estan correctos los try ya que todos comienzan con '.' excepto sort
 pQueryOp :: Parser QueryOp
 pQueryOp =
       try pFilter
@@ -661,7 +640,6 @@ seqOp = do
   semiP
   return Seq
 
--- pruebo sacando todos los try de aca (salvo find que ya no lo tenia desde antes)
 pSingleStatement :: Parser Comm
 pSingleStatement =
      pSkip
