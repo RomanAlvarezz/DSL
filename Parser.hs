@@ -91,9 +91,7 @@ parseNumFactor =
 -- PARSER DE STREXP
 -- ======================================================
 pStrExp :: Parser StrExp
-pStrExp =
-      try pStringConst
-  <|> pStringPath
+pStrExp = try pStringConst <|> pStringPath
 
 pStringConst :: Parser StrExp
 pStringConst = do
@@ -116,16 +114,18 @@ parseOr :: Parser BoolExp
 parseOr = chainl1 parseAnd orOp
 
 orOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-orOp =
-  reservedOpP "||" >> return Or
+orOp = reservedOpP "||" >> return Or
 
 -- nivel medio: &&
 parseAnd :: Parser BoolExp
-parseAnd = chainl1 parseNot andOp
+parseAnd = chainl1 parseEqBool andOp
 
 andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
 andOp =
   reservedOpP "&&" >> return And
+
+parseEqBool :: Parser BoolExp
+parseEqBool = chainl1 parseNot pEqBoolOp
 
 -- nivel siguiente: !
 parseNot :: Parser BoolExp
@@ -138,20 +138,15 @@ parseNot =
 -- nivel de comparaciones booleanas, acá viven eqB, eq, eqS y las relacionales
 pBoolComparison :: Parser BoolExp
 pBoolComparison =
-      try pEqBool
-  <|> try pEqNum
+      try pEqNum
   <|> try pEqStr
-  <|> pBoolAtom
-
-
-pBoolAtom :: Parser BoolExp
-pBoolAtom =
-      parensP pBoolExp
   <|> try pExists
   <|> try pIsNull
   <|> try pRelational
   <|> try pBoolLiteral
-  <|> pBoolVariable
+  <|> try pBoolVariable
+  <|> parensP pBoolExp
+
 
 pBoolLiteral :: Parser BoolExp
 pBoolLiteral =
@@ -201,13 +196,7 @@ pEqStrOp =
       (reservedP "eqS" >> return EqStr)
   <|> (reservedP "neqS" >> return NeqStr)
 
--- comparaciones booleanas IMPORTANTE: usamos pBoolAtom y NO pBoolExp para evitar recursión infinita
-pEqBool :: Parser BoolExp
-pEqBool = do
-  e1 <- pBoolAtom
-  op <- pEqBoolOp
-  e2 <- pBoolAtom
-  return (op e1 e2)
+
 
 pEqBoolOp :: Parser (BoolExp -> BoolExp -> BoolExp)
 pEqBoolOp =
