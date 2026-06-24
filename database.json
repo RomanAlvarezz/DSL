@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 226
+        "nextId": 227
     },
     "animales": [
         {
@@ -94,6 +94,18 @@
         }
     ],
     "users": [
+        {
+            "_id": 226,
+            "active": true,
+            "age": 32,
+            "country": "US",
+            "direccion": {
+                "calle": "Falsetti",
+                "tipo": "departamento"
+            },
+            "name": "Luciana",
+            "score": 42
+        },
         {
             "_id": 225,
             "active": true,

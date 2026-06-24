@@ -291,7 +291,6 @@ pJFieldNull = pConstField ":nl" (reservedP "null") JNull
 pJFieldPath :: Parser (FieldName, JsonExp)
 pJFieldPath = pTypedField ":p" (try pJObject <|> pJPath) id
 
-
 pJArray :: Parser JsonExp
 pJArray = do
   elems <- bracketsP (pJObject `sepBy` commaP)
@@ -315,29 +314,47 @@ pQueryOp =
   <|> try pLimit
   <|> try pGroup
 
+pipelineKeyword :: String -> Parser ()
+pipelineKeyword kw = do
+  reservedOpP "."
+  reservedP kw
+
 -- Filter
 pFilter :: Parser QueryOp
 pFilter = do
-  reservedOpP "."
-  reservedP "filter"
+  pipelineKeyword "filter"
   b <- parensP pBoolExp
   return (QFilter b)
 
 -- Select
 pSelect :: Parser QueryOp
 pSelect = do
-  reservedOpP "."
-  reservedP "select"
+  pipelineKeyword "select"
   ids <- parensP (identifierP `sepBy1` commaP)
   return (QSelect ids)
 
 -- Sort
 pSort :: Parser QueryOp
 pSort = do
-  reservedOpP "."
-  reservedP "sort"
+  pipelineKeyword "sort"
   fields <- parensP (bracesP (pSortField `sepBy1` commaP))
   return (QSort fields)
+
+-- Limit
+pLimit :: Parser QueryOp
+pLimit = do
+  pipelineKeyword "limit"
+  n <- parensP integerP
+  return (QLimit (fromInteger n))
+
+-- GroupBy + Aggregaciones + Having
+pGroup :: Parser QueryOp
+pGroup = do
+  pipelineKeyword "groupby"
+  fields <- parensP (identifierP `sepBy1` commaP)
+  aggs <- many (try pAggregate)
+  hav <- optionMaybe (try pHaving)
+  return (QGroup (GroupSpec fields aggs hav))
 
 pSortField :: Parser (FieldName, SortOrder)
 pSortField = do
@@ -350,24 +367,6 @@ pSortField = do
         reservedP "desc"
         return Desc
   return (f, o)
-
--- Limit
-pLimit :: Parser QueryOp
-pLimit = do
-  reservedOpP "."
-  reservedP "limit"
-  n <- parensP integerP
-  return (QLimit (fromInteger n))
-
--- GroupBy + Aggregaciones + Having
-pGroup :: Parser QueryOp
-pGroup = do
-  reservedOpP "."
-  reservedP "groupby"
-  fields <- parensP (identifierP `sepBy1` commaP)
-  aggs <- many (try pAggregate)
-  hav <- optionMaybe (try pHaving)
-  return (QGroup (GroupSpec fields aggs hav))
 
 -- aca lo mismo, creo que porque empiezan con '.' estan bien los try
 pAggregate :: Parser Aggregate
