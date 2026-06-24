@@ -228,7 +228,7 @@ pPathExp = do
   return (buildPath (base : fields))
 
 buildPath :: [FieldName] -> PathExp
-buildPath [x]    = PVar x
+buildPath x:[]   = PVar x
 buildPath (x:xs) = PAccess x (buildPath xs)
 --buildPath _      = error "Path vacío"
 
