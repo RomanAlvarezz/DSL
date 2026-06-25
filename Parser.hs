@@ -54,6 +54,17 @@ whiteSpaceP = whiteSpace dsl
 bracketsP :: Parser a -> Parser a
 bracketsP = brackets dsl
 
+pipelineKeyword :: String -> Parser ()
+pipelineKeyword kw = do
+  reservedOpP "."
+  reservedP kw
+
+pCollectionPrefix :: String -> Parser Collection
+pCollectionPrefix keyword = do
+  reservedP keyword
+  reservedOpP "."
+  identifierP
+
 -- ======================================================
 -- PARSER DE NUMEXP
 -- ======================================================
@@ -314,11 +325,6 @@ pQueryOp =
   <|> try pLimit
   <|> try pGroup
 
-pipelineKeyword :: String -> Parser ()
-pipelineKeyword kw = do
-  reservedOpP "."
-  reservedP kw
-
 -- Filter
 pFilter :: Parser QueryOp
 pFilter = do
@@ -368,7 +374,6 @@ pSortField = do
         return Desc
   return (f, o)
 
--- aca lo mismo, creo que porque empiezan con '.' estan bien los try
 pAggregate :: Parser Aggregate
 pAggregate =
       try pCount
@@ -377,85 +382,53 @@ pAggregate =
   <|> try pMin
   <|> try pMax
 
-pCount :: Parser Aggregate
-pCount = do
-  reservedOpP "."
-  reservedP "count"
-  (alias, field) <- parensP ( do
-    a <- stringP
+pAggregateArgs :: Parser (String, FieldName)
+pAggregateArgs =
+  parensP $ do
+    alias <- stringP
     commaP
-    b <- identifierP
-    return (a, b))
-  return (Aggregate AggCount field alias)
+    field <- identifierP
+    return (alias, field)
+
+pAggregateFunc :: String -> AggFunc -> Parser Aggregate
+pAggregateFunc keyword aggFunc = do
+  pipelineKeyword keyword
+  (alias, field) <- pAggregateArgs
+  return (Aggregate aggFunc field alias)
+
+pCount :: Parser Aggregate
+pCount = pAggregateFunc "count" AggCount
 
 pSum :: Parser Aggregate
-pSum = do
-  reservedOpP "."
-  reservedP "sum"
-  (alias, field) <- parensP ( do
-    a <- stringP
-    commaP
-    b <- identifierP
-    return (a, b))
-  return (Aggregate AggSum field alias)
+pSum = pAggregateFunc "sum" AggSum
 
 pAvg :: Parser Aggregate
-pAvg = do
-  reservedOpP "."
-  reservedP "avg"
-  (alias, field) <- parensP ( do
-    a <- stringP
-    commaP
-    b <- identifierP
-    return (a, b))
-  return (Aggregate AggAvg field alias)
+pAvg = pAggregateFunc "avg" AggAvg
 
 pMin :: Parser Aggregate
-pMin = do
-  reservedOpP "."
-  reservedP "min"
-  (alias, field) <- parensP ( do
-    a <- stringP
-    commaP
-    b <- identifierP
-    return (a, b))
-  return (Aggregate AggMin field alias)
+pMin = pAggregateFunc "min" AggMin
 
 pMax :: Parser Aggregate
-pMax = do
-  reservedOpP "."
-  reservedP "max"
-  (alias, field) <- parensP ( do
-    a <- stringP
-    commaP
-    b <- identifierP
-    return (a, b))
-  return (Aggregate AggMax field alias)
+pMax =  pAggregateFunc "max" AggMax
 
 pHaving :: Parser BoolExp
 pHaving = do
-  reservedOpP "."
-  reservedP "having"
-  b <- parensP pBoolExp
-  return b
+  pipelineKeyword "having"
+  parensP pBoolExp
 
 -- Terminales
 pTerminal :: Parser QueryTerminal
-pTerminal =
-      try pPreview
-  <|> pSave
+pTerminal = try pPreview <|> pSave
 
 pPreview :: Parser QueryTerminal
 pPreview = do
-  reservedOpP "."
-  reservedP "preview"
+  pipelineKeyword "preview"
   parensP (return ())
   return TerminalPreview
 
 pSave :: Parser QueryTerminal
 pSave = do
-  reservedOpP "."
-  reservedP "save"
+  pipelineKeyword "save"
   path <- parensP parseJsonPath
   return (TerminalSave path)
 
@@ -466,6 +439,10 @@ parseJsonPath = do
   string ".json"
   char '"'
   return (name ++ ".json")
+
+pQuery = do
+  q <- pFind
+  return (CommQuery q)
 
 --Query completa target
 pFind :: Parser Find
@@ -484,30 +461,26 @@ pSkip = do
   reservedP "skip"
   return Skip
 
--- crear coleccion
-pCreateCollection :: Parser Comm
-pCreateCollection = do
-  reservedP "createCollection"
+pCollectionCommand :: String -> (Collection -> Comm) -> Parser Comm
+pCollectionCommand keyword constructor = do
+  reservedP keyword
   reservedOpP "."
   col <- identifierP
   parensP (return ())
-  return (CommCreateColl col)
+  return (constructor col)
+
+-- crear coleccion
+pCreateCollection :: Parser Comm
+pCreateCollection = pCollectionCommand "createCollection" CommCreateColl
 
 -- eliminar coleccion
 pDropCollection :: Parser Comm
-pDropCollection = do
-  reservedP "dropCollection"
-  reservedOpP "."
-  col <- identifierP
-  parensP (return ())
-  return (CommDropColl col)
+pDropCollection = pCollectionCommand "dropCollection" CommDropColl
 
 -- insert individual, saco pJsonExp lo hago mas restringido
 pInsert :: Parser Comm
 pInsert = do
-  reservedP "insert"
-  reservedOpP "."
-  col <- identifierP
+  col <- pCollectionPrefix "insert"
   doc <- parensP pJObject
   return (CommInsert col doc)
 
@@ -515,44 +488,33 @@ pInsert = do
 -- insert many
 pInsertManyComm :: Parser Comm
 pInsertManyComm = do
-  reservedP "insertMany"
-  reservedOpP "."
-  col <- identifierP
+  col <- pCollectionPrefix "insertMany"
   docs <- parensP (bracketsP (pJObject `sepBy1` commaP))
   return (CommInsertMany col docs)
 
--- update one
-pUpdateOneComm :: Parser Comm
-pUpdateOneComm = do
-  reservedP "updateOne"
-  reservedOpP "."
-  col <- identifierP
-  (cond, doc) <- parensP ( do
-    c <- pBoolExp
-    commaP
-    d <- pJObject
-    return (c, d))
-  return (CommUpdateOne col cond doc)
 
--- uptade many
-pUpdateManyComm :: Parser Comm
-pUpdateManyComm = do
-  reservedP "updateMany"
+pUpdateCommand :: String -> (Collection -> BoolExp -> JsonExp -> Comm) -> Parser Comm
+pUpdateCommand keyword constructor = do
+  reservedP keyword
   reservedOpP "."
   col <- identifierP
+
   (cond, doc) <- parensP ( do
     c <- pBoolExp
     commaP
     d <- pJObject
     return (c, d))
-  return (CommUpdateMany col cond doc)
+
+  return (constructor col cond doc)
+
+pUpdateOneComm = pUpdateCommand "updateOne" CommUpdateOne
+
+pUpdateManyComm = pUpdateCommand "updateMany" CommUpdateMany
 
 -- delete document
 pDeleteComm :: Parser Comm
 pDeleteComm = do
-  reservedP "delete"
-  reservedOpP "."
-  col <- identifierP
+  col <- pCollectionPrefix "delete"
   cond <- parensP pBoolExp
   return (CommDelete col cond)
 
@@ -563,23 +525,19 @@ pTransactionComm = do
   commList <- bracesP (pSingleStatement `sepBy1` semiP)
   return (CommTransaction commList)
 
--- creacion de timestamp
-pTimestampComm :: Parser Comm
-pTimestampComm = do
-  reservedP "timestamp"
-  reservedOpP "."
-  target <- pTimestampTarget
-  label <- parensP stringP
-  return (CommTimestamp target label)
 
--- rollback
-pRollbackComm :: Parser Comm
-pRollbackComm = do
-  reservedP "rollback"
+
+pTimestampLike :: String -> (TimestampTarget -> TimestampLabel -> Comm) -> Parser Comm
+pTimestampLike keyword constructor = do
+  reservedP keyword
   reservedOpP "."
   target <- pTimestampTarget
   label <- parensP stringP
-  return (CommRollback target label)
+  return (constructor target label)
+
+pTimestampComm = pTimestampLike "timestamp" CommTimestamp
+
+pRollbackComm = pTimestampLike "rollback" CommRollback
 
 -- tipo de timestamp
 pTimestampTarget :: Parser TimestampTarget
@@ -643,10 +601,11 @@ pSingleStatement =
   <|> pUpdateManyComm
   <|> pDeleteComm
   <|> pInsert
-  <|> do
-        q <- pFind
-        return (CommQuery q)
-
+  <|> pQuery
+--  <|> do
+--        q <- pFind
+--        return (CommQuery q)
+  
 -- Programa completo
 pProgram :: Parser Comm
 pProgram = totParser pStatement

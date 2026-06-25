@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 227
+        "nextId": 236
     },
     "animales": [
         {
@@ -94,6 +94,44 @@
         }
     ],
     "users": [
+        {
+            "_id": 231,
+            "age": 29,
+            "country": "AR",
+            "name": "Ana",
+            "score": 9
+        },
+        {
+            "_id": 230,
+            "age": 27,
+            "country": "AR",
+            "name": "Juan",
+            "score": 7
+        },
+        {
+            "_id": 229,
+            "active": false,
+            "age": 26,
+            "country": "AR",
+            "name": "Rocio",
+            "score": 24
+        },
+        {
+            "_id": 228,
+            "active": true,
+            "age": 28,
+            "country": "AR",
+            "name": "Paula",
+            "score": 17
+        },
+        {
+            "_id": 227,
+            "active": true,
+            "age": 35,
+            "country": "AR",
+            "name": "Carlos",
+            "score": 13
+        },
         {
             "_id": 226,
             "active": true,
