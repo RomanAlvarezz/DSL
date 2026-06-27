@@ -20,10 +20,8 @@ data Comm
   -- inserts
   | CommInsert Collection JsonExp
   | CommInsertMany Collection [JsonExp]
-  -- updates
-  | CommUpdateOne Collection BoolExp JsonExp
-  | CommUpdateMany Collection BoolExp JsonExp --capaz lo saque
-  -- deletes
+  -- update
+  | CommUpdate Collection BoolExp JsonExp
   | CommDelete Collection BoolExp
   -- transacciones
   | CommTransaction [Comm]

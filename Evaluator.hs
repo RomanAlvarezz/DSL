@@ -296,35 +296,19 @@ evalComm (CommDelete coll cond) = do
 
 
 -------------------------------------------------------
--- UPDATE ONE
+-- UPDATE
 -------------------------------------------------------
-evalComm (CommUpdateOne coll cond exp) = do
-  obj <- evalJsonExpAsObject exp emptyDoc 
-  cleanDoc <- case validateNoIdField obj of
-                Nothing -> throwEval ReservedField
-                Just cd -> return cd
-  docsMaybe <- lookupDB coll
-  case docsMaybe of
-    Nothing -> throwEval (CollectionNotFound coll)
-    Just docs -> do
-      (changed, docs') <- updateDocs True cond cleanDoc docs
-      insertDB coll docs'
-      if changed > 0 then do
-        incDocs changed 
-        registerCollectionChange coll
-      else return ()
 
-
-evalComm (CommUpdateMany coll cond exp) = do
+evalComm (CommUpdate coll cond exp) = do
   obj <- evalJsonExpAsObject exp emptyDoc
-  cleanDoc <- case validateNoIdField obj of
-                Nothing -> throwEval ReservedField
-                Just cd -> return cd
+  case validateNoIdField obj of
+    Nothing -> throwEval ReservedField
+    Just cd -> return cd
   docsMaybe <- lookupDB coll
   case docsMaybe of
     Nothing -> throwEval (CollectionNotFound coll)
     Just docs -> do
-      (changed, docs') <- updateDocs False cond cleanDoc docs
+      (changed, docs') <- updateDocs cond obj docs
       insertDB coll docs'
       if changed > 0 then do
         incDocs changed
@@ -817,32 +801,46 @@ validateNoIdField doc =
     Just _ -> Nothing
     Nothing -> Just doc
 
-updateDocs :: (MonadErrorEval m) => Bool -> BoolExp -> Document -> [Document] -> m (Int, [Document])
-updateDocs _ _ _ [] = return (0, [])
-updateDocs stopAfterFirst cond cleanDoc (d:ds) = do
-  match <- safeEvalBool cond d
-  if match
-    then do
-      -- Verifico si el cambio realmente modifica algo
-      let alreadySame = all (\(k,v) -> lookup k d == Just v) cleanDoc
-      if alreadySame
-        then if stopAfterFirst 
-               then return (0, d:ds)
-               else do
-                 (count, rest) <- updateDocs stopAfterFirst cond cleanDoc ds
-                 return (count, d:rest)
-        else do
-          let oldId = getId d
-          let merged = ("_id", oldId) : mergeFields (filter (\(k,_) -> k /= "_id") d) cleanDoc
-          
-          if stopAfterFirst
-            then return (1, merged : ds)
-            else do
-              (count, rest) <- updateDocs stopAfterFirst cond cleanDoc ds
-              return (count + 1, merged : rest)
-    else do
-      (count, rest) <- updateDocs stopAfterFirst cond cleanDoc ds
-      return (count, d : rest)
+updateDocs :: (MonadErrorEval m) => BoolExp -> Document -> [Document] -> m (Int, [Document])
+updateDocs _ _ [] = return (0, [])
+updateDocs cond cleanDoc (doc:docs) = do
+    (doc', increment) <- processDoc cond cleanDoc doc
+    (count, rest) <- updateDocs cond cleanDoc docs
+    return (count + increment, doc' : rest)
+
+processDoc :: (MonadErrorEval m) => BoolExp -> Document -> Document -> m (Document, Int)
+
+processDoc cond obj doc = do
+    match <- safeEvalBool cond doc
+    if not match
+      then return (doc, 0)
+      else do
+          let alreadySame = sameValues obj doc
+          if alreadySame
+             then return (doc, 0)
+             else do
+                 let updated = ("_id", getId doc) : applyChanges doc obj
+                 return (updated, 1)
+
+sameValues :: Document -> Document -> Bool
+sameValues [] _ = True
+
+sameValues ((field,value):xs) doc =
+    case lookup field doc of
+      Just v -> if v == value then sameValues xs doc else False
+      Nothing -> False
+
+applyChanges :: Document -> Document -> Document
+applyChanges [] changes = changes
+
+applyChanges ((field,value):xs) changes =
+    case lookup field changes of
+
+        Just newValue ->
+            (field,newValue) : applyChanges xs (filter (\(k,_) -> k /= field) changes)
+
+        Nothing ->
+            (field,value) : applyChanges xs changes
 
 safeEvalBool :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 safeEvalBool cond doc =
@@ -884,7 +882,7 @@ getTerminal (Find _ _ t) = t
 getOps :: Find -> [QueryOp]
 getOps (Find _ ops _) = ops
 
--- ncrementa la cantidad de documentos modificados
+-- incrementa la cantidad de documentos modificados
 incDocs :: (MonadStateEval m) => Int -> m ()
 incDocs n = do
   st <- getEval

@@ -1,7 +1,7 @@
-updateOne.users(
-  name eqS "Demi",
+update.users(
+  name eqS "Luciana",
   {
-    name:s "Demi",
+    name:s "Luciana Alvarez",
     age:n 23,
     direccion:p {calle:s "Almafuerte", altura:n 1051},
     active:b true

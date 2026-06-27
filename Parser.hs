@@ -507,9 +507,7 @@ pUpdateCommand keyword constructor = do
 
   return (constructor col cond doc)
 
-pUpdateOneComm = pUpdateCommand "updateOne" CommUpdateOne
-
-pUpdateManyComm = pUpdateCommand "updateMany" CommUpdateMany
+pUpdateManyComm = pUpdateCommand "update" CommUpdate
 
 -- delete document
 pDeleteComm :: Parser Comm
@@ -597,7 +595,6 @@ pSingleStatement =
   <|> pTimestampComm
   <|> pRollbackComm
   <|> pInsertManyComm
-  <|> pUpdateOneComm
   <|> pUpdateManyComm
   <|> pDeleteComm
   <|> pInsert

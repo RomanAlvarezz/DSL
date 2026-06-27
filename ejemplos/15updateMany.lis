@@ -1,7 +1,7 @@
-updateMany.users(
-  name eqS "Demi",
+update.users(
+  name eqS "eIWAA",
   {
-    name:s "Vollering",
+    name:s "eIWAA",
     age:n 27,
     direccion:p {calle:s "Almafuerte", altura:n 1047},
     active:b false
