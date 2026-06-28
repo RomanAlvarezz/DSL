@@ -783,14 +783,9 @@ evalPathExp (PVar f) doc =
 
 evalPathExp (PAccess f rest) doc =
   case lookup f doc of
-    Nothing ->
-      throwEval (FieldNotFoundInObject f)
-
-    Just (VObject obj) ->
-      evalPathExp rest obj
-
-    Just _ ->
-      throwEval TypeError
+    Nothing -> throwEval (FieldNotFoundInObject f)
+    Just (VObject obj) -> evalPathExp rest obj
+    Just _ -> throwEval TypeError
 
 -------------------------------------------------------
 -- HELPERS

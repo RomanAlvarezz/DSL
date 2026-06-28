@@ -1,0 +1,194 @@
+================ Reglas de Sintaxis ================
+
+program → comms
+
+comms → comm | comms ";" comm
+
+comm → skip
+    | transaction
+    | createCollection
+    | dropCollection
+    | createView
+    | useView
+    | timestamp
+    | rollback
+    | insertMany
+    | update
+    | delete
+    | insert
+    | find
+
+transaction → "transaction" "{" comms "}"
+
+createCollectio → "createCollection" "." collection "(" ")"
+
+collection → identifier
+
+dropCollection → "dropCollection" "." collection "(" ")"
+
+insert → "insert" "." collection "(" jsonObject ")"
+
+insert → "insert" "." collection "(" "[" jsonObjects "]" ")"
+
+jsonObjects → jsonObject | jsonObject ',' jsonObjects
+
+delete → "delete" "." collection "(" boolExp ")"
+
+update → "update" "." collection "(" boolExp "," jsonObject ")"
+
+createView → "createView" "(" string "," find ")"
+
+useView → "useView" "(" string ")" viewOption
+
+viewOption → queryOp+ terminal | ε
+
+queryOp+ significa una o más operaciones de consulta.
+
+timestamp → "timestamp" "." timestampTarget "(" string ")"
+
+timestampTarget → "database" | identifier
+
+rollback → "rollback" "." timestampTarget "(" string ")"
+
+find → "find" "." collection "(" ")" queryOps terminal
+
+queryOps → queryOp | queryOp '.' queryOps
+
+queryOp → filter
+        | select
+        | sort
+        | limit
+        | group
+
+filter → "." "filter" "(" boolExp ")"
+
+select → "." "select" "(" identifiers ")"
+
+identifiers → identifier | identifier "," identifiers
+
+sort → "." "sort" "(" "{" sortField ("," sortField) "}" ")"
+
+sortField → identifier ":" order
+
+order → "asc" | "desc"
+
+limit → "." "limit" "(" integer ")"
+
+group → "." "groupby" "(" identifiers ")" aggregates having
+
+aggregate → aggregate | aggregate "," aggregates
+
+aggregate → count
+            | sum
+            | avg
+            | min
+            | max
+
+count → "." "count" aggregateArgs
+sum → "." "sum" aggregateArgs
+avg → "." "avg" aggregateArgs
+min → "." "min" aggregateArgs
+max → "." "max" aggregateArgs
+
+aggregateArgs → "(" string "," identifier ")"
+
+having → "." "having" "(" boolExp ")"
+
+terminal → preview | save
+
+preview → "." "preview" "(" ")"
+
+save → "." "save" "(" path ")"
+
+numExp → term numExp'
+
+numExp' → "+" term numExp'
+        | "-" term numExp'
+        | ε
+
+term → factor term'
+
+term' → "*" factor term'
+        | "/" factor term'
+        | ε
+
+factor  → "(" numExp ")"
+        | float
+        | integer
+        | path
+
+strExp → string
+        | path
+
+boolExp → boolExp "||" andExp
+        | andExp
+
+andExp → andExp "&&" eqBoolExp
+        | eqBoolExp
+    
+eqBoolExp → eqBoolExp "eqB" notExp
+        | eqBoolExp "neqB" notExp
+        | notExp
+
+notExp → "!" notExp
+        | boolFactor
+
+boolFactor  → eqNum
+            | eqStr
+            | exists
+            | isNull
+            | relational
+            | boolLiteral
+            | boolVariable
+            | "(" boolExp ")"
+
+boolLiteral → "true" | "false"
+
+boolVariable → path
+
+exists → "exists" "(" path ")"
+
+isNull → "isNull" "(" path ")"
+
+eqNum → numExp numEqOp numExp
+
+numEqOp → "eq" | "neq"
+
+eqStr → strExp strEqOp strExp
+
+strEqOp → "eqS" | "neqS"
+
+relational → numExp relOp numExp
+
+relOp → ">"
+      | "<"
+      | ">="
+      | "<="
+
+path → identifierPath
+
+identifierPath = identifier | identifier "." identifierPath
+
+jsonExp → jsonObject | jsonArray | path
+
+jsonObject → "{" fields "}"
+
+fields → field | field "," fields
+
+field → fieldNull
+        | fieldNum
+        | fieldStr
+        | fieldBool
+        | fieldPath
+
+fieldNum → identifier ":n" numExp
+
+fieldStr → identifier ":s" strExp
+
+fieldBool → identifier ":b" boolExp
+
+fieldNull → identifier ":nl" "null"
+
+fieldPath → identifier ":p" ( jsonObject | path )
+
+jsonArray → "[" jsonObjects "]"

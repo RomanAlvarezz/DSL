@@ -21,7 +21,7 @@ dsl = makeTokenParser emptyDef
   , reservedNames =
       [ "find", "filter", "select", "sort", "limit", "createCollection", "dropCollection", "true", "false", "null"
       , "asc", "desc"
-      , "insert", "insertMany", "updateOne", "updateMany", "delete"
+      , "insert", "insertMany", "update", "delete"
       , "groupby", "having"
       , "count", "sum", "avg", "min", "max"
       , "preview", "save"
@@ -54,13 +54,13 @@ whiteSpaceP = whiteSpace dsl
 bracketsP :: Parser a -> Parser a
 bracketsP = brackets dsl
 
-pipelineKeyword :: String -> Parser ()
-pipelineKeyword kw = do
+pQueryPrefix :: String -> Parser ()
+pQueryPrefix word = do
   reservedOpP "."
-  reservedP kw
+  reservedP word
 
-pCollectionPrefix :: String -> Parser Collection
-pCollectionPrefix keyword = do
+pCommandPrefix :: String -> Parser Collection -- Creo que esto lo usan otros comandos a parte de los que interactuan con colection
+pCommandPrefix keyword = do
   reservedP keyword
   reservedOpP "."
   identifierP
@@ -75,15 +75,17 @@ parseNumAddSub :: Parser NumExp
 parseNumAddSub = chainl1 parseNumMulDiv numAddSubOp
 
 numAddSubOp :: Parser (NumExp -> NumExp -> NumExp)
-numAddSubOp = (reservedOpP "+" >> return NAdd) <|> (reservedOpP "-" >> return NSub)
+numAddSubOp = (do reservedOpP "+"
+                  return NAdd) <|> (do reservedOpP "-"
+                                       return NSub)
 
 parseNumMulDiv :: Parser NumExp
 parseNumMulDiv = chainl1 parseNumFactor numMulDivOp
 
 numMulDivOp :: Parser (NumExp -> NumExp -> NumExp)
-numMulDivOp =
-      (reservedOpP "*" >> return NMul)
-  <|> (reservedOpP "/" >> return NDiv)
+numMulDivOp = (do reservedOpP "*"
+                  return NMul) <|> (do reservedOpP "/"
+                                       return NDiv)
 
 parseNumFactor :: Parser NumExp
 parseNumFactor =
@@ -125,28 +127,27 @@ parseOr :: Parser BoolExp
 parseOr = chainl1 parseAnd orOp
 
 orOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-orOp = reservedOpP "||" >> return Or
+orOp = do reservedOpP "||"
+          return Or
 
 -- nivel medio: &&
 parseAnd :: Parser BoolExp
 parseAnd = chainl1 parseEqBool andOp
 
 andOp :: Parser (BoolExp -> BoolExp -> BoolExp)
-andOp =
-  reservedOpP "&&" >> return And
+andOp = do reservedOpP "&&"
+           return And
 
 parseEqBool :: Parser BoolExp
 parseEqBool = chainl1 parseNot pEqBoolOp
 
 -- nivel siguiente: !
 parseNot :: Parser BoolExp
-parseNot =
-      (reservedOpP "!" >> do
-          b <- parseNot
-          return (Not b))
-  <|> pBoolComparison
+parseNot = (do reservedOpP "!"
+               b <- parseNot
+               return (Not b)) <|> pBoolComparison
 
--- nivel de comparaciones booleanas, acá viven eqB, eq, eqS y las relacionales
+-- nivel de comparaciones booleanas, acá viven eqB, eq, eqS,etc
 pBoolComparison :: Parser BoolExp
 pBoolComparison =
       try pEqNum
@@ -239,7 +240,7 @@ pPathExp = do
   return (buildPath (base : fields))
 
 buildPath :: [FieldName] -> PathExp
-buildPath (x:[])   = PVar x
+buildPath (x:[]) = PVar x
 buildPath (x:xs) = PAccess x (buildPath xs)
 
 -- ======================================================
@@ -289,13 +290,6 @@ pConstField tag parser result = do
   parser
   return (name, result)
 
---pJFieldNull :: Parser (FieldName, JsonExp)
---pJFieldNull = do
---  name <- identifierP
---  reservedOpP ":nl"
---  reservedP "null"
---  return (name, JNull)
-
 pJFieldNull :: Parser (FieldName, JsonExp)
 pJFieldNull = pConstField ":nl" (reservedP "null") JNull
 
@@ -328,35 +322,36 @@ pQueryOp =
 -- Filter
 pFilter :: Parser QueryOp
 pFilter = do
-  pipelineKeyword "filter"
+  pQueryPrefix "filter"
   b <- parensP pBoolExp
   return (QFilter b)
 
 -- Select
 pSelect :: Parser QueryOp
 pSelect = do
-  pipelineKeyword "select"
+  pQueryPrefix "select"
   ids <- parensP (identifierP `sepBy1` commaP)
   return (QSelect ids)
 
 -- Sort
 pSort :: Parser QueryOp
 pSort = do
-  pipelineKeyword "sort"
+  pQueryPrefix "sort"
   fields <- parensP (bracesP (pSortField `sepBy1` commaP))
   return (QSort fields)
 
 -- Limit
 pLimit :: Parser QueryOp
 pLimit = do
-  pipelineKeyword "limit"
-  n <- parensP integerP
+  pQueryPrefix "limit"
+--  n <- parensP pNumExp
+  n <- parensP integerP --hola
   return (QLimit (fromInteger n))
 
 -- GroupBy + Aggregaciones + Having
 pGroup :: Parser QueryOp
 pGroup = do
-  pipelineKeyword "groupby"
+  pQueryPrefix "groupby"
   fields <- parensP (identifierP `sepBy1` commaP)
   aggs <- many (try pAggregate)
   hav <- optionMaybe (try pHaving)
@@ -392,7 +387,7 @@ pAggregateArgs =
 
 pAggregateFunc :: String -> AggFunc -> Parser Aggregate
 pAggregateFunc keyword aggFunc = do
-  pipelineKeyword keyword
+  pQueryPrefix keyword
   (alias, field) <- pAggregateArgs
   return (Aggregate aggFunc field alias)
 
@@ -413,7 +408,7 @@ pMax =  pAggregateFunc "max" AggMax
 
 pHaving :: Parser BoolExp
 pHaving = do
-  pipelineKeyword "having"
+  pQueryPrefix "having"
   parensP pBoolExp
 
 -- Terminales
@@ -422,13 +417,13 @@ pTerminal = try pPreview <|> pSave
 
 pPreview :: Parser QueryTerminal
 pPreview = do
-  pipelineKeyword "preview"
+  pQueryPrefix "preview"
   parensP (return ())
   return TerminalPreview
 
 pSave :: Parser QueryTerminal
 pSave = do
-  pipelineKeyword "save"
+  pQueryPrefix "save"
   path <- parensP parseJsonPath
   return (TerminalSave path)
 
@@ -480,15 +475,15 @@ pDropCollection = pCollectionCommand "dropCollection" CommDropColl
 -- insert individual, saco pJsonExp lo hago mas restringido
 pInsert :: Parser Comm
 pInsert = do
-  col <- pCollectionPrefix "insert"
+  col <- pCommandPrefix "insert"
   doc <- parensP pJObject
   return (CommInsert col doc)
 
 
--- insert many
+
 pInsertManyComm :: Parser Comm
 pInsertManyComm = do
-  col <- pCollectionPrefix "insertMany"
+  col <- pCommandPrefix "insertMany"
   docs <- parensP (bracketsP (pJObject `sepBy1` commaP))
   return (CommInsertMany col docs)
 
@@ -512,7 +507,7 @@ pUpdateManyComm = pUpdateCommand "update" CommUpdate
 -- delete document
 pDeleteComm :: Parser Comm
 pDeleteComm = do
-  col <- pCollectionPrefix "delete"
+  col <- pCommandPrefix "delete"
   cond <- parensP pBoolExp
   return (CommDelete col cond)
 
@@ -520,7 +515,7 @@ pDeleteComm = do
 pTransactionComm :: Parser Comm
 pTransactionComm = do
   reservedP "transaction"
-  commList <- bracesP (pSingleStatement `sepBy1` semiP)
+  commList <- bracesP (pComm `sepBy1` semiP)
   return (CommTransaction commList)
 
 
@@ -576,33 +571,30 @@ pViewOption viewName =
       )
   <|> return ViewOnly
 
-pStatement :: Parser Comm
-pStatement = chainl1 pSingleStatement seqOp
+pComms :: Parser Comm
+pComms = chainl1 pComm seqOp
 
 seqOp :: Parser (Comm -> Comm -> Comm)
 seqOp = do
   semiP
   return Seq
 
-pSingleStatement :: Parser Comm
-pSingleStatement =
+pComm :: Parser Comm
+pComm =
      pSkip
-  <|> pTransactionComm
-  <|> pCreateCollection
-  <|> pDropCollection
-  <|> pCreateViewComm
-  <|> pUseViewComm
-  <|> pTimestampComm
-  <|> pRollbackComm
-  <|> pInsertManyComm
+  <|> pTransactionComm 
+  <|> pCreateCollection 
+  <|> pDropCollection 
+  <|> pCreateViewComm 
+  <|> pUseViewComm 
+  <|> pTimestampComm 
+  <|> pRollbackComm 
+  <|> pInsertManyComm 
   <|> pUpdateManyComm
   <|> pDeleteComm
   <|> pInsert
   <|> pQuery
---  <|> do
---        q <- pFind
---        return (CommQuery q)
   
 -- Programa completo
 pProgram :: Parser Comm
-pProgram = totParser pStatement
+pProgram = totParser pComms
