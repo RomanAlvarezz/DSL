@@ -1,0 +1,19 @@
+(cond u doc)processDoc (doc')   (cond u docs)updateDocs (rest)
+_______________________________________________________________updateDocs
+(updateDocs cond u (doc : docs), σ) -> ([doc'] ++ rest)
+
+
+processDoc(cond cleandoc doc) ← Método que toma una condicion booleana, 
+un documento que contiene solo los campos que se quieren actualizar, y finalmente
+el documento a actualiar. Si doc cunmple la condicion, retorna un documento
+igual a doc pero con los campos actualizados. De lo contrario, devuelve doc.
+
+
+
+Tengo una regla de evaluacion escrita en un txt y necesito pasarla a codigo lattex, ayudame.
+Esta es la regla:
+(cond u doc)processDoc (doc')   (cond u docs)updateDocs (rest)
+_______________________________________________________________updateDocs
+(updateDocs cond u (doc : docs), σ) -> ([doc'] ++ rest)
+
+

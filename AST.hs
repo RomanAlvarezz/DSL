@@ -118,7 +118,6 @@ instance Ord Number where
 data NumExp
   = NConst Number
   | NPath PathExp
-  -- | NVar FieldName
   | NAdd NumExp NumExp
   | NSub NumExp NumExp
   | NMul NumExp NumExp
@@ -131,7 +130,6 @@ data NumExp
 data StrExp
   = SConst String
   | SPath PathExp
-  -- | SVar FieldName
   deriving (Show, Eq)
 
 -- ======================================================
@@ -141,7 +139,6 @@ data BoolExp
   = BTrue
   | BFalse
   | BPath PathExp
-  -- | BVar FieldName
   | Not BoolExp
   | And BoolExp BoolExp
   | Or  BoolExp BoolExp
@@ -165,10 +162,13 @@ data BoolExp
 -- ======================================================
 -- PATH (acceso a variables y campos anidados)
 -- ======================================================
-data PathExp -- representa una ruta de acceso a un campo dentro de un documento JSON
+data PathExp
   = PVar FieldName
   | PAccess FieldName PathExp 
   deriving (Show, Eq)
+
+-- direccion.calle.numero
+-- PAccess "direccion" (PAccess "calle" (PVar "numero"))  
 
 -- ======================================================
 -- EXPRESIONES JSON
