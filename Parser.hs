@@ -42,13 +42,13 @@ dsl = makeTokenParser emptyDef
 identifierP = identifier dsl
 reservedP   = reserved dsl
 reservedOpP = reservedOp dsl
-parensP     = parens dsl
-bracesP     = braces dsl
+parensP     = parens dsl -- parens = ()
+bracesP     = braces dsl -- braces = {}
 stringP     = stringLiteral dsl
 integerP    = integer dsl
 floatP      = float dsl
 commaP      = comma dsl
-semiP       = semi dsl
+semiP       = semi dsl -- ;
 whiteSpaceP = whiteSpace dsl
 
 bracketsP :: Parser a -> Parser a
@@ -59,8 +59,7 @@ pQueryPrefix word = do
   reservedOpP "."
   reservedP word
 
-pCommandPrefix :: String -> Parser Collection -- Creo que esto lo usan otros comandos a parte de los que interactuan con colection
-pCommandPrefix keyword = do
+pCommandPrefix :: String -> Parser Collection
   reservedP keyword
   reservedOpP "."
   identifierP
