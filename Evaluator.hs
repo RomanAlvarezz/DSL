@@ -344,24 +344,20 @@ evalComm (CommUseView name (ViewWithPipeline f)) = do
 -------------------------------------------------------
 -- TIMESTAMPS
 -------------------------------------------------------
-evalComm (CommTimestamp target label) = do -- aca podriamos usar el pattermatching para target y me podria ahorrar un case de este codigo
-  st <- getEval
-  let db = database st
 
-  snap <- case target of
-    TSDatabase ->
-      return (DBSnapshot db)
+evalComm (CommTimestamp TSDatabase label) = do
+    st <- getEval
+    let timestp = DBSnapshot (database st)
+    storeTimestamp label timestp
 
-    TSColl coll -> do
-      docsMaybe <- lookupDB coll
-      case docsMaybe of
+
+evalComm (CommTimestamp (TSColl coll) label) = do
+    docsMaybe <- lookupDB coll
+    docs <- case docsMaybe of
         Nothing -> throwEval (CollectionNotFound coll)
-        Just docs -> return (CollSnapshot coll docs)
-
-  doIoOperation ( do
-    tsMap <- readTimestampsFile
-    let newMap = insertMap label snap tsMap
-    writeTimestampsFile newMap) -- todo este do podria ser una sola funcionj
+        Just d  -> return d
+    let timestp = CollSnapshot coll docs
+    storeTimestamp label timestp
 
 
 -------------------------------------------------------
@@ -961,3 +957,9 @@ deleteAux :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 deleteAux cond d = do
     cumple <- safeEvalBool cond d
     return (not cumple)
+
+storeTimestamp :: (MonadIOEval m) => TimestampLabel -> TimestampSnapshot -> m ()
+storeTimestamp label timestamp = doIoOperation (do
+    tsMap <- readTimestampsFile
+    let newMap = insertMap label timestamp tsMap
+    writeTimestampsFile newMap)

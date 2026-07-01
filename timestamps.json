@@ -1,1 +1,301 @@
-{}
+{
+    "antes_de_pruebas": {
+        "data": {
+            "animales": [
+                {
+                    "_id": 159,
+                    "age": 17,
+                    "name": "Oso"
+                },
+                {
+                    "_id": 158,
+                    "age": 2,
+                    "name": "Burro"
+                },
+                {
+                    "_id": 157,
+                    "age": 2,
+                    "name": "Caballo"
+                },
+                {
+                    "_id": 156,
+                    "age": 21,
+                    "name": "Vaca"
+                },
+                {
+                    "_id": 155,
+                    "age": 7.279,
+                    "name": "Aguilucho"
+                },
+                {
+                    "_id": 154,
+                    "age": 1.199,
+                    "name": "Raton"
+                },
+                {
+                    "_id": 153,
+                    "age": 2.29,
+                    "name": "Zorro"
+                },
+                {
+                    "_id": 152,
+                    "age": 56.98,
+                    "name": "Guepardo"
+                },
+                {
+                    "_id": 151,
+                    "age": 19.1,
+                    "name": "Leonarda"
+                },
+                {
+                    "_id": 150,
+                    "age": 5,
+                    "name": "Leona"
+                },
+                {
+                    "_id": 149,
+                    "age": 18,
+                    "name": "Leon"
+                },
+                {
+                    "_id": 144,
+                    "age": 15,
+                    "name": "Gato Montes"
+                },
+                {
+                    "_id": 143,
+                    "age": 27,
+                    "name": "Guepardo"
+                },
+                {
+                    "_id": 110,
+                    "age": 20,
+                    "name": "Perrote 2"
+                },
+                {
+                    "_id": 109,
+                    "age": 10,
+                    "name": "Perrote",
+                    "perrosMenores": true
+                },
+                {
+                    "_id": 108,
+                    "age": 10,
+                    "name": "Perro",
+                    "perrosMenores": true
+                }
+            ],
+            "logs": [
+                {
+                    "_id": 206,
+                    "date": "7/5/2026",
+                    "msg": "inicio"
+                }
+            ],
+            "users": [
+                {
+                    "_id": 231,
+                    "age": 29,
+                    "country": "AR",
+                    "name": "Ana",
+                    "score": 9
+                },
+                {
+                    "_id": 230,
+                    "age": 27,
+                    "country": "AR",
+                    "name": "Juan",
+                    "score": 7
+                },
+                {
+                    "_id": 229,
+                    "active": false,
+                    "age": 26,
+                    "country": "AR",
+                    "name": "Rocio",
+                    "score": 24
+                },
+                {
+                    "_id": 228,
+                    "active": true,
+                    "age": 28,
+                    "country": "AR",
+                    "name": "Paula",
+                    "score": 17
+                },
+                {
+                    "_id": 218,
+                    "active": true,
+                    "age": 34,
+                    "direccion": {
+                        "altura": 1051,
+                        "calle": "Almafuerte"
+                    },
+                    "house": {
+                        "number": 1956,
+                        "street": "Almafuerte"
+                    },
+                    "name": "Facundo Arana",
+                    "nullProp": null
+                },
+                {
+                    "_id": 214,
+                    "name": "Martin"
+                },
+                {
+                    "_id": 205,
+                    "age": 29,
+                    "country": "AR",
+                    "name": "Ana",
+                    "score": 9
+                },
+                {
+                    "_id": 204,
+                    "age": 27,
+                    "country": "AR",
+                    "name": "Juan",
+                    "score": 7
+                },
+                {
+                    "_id": 203,
+                    "active": true,
+                    "age": 29,
+                    "name": "Lucas",
+                    "nickname": null
+                },
+                {
+                    "_id": 202,
+                    "active": false,
+                    "age": 26,
+                    "country": "AR",
+                    "name": "Rocio",
+                    "score": 24
+                },
+                {
+                    "_id": 201,
+                    "active": true,
+                    "age": 28,
+                    "country": "AR",
+                    "name": "Paula",
+                    "score": 17
+                },
+                {
+                    "_id": 185,
+                    "age": 27,
+                    "name": "Tedej"
+                },
+                {
+                    "_id": 184,
+                    "active": false,
+                    "age": 27,
+                    "direccion": {
+                        "altura": 1047,
+                        "calle": "Almafuerte"
+                    },
+                    "name": "Vollering"
+                },
+                {
+                    "_id": 183,
+                    "age": 27,
+                    "name": "Tedej"
+                },
+                {
+                    "_id": 182,
+                    "active": false,
+                    "age": 27,
+                    "direccion": {
+                        "altura": 1047,
+                        "calle": "Almafuerte"
+                    },
+                    "name": "Victoria"
+                },
+                {
+                    "_id": 180,
+                    "age": 22,
+                    "name": "Delfinal"
+                },
+                {
+                    "_id": 178,
+                    "age": 20,
+                    "name": "Sophia"
+                },
+                {
+                    "_id": 175,
+                    "age": 27,
+                    "name": "Martin"
+                },
+                {
+                    "_id": 167,
+                    "active": false,
+                    "age": 26,
+                    "country": "AR",
+                    "name": "Rocio",
+                    "score": 24
+                },
+                {
+                    "_id": 166,
+                    "active": true,
+                    "age": 28,
+                    "country": "AR",
+                    "name": "Paula",
+                    "score": 17
+                },
+                {
+                    "_id": 146,
+                    "age": 29,
+                    "country": "AR",
+                    "name": "Belen",
+                    "score": 11
+                },
+                {
+                    "_id": 145,
+                    "age": 27,
+                    "country": "AR",
+                    "name": "Valentina",
+                    "score": 11
+                },
+                {
+                    "_id": 142,
+                    "age": 29,
+                    "country": "AR",
+                    "name": "Belen",
+                    "score": 11
+                },
+                {
+                    "_id": 141,
+                    "age": 27,
+                    "country": "AR",
+                    "name": "Valentina",
+                    "score": 11
+                },
+                {
+                    "_id": 137,
+                    "active": true,
+                    "age": 30,
+                    "country": "AR",
+                    "direccion": {
+                        "calle": "Silva 123",
+                        "piso": "6A",
+                        "tipo": "departamento"
+                    },
+                    "name": "Ana",
+                    "score": 11
+                },
+                {
+                    "_id": 136,
+                    "active": true,
+                    "age": 25,
+                    "category": "gold",
+                    "country": "AR",
+                    "direccion": {
+                        "calle": "Falsa 123",
+                        "tipo": "casa"
+                    },
+                    "name": "Roman",
+                    "score": 11
+                }
+            ]
+        },
+        "type": "db"
+    }
+}
