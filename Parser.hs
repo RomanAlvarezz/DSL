@@ -60,6 +60,7 @@ pQueryPrefix word = do
   reservedP word
 
 pCommandPrefix :: String -> Parser Collection
+pCommandPrefix keyword = do
   reservedP keyword
   reservedOpP "."
   identifierP
@@ -501,7 +502,7 @@ pUpdateCommand keyword constructor = do
 
   return (constructor col cond doc)
 
-pUpdateManyComm = pUpdateCommand "update" CommUpdate
+pUpdateComm = pUpdateCommand "update" CommUpdate
 
 -- delete document
 pDeleteComm :: Parser Comm
@@ -589,7 +590,7 @@ pComm =
   <|> pTimestampComm 
   <|> pRollbackComm 
   <|> pInsertManyComm 
-  <|> pUpdateManyComm
+  <|> pUpdateComm
   <|> pDeleteComm
   <|> pInsert
   <|> pQuery

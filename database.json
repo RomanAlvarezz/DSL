@@ -125,74 +125,6 @@
             "score": 17
         },
         {
-            "_id": 227,
-            "active": true,
-            "age": 35,
-            "country": "AR",
-            "name": "Carlos",
-            "score": 13
-        },
-        {
-            "_id": 226,
-            "active": false,
-            "age": 27,
-            "country": "AR",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 225,
-            "active": true,
-            "age": 31,
-            "country": "AR",
-            "name": "Juana",
-            "score": 42
-        },
-        {
-            "_id": 224,
-            "active": true,
-            "age": 31,
-            "country": "AR",
-            "name": "Mariela",
-            "score": 42
-        },
-        {
-            "_id": 223,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 222,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 219,
-            "active": true,
-            "age": 31,
-            "country": "AR",
-            "name": "Mariela",
-            "score": 42
-        },
-        {
             "_id": 218,
             "active": true,
             "age": 27,
@@ -206,66 +138,6 @@
         {
             "_id": 214,
             "name": "Martin"
-        },
-        {
-            "_id": 213,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 212,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 211,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 210,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
-        },
-        {
-            "_id": 209,
-            "active": false,
-            "age": 27,
-            "country": "US",
-            "direccion": {
-                "altura": 1047,
-                "calle": "Almafuerte"
-            },
-            "name": "eIWAA",
-            "score": 42
         },
         {
             "_id": 205,
@@ -303,22 +175,6 @@
             "country": "AR",
             "name": "Paula",
             "score": 17
-        },
-        {
-            "_id": 200,
-            "active": true,
-            "age": 35,
-            "country": "AR",
-            "name": "Carlos",
-            "score": 13
-        },
-        {
-            "_id": 196,
-            "active": true,
-            "age": 31,
-            "country": "AR",
-            "name": "Lucia",
-            "score": 42
         },
         {
             "_id": 185,
@@ -382,14 +238,6 @@
             "score": 17
         },
         {
-            "_id": 165,
-            "active": true,
-            "age": 35,
-            "country": "AR",
-            "name": "Carlos",
-            "score": 13
-        },
-        {
             "_id": 146,
             "age": 29,
             "country": "AR",
@@ -415,21 +263,6 @@
             "age": 27,
             "country": "AR",
             "name": "Valentina",
-            "score": 11
-        },
-        {
-            "_id": 140,
-            "age": 35,
-            "country": "US",
-            "name": "John",
-            "score": 50
-        },
-        {
-            "_id": 139,
-            "active": true,
-            "age": 40,
-            "country": "AR",
-            "name": "Maria",
             "score": 11
         },
         {

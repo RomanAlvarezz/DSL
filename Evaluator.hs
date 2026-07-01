@@ -102,7 +102,7 @@ class Monad m => MonadErrorEval m where
   catchEval :: m a -> (EvalError -> m a) -> m a
 
 class Monad m => MonadIOEval m where
-  liftIOEval :: IO a -> m a -- ???????????????????????????
+  liftIOEval :: IO a -> m a 
 
 -------------------------------------------------------
 -- INSTANCIAS PARA Eval
@@ -157,10 +157,9 @@ lookupMap key ((k,v):xs) = if key == k then Just v else lookupMap key xs
 
 
 memberMap :: (Eq k) => k -> [(k,v)] -> Bool
-memberMap key xs =
-  case lookupMap key xs of
-    Just _  -> True
-    Nothing -> False
+memberMap key xs = case lookupMap key xs of
+                      Just _  -> True
+                      Nothing -> False
 
 insertMap :: (Eq k) => k -> v -> [(k,v)] -> [(k,v)]
 insertMap key val [] = [(key, val)]
@@ -255,15 +254,15 @@ evalComm (CommDropColl name) = do
 -------------------------------------------------------
 evalComm (CommInsert coll exp) = do
   obj <- evalJsonExpAsObject exp emptyDoc
-  cleanDoc <- case validateNoIdField obj of
-                Nothing -> throwEval ReservedField
-                Just cd -> return cd
+  case validateNoIdField obj of
+    Nothing -> throwEval ReservedField
+    Just _ -> return ()
   docsMaybe <- lookupDB coll
   case docsMaybe of
     Nothing -> throwEval (CollectionNotFound coll)
     Just docs -> do
       newId <- incId
-      let docWithId = ("_id", VNum (NInt newId)) : cleanDoc
+      let docWithId = ("_id", VNum (NInt newId)) : obj
       insertDB coll (docWithId : docs)
       incDocs 1
       registerCollectionChange coll
@@ -283,9 +282,8 @@ evalComm (CommDelete coll cond) = do
     Nothing -> throwEval (CollectionNotFound coll)
 
     Just docs -> do
-      docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
+      docs' <- filterM (deleteAux cond) docs
       let deleted = length docs - length docs'
-
       if deleted > 0
         then do
           insertDB coll docs'
@@ -293,6 +291,9 @@ evalComm (CommDelete coll cond) = do
           registerCollectionChange coll
         else
           return ()
+
+--docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
+
 
 
 -------------------------------------------------------
@@ -973,3 +974,8 @@ writeViewsFile viewsList = do
             ]
         )
   BL.writeFile viewsFile (AP.encodePretty jsonObj)
+
+deleteAux :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
+deleteAux cond d = do
+    cumple <- safeEvalBool cond d
+    return (not cumple)
