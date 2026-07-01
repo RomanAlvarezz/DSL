@@ -363,25 +363,21 @@ evalComm (CommTimestamp (TSColl coll) label) = do
 -------------------------------------------------------
 -- ROLLBACK
 -------------------------------------------------------
-evalComm (CommRollback target label) = do
+evalComm (CommRollback TSDatabase label) = do
   st <- getEval
+  timestmp <- getTimestamp label
+  case timestmp of
+    DBSnapshot db' -> putEval st { database = db' }
+    _              -> throwEval InvalidTimestampTarget
 
-  tsMap <- doIoOperation readTimestampsFile
-
-  snap <- case lookupMap label tsMap of
-    Nothing -> throwEval (TimestampNotFound label)
-    Just s  -> return s
-
-  case (target, snap) of
-
-    (TSDatabase, DBSnapshot db') ->
-      putEval st { database = db' }
-
-    (TSColl coll, CollSnapshot c docs)
-      | coll == c ->
+evalComm (CommRollback (TSColl coll) label) = do
+  st <- getEval
+  timestmp <- getTimestamp label
+  case timestmp of
+    CollSnapshot coll' docs
+      | coll == coll' ->
           let db' = insertMap coll docs (database st)
           in putEval st { database = db' }
-
     _ -> throwEval InvalidTimestampTarget
 
 -------------------------------------------------------
@@ -963,3 +959,10 @@ storeTimestamp label timestamp = doIoOperation (do
     tsMap <- readTimestampsFile
     let newMap = insertMap label timestamp tsMap
     writeTimestampsFile newMap)
+
+getTimestamp :: (MonadIOEval m, MonadErrorEval m) => TimestampLabel -> m TimestampSnapshot
+getTimestamp label = do
+  tsMap <- doIoOperation readTimestampsFile
+  case lookupMap label tsMap of
+    Nothing -> throwEval (TimestampNotFound label)
+    Just s  -> return s
