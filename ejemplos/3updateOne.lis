@@ -1,8 +1,8 @@
 update.users(
-  name eqS "Luciana",
+  name eqS "Facundo",
   {
-    name:s "Luciana Alvarez",
-    age:n 23,
+    name:s "Facundo Arana",
+    age:n 34,
     direccion:p {calle:s "Almafuerte", altura:n 1051},
     active:b true
   }

@@ -127,12 +127,16 @@
         {
             "_id": 218,
             "active": true,
-            "age": 27,
+            "age": 34,
+            "direccion": {
+                "altura": 1051,
+                "calle": "Almafuerte"
+            },
             "house": {
                 "number": 1956,
                 "street": "Almafuerte"
             },
-            "name": "Facundo",
+            "name": "Facundo Arana",
             "nullProp": null
         },
         {

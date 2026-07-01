@@ -292,10 +292,6 @@ evalComm (CommDelete coll cond) = do
         else
           return ()
 
---docs' <- filterM (\d -> fmap not (safeEvalBool cond d)) docs
-
-
-
 -------------------------------------------------------
 -- UPDATE
 -------------------------------------------------------
@@ -815,7 +811,7 @@ processDoc cond obj doc = do
           if alreadySame
              then return (doc, 0)
              else do
-                 let updated = ("_id", getId doc) : applyChanges doc obj
+                 let updated = applyChanges doc obj
                  return (updated, 1)
 
 sameValues :: Document -> Document -> Bool
@@ -831,12 +827,8 @@ applyChanges [] changes = changes
 
 applyChanges ((field,value):xs) changes =
     case lookup field changes of
-
-        Just newValue ->
-            (field,newValue) : applyChanges xs (filter (\(k,_) -> k /= field) changes)
-
-        Nothing ->
-            (field,value) : applyChanges xs changes
+        Just newValue -> (field,newValue) : applyChanges xs (filter (\(k,_) -> k /= field) changes)
+        Nothing -> (field,value) : applyChanges xs changes
 
 safeEvalBool :: (MonadErrorEval m) => BoolExp -> Document -> m Bool
 safeEvalBool cond doc =
@@ -946,19 +938,10 @@ viewsFile = "views.json"
 
 readViewsFile :: IO [(ViewName, Find)]
 readViewsFile = do
-  content <- catch
-      (BL.readFile viewsFile)
-      handler
+  content <- catch (BL.readFile viewsFile) handler
   case A.decode content of
     Nothing -> return []
-    Just (A.Object obj) ->
-      return
-        [ ( T.unpack (K.toText k)
-          , find
-          )
-        | (k, v) <- KM.toList obj
-        , Right find <- [jsonToFind v]
-        ]
+    Just (A.Object obj) -> return [ ( T.unpack (K.toText k), find) | (k, v) <- KM.toList obj , Right find <- [jsonToFind v]]
     _ -> return []
 
 
