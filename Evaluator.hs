@@ -102,7 +102,7 @@ class Monad m => MonadErrorEval m where
   catchEval :: m a -> (EvalError -> m a) -> m a
 
 class Monad m => MonadIOEval m where
-  liftIOEval :: IO a -> m a 
+  doIoOperation :: IO a -> m a 
 
 -------------------------------------------------------
 -- INSTANCIAS PARA Eval
@@ -143,7 +143,7 @@ instance MonadErrorEval Eval where
       Right ok -> return (Right ok))
 
 instance MonadIOEval Eval where
-  liftIOEval io = Eval (\s -> do
+  doIoOperation io = Eval (\s -> do
     a <- io
     return (Right (a, s)))
 
@@ -280,7 +280,6 @@ evalComm (CommDelete coll cond) = do
   docsMaybe <- lookupDB coll
   case docsMaybe of
     Nothing -> throwEval (CollectionNotFound coll)
-
     Just docs -> do
       docs' <- filterM (deleteAux cond) docs
       let deleted = length docs - length docs'
@@ -323,19 +322,19 @@ evalComm (CommQuery find) = do
 -- VISTAS
 -------------------------------------------------------
 evalComm (CommCreateView name find) = do
-  viewsMap <- liftIOEval readViewsFile -- viewsMap tiene una lista con todas las vistas tipo  [ ("mayores", Find ...), ("empleados", Find ...), ...]
+  viewsMap <- doIoOperation readViewsFile -- viewsMap tiene una lista con todas las vistas tipo  [ ("mayores", Find ...), ("empleados", Find ...), ...]
   if memberMap name viewsMap
     then throwEval (ViewAlreadyExists name)
-    else liftIOEval (writeViewsFile (insertMap name find viewsMap))
+    else doIoOperation (writeViewsFile (insertMap name find viewsMap))
 
 evalComm (CommUseView name ViewOnly) = do
-  viewsMap <- liftIOEval readViewsFile
+  viewsMap <- doIoOperation readViewsFile
   case lookupMap name viewsMap of
     Nothing -> throwEval (ViewNotFound name)
     Just f -> evalComm (CommQuery f)
 
 evalComm (CommUseView name (ViewWithPipeline f)) = do
-  viewsMap <- liftIOEval readViewsFile
+  viewsMap <- doIoOperation readViewsFile
   case lookupMap name viewsMap of
     Nothing -> throwEval (ViewNotFound name)
     Just (Find coll ops _) ->
@@ -359,7 +358,7 @@ evalComm (CommTimestamp target label) = do -- aca podriamos usar el pattermatchi
         Nothing -> throwEval (CollectionNotFound coll)
         Just docs -> return (CollSnapshot coll docs)
 
-  liftIOEval ( do
+  doIoOperation ( do
     tsMap <- readTimestampsFile
     let newMap = insertMap label snap tsMap
     writeTimestampsFile newMap) -- todo este do podria ser una sola funcionj
@@ -371,7 +370,7 @@ evalComm (CommTimestamp target label) = do -- aca podriamos usar el pattermatchi
 evalComm (CommRollback target label) = do
   st <- getEval
 
-  tsMap <- liftIOEval readTimestampsFile
+  tsMap <- doIoOperation readTimestampsFile
 
   snap <- case lookupMap label tsMap of
     Nothing -> throwEval (TimestampNotFound label)
@@ -534,11 +533,11 @@ applyOp docs (QGroup (GroupSpec fields aggs having)) = do
 evalTerminal :: (MonadIOEval m) => QueryTerminal -> [Document] -> m ()
 evalTerminal TerminalPreview docs = do
   let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
-  liftIOEval (BL.putStrLn (AP.encodePretty jsonVal))
+  doIoOperation (BL.putStrLn (AP.encodePretty jsonVal))
 
 evalTerminal (TerminalSave path) docs = do
   let jsonVal = A.Array (V.fromList (map (valueToJson . VObject) docs))
-  liftIOEval (BL.writeFile path (AP.encodePretty jsonVal))
+  doIoOperation (BL.writeFile path (AP.encodePretty jsonVal))
 
 -------------------------------------------------------
 -- NUMEXP
