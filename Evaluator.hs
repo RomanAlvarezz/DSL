@@ -384,10 +384,10 @@ evalComm (CommRollback (TSColl coll) label) = do
 -- TRANSACCIONES
 -------------------------------------------------------
 evalComm (CommTransaction comms) = do
-  snapshot <- getEval
+  s <- getEval
   catchEval
     (mapM_ evalComm comms)
-    (\_ -> putEval snapshot)
+    (\_ -> putEval s)
 
 -------------------------------------------------------
 -- EVALUACION DE CONSULTAS
@@ -640,7 +640,7 @@ evalBoolExp (BPath p) doc = do
     _       -> throwEval TypeError
 
 -- Operadores lógicos
-evalBoolExp (Not b) doc = do
+evalBoolExp (Not b) doc = do -- solamente en este evalBoolExp se usa doc, en el resto no
   v <- evalBoolExp b doc
   return (not v)
 
@@ -724,7 +724,7 @@ evalBoolExp (Exists p) doc =
     (evalPathExp p doc >> return True) 
     (\e -> case e of
              FieldNotFoundInObject _ -> return False
-             _ -> throwEval e -- Si es división por cero, que explote
+             _ -> throwEval e
     )
 
 -------------------------------------------------------
@@ -732,7 +732,7 @@ evalBoolExp (Exists p) doc =
 -------------------------------------------------------
 evalJsonExp :: (MonadErrorEval m) => JsonExp -> Document -> m Value
 -- Object
-evalJsonExp (JObject fields) doc = do
+evalJsonExp (JObject fields) doc = do -- ¿Por que JObject pasa a VObject?
   vals <- mapM evalField fields
   return (VObject vals)
   where

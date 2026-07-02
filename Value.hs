@@ -1,4 +1,4 @@
-module Value ( Value(..), TimestampSnapshot(..), Document, CollectionData, Database, FieldName, Collection) where
+module Value ( Value(..), TimestampSnapshot(..), Document, CollectionData, Database, FieldName, CollectionName) where
 import AST (Number(..), TimestampLabel)
 import qualified Data.Map as M
 
@@ -6,7 +6,7 @@ import qualified Data.Map as M
 -- TIPOS BASE DEL DOMINIO
 -------------------------------------------------------
 type FieldName = String
-type Collection = String
+type CollectionName = String
 
 -------------------------------------------------------
 -- VALORES JSON INTERNOS (CORE DEL DSL)
@@ -27,7 +27,7 @@ data Value
 type Document = [(FieldName, Value)]
 type CollectionData = [Document]
 
-type Database = [(Collection, CollectionData)]
+type Database = [(CollectionName, CollectionData)]
 
 
 -------------------------------------------------------
@@ -35,5 +35,5 @@ type Database = [(Collection, CollectionData)]
 -------------------------------------------------------
 data TimestampSnapshot
   = DBSnapshot Database
-  | CollSnapshot Collection CollectionData
+  | CollSnapshot CollectionName CollectionData
   deriving (Show)

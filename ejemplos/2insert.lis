@@ -1,7 +1,7 @@
 insert.users({
-  name:s "Juana",
-  age:n 31,
-  country:s "AR",
-  active:b true,
-  score:n 42
+  name:s "Zlatan",
+  age:n 43,
+  country:s "SU",
+  active:b false,
+  score:n 406
 })

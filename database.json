@@ -1,6 +1,6 @@
 {
     "_meta": {
-        "nextId": 250
+        "nextId": 251
     },
     "animales": [
         {
@@ -94,6 +94,14 @@
         }
     ],
     "users": [
+        {
+            "_id": 250,
+            "active": false,
+            "age": 43,
+            "country": "SU",
+            "name": "Zlatan",
+            "score": 406
+        },
         {
             "_id": 231,
             "age": 29,
