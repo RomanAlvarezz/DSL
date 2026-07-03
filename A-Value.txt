@@ -1,0 +1,7 @@
+data Value
+    = Object Object
+    | Array Array
+    | String Text
+    | Number Scientific
+    | Bool Bool
+    | Null

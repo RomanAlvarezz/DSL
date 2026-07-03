@@ -79,19 +79,9 @@ jsonToDatabase (A.Object obj) = do
 
   let metaVal = KM.lookup (stringToKey "_meta") obj
 
-  let nextId =
-        case metaVal of
-          Just (A.Object m) ->
-            case KM.lookup (stringToKey "nextId") m of
-              Just (A.Number n) ->
-                case floatingOrInteger n of
-                  Right i -> i
-                  _ -> 1
-              _ -> 1
-          _ -> 1
+  let nextId = extractNextId obj
 
-  let collections =
-        KM.toList (KM.delete (stringToKey "_meta") obj)
+  let collections = KM.toList (KM.delete (stringToKey "_meta") obj)
 
   db <- mapM parsePair collections
 
@@ -102,26 +92,30 @@ jsonToDatabase (A.Object obj) = do
       docs <- parseCollection val
       return (keyToString collName, docs)
 
-jsonToDatabase _ =
-  Left "El JSON de la base debe ser un objeto"
+jsonToDatabase _ = Left "El JSON de la base debe ser un objeto"
+
+extractNextId :: KM.KeyMap A.Value -> Int
+extractNextId obj =
+  case KM.lookup (stringToKey "_meta") obj of
+    Just (A.Object m) ->
+      case KM.lookup (stringToKey "nextId") m of
+        Just (A.Number n) ->
+          case floatingOrInteger n of
+            Right i -> i
+            _       -> 1
+        _ -> 1
+    _ -> 1
 
 parseDocument :: A.Value -> Either String Document
-parseDocument (A.Object obj) =
-  Right
-    [ (keyToString k, jsonToValue v)
-    | (k,v) <- KM.toList obj
-    ]
+parseDocument (A.Object obj) = Right [ (keyToString k, jsonToValue v) | (k,v) <- KM.toList obj ]
 
-parseDocument _ =
-  Left "Un documento debe ser un objeto"
+parseDocument _ = Left "Un documento debe ser un objeto"
 
 
-parseCollection :: A.Value -> Either String [Document]
-parseCollection (A.Array arr) =
-  mapM parseDocument (V.toList arr)
+parseCollection :: A.Value -> Either String CollectionData
+parseCollection (A.Array arr) = mapM parseDocument (V.toList arr)
 
-parseCollection _ =
-  Left "Colección inválida: se esperaba un array"
+parseCollection _ =  Left "Colección inválida: se esperaba un array"
 
 -------------------------------------------------------
 -- DATABASE -> JSON
@@ -173,11 +167,6 @@ numExpToJson (NConst (NInt n)) =
 
 numExpToJson (NConst (NFloat f)) =
   obj "float" [("value", A.Number (realToFrac f))]
-
-{--
-numExpToJson (NVar f) =
-  obj "var" [("name", A.String (text f))]
---}
 
 -- nuevo
 numExpToJson (NPath p) =

@@ -81,7 +81,7 @@ runEvaluator ast jsonFile = do
 
   result <- runEval (evalComm ast) initialState
 
-  -- este case seria la nueva forma de ver el resultado de evaluator
+  
   case result of
 
     Left err ->
