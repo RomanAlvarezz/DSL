@@ -39,10 +39,7 @@ jsonToValue (A.Array arr) =
   VArray (map jsonToValue (V.toList arr))
 
 jsonToValue (A.Object obj) =
-  VObject
-    [ (keyToString k, jsonToValue v)
-    | (k,v) <- KM.toList obj
-    ]
+  VObject [ (keyToString k, jsonToValue v) | (k,v) <- KM.toList obj ]
 
 -------------------------------------------------------
 -- VALUE -> JSON

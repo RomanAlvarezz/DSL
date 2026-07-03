@@ -27,7 +27,7 @@ runFiles :: FilePath -> FilePath -> IO ()
 runFiles queryFile jsonFile = do
   putStrLn "DEBUG: leyendo consulta"
 
-  input <- fmap (filter (/= '\r')) (readFile queryFile) -- Hay que ver que carajo hace esta linea.
+  input <- readFile queryFile
 
   case parse pProgram queryFile input of
     Left err -> do
