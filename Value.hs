@@ -1,6 +1,5 @@
 module Value ( Value(..), TimestampSnapshot(..), Document, CollectionData, Database, FieldName, CollectionName) where
-import AST (Number(..), TimestampLabel)
-import qualified Data.Map as M
+import AST (Number(..))
 
 -------------------------------------------------------
 -- TIPOS BASE DEL DOMINIO
